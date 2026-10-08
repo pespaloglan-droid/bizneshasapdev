@@ -1,0 +1,25 @@
+{
+  "name": "lisans-yonetici",
+  "version": "1.0.0",
+  "description": "Biznes Hasap Lisans Yönetici - Kolay Arayüzlü Key Generator",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win portable"
+  },
+  "keywords": [
+    "license",
+    "key",
+    "generator"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "electron": "^34.5.8",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "tweetnacl": "^1.0.3"
+  }
+}

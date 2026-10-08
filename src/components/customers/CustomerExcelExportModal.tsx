@@ -1,0 +1,243 @@
+import React, { useMemo, useState } from 'react';
+import { CheckSquare, Download, Loader2, Square, X } from 'lucide-react';
+import type { Customer, CustomerType, LanguageCode } from '../../types';
+import { customerTypeText } from '../../utils/customerExcel';
+import { exportCustomersStyled } from '../../utils/styledExports';
+
+type TypeFilter = 'all' | 'customer' | 'employee';
+
+interface CustomerExcelExportModalProps {
+  language: LanguageCode;
+  customers: readonly Customer[];
+  /** Firma/hesap ady — Excel header'ında görkezilýär. */
+  accountName: string;
+  onClose: () => void;
+}
+
+export const CustomerExcelExportModal: React.FC<CustomerExcelExportModalProps> = ({
+  language,
+  customers,
+  accountName,
+  onClose,
+}) => {
+  const isTm = language === 'tm';
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(customers.map((customer) => customer.id))
+  );
+  const [query, setQuery] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  // 2) — borç/alýak bakiýe ýazylsynmy?
+  const [includeBalance, setIncludeBalance] = useState(true);
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return customers.filter((customer) => {
+      if (typeFilter === 'employee' && customer.type !== 'employee') return false;
+      if (typeFilter === 'customer' && customer.type === 'employee') return false;
+      if (!q) return true;
+      return (
+        customer.name.toLowerCase().includes(q) ||
+        (customer.phone ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [customers, typeFilter, query]);
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectVisible = () => setSelected((prev) => new Set([...prev, ...visible.map((c) => c.id)]));
+  const clearVisible = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const customer of visible) next.delete(customer.id);
+      return next;
+    });
+  };
+
+  const handleExport = async () => {
+    const chosen = customers.filter((customer) => selected.has(customer.id));
+    if (chosen.length === 0) return;
+    setIsExporting(true);
+    try {
+      const saved = await exportCustomersStyled(
+        chosen,
+        { includeBalance, accountName },
+        `musderiler-${new Date().toISOString().slice(0, 10)}.xlsx`
+      );
+      if (saved) onClose();
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const FILTERS: { id: TypeFilter; label: string }[] = [
+    { id: 'all', label: isTm ? 'Ählisi' : 'Tümü' },
+    { id: 'customer', label: isTm ? 'Müşderiler' : 'Müşteriler' },
+    { id: 'employee', label: isTm ? 'Işgärler' : 'İşgörenler' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
+        <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
+          <span className="font-bold text-sm tracking-wide flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            {isTm ? 'Excel-e çykar (Export)' : "Excel'e aktar"}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-xl hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3 overflow-hidden flex-1 flex flex-col min-h-0">
+          <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+            {/* Görnüşi filtri */}
+            <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-xl border border-gray-200">
+              {FILTERS.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setTypeFilter(filter.id)}
+                  className={`px-3 h-7 rounded-lg text-[11px] font-bold transition-all ${
+                    typeFilter === filter.id
+                      ? 'bg-[#10b981] text-white shadow-xs'
+                      : 'text-gray-600 hover:bg-white'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={isTm ? 'Müşderi gözle...' : 'Müşteri ara...'}
+              className="flex-1 min-w-[140px] h-9 px-3 border border-gray-200 rounded-xl text-sm bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 outline-none"
+            />
+            <button
+              type="button"
+              onClick={selectVisible}
+              className="h-9 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] flex items-center gap-1.5"
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              {isTm ? 'Hemmesini saýla' : 'Tümünü seç'}
+            </button>
+            <button
+              type="button"
+              onClick={clearVisible}
+              className="h-9 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] flex items-center gap-1.5"
+            >
+              <Square className="w-3.5 h-3.5" />
+              {isTm ? 'Saýlanany aýyr' : 'Seçimi kaldır'}
+            </button>
+            <span className="text-[11px] font-bold text-emerald-600 font-mono">
+              {selected.size} / {customers.length}
+            </span>
+          </div>
+
+          {/* 2) — aktarma öňüni soraglar */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-3 py-2.5 bg-[#F8FAFC] border border-gray-200 rounded-xl flex-shrink-0">
+            <label className="flex items-center gap-2 text-[11px] font-bold text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeBalance}
+                onChange={(e) => setIncludeBalance(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              {isTm
+                ? 'Borç / alýak bakiýeleri ýazylsynmy?'
+                : 'Borç / alacak bakiyeleri yazılsın mı?'}
+            </label>
+          </div>
+
+          <div className="border border-gray-200 rounded-xl overflow-y-auto flex-1 min-h-0">
+            <table className="w-full text-left text-xs">
+              <tbody className="divide-y divide-gray-50">
+                {visible.length === 0 ? (
+                  <tr>
+                    <td className="py-10 text-center text-gray-400 font-semibold">
+                      {isTm ? 'Müşderi tapylmady' : 'Müşteri bulunamadı'}
+                    </td>
+                  </tr>
+                ) : (
+                  visible.map((customer) => (
+                    <tr
+                      key={customer.id}
+                      onClick={() => toggle(customer.id)}
+                      className="hover:bg-gray-50/70 cursor-pointer"
+                    >
+                      <td className="py-2 px-3 w-10">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(customer.id)}
+                          onChange={() => toggle(customer.id)}
+                          className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                      </td>
+                      <td className="py-2 px-3 font-semibold text-gray-800 truncate">
+                        {customer.name}
+                      </td>
+                      <td className="py-2 px-3 font-mono text-gray-500 text-[11px]">
+                        {customer.phone || '—'}
+                      </td>
+                      <td className="py-2 px-3 text-[11px] text-emerald-600 font-semibold">
+                        {customerTypeText(customer.type as CustomerType)}
+                      </td>
+                      <td
+                        className={`py-2 px-3 text-right font-mono font-bold ${
+                          customer.balance > 0
+                            ? 'text-rose-600'
+                            : customer.balance < 0
+                            ? 'text-emerald-600'
+                            : 'text-gray-500'
+                        }`}
+                      >
+                        {customer.balance.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
+          >
+            {isTm ? 'Ýatyr' : 'İptal'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleExport()}
+            disabled={selected.size === 0 || isExporting}
+            className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-2"
+          >
+            {isExporting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            {isTm ? `Excel-e eksport et (${selected.size})` : `Excel'e aktar (${selected.size})`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

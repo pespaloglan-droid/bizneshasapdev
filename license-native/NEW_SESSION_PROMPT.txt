@@ -1,0 +1,94 @@
+# YENİ OTURUM BAŞLANGIÇ PROMPTU
+# Kopyala-yapıştır için hazır
+
+---
+
+Offline POS lisans sistemi (PC + Android APK) geliştirme devamı.
+
+**DURUM:** ADIM 1-4 tamamlandı (%60), ADIM 5-7 yapılacak (%40 kaldı).
+
+**TAMAMLANAN:**
+- ✅ C++ native modül (16 dosya, 3500 satır) - license.cc, codec.cc, fingerprint.cc, state.cc, integrity.cc, business.cc
+- ✅ tweetnacl.c + tweetnacl.h (resmi implementasyon, kullanıcı indirdi)
+- ✅ JS wrapper (native.js, gate.js, gateMiddleware.js)
+- ✅ Admin core (admin/core/license-core.js + codec.js)
+- ✅ CLI (admin/license-admin.js)
+
+**YAPILACAK (sırayla, her adım sonrası onay iste):**
+
+**ADIM 5:** Admin GUI - LisansYonetici.exe (Electron portable app)
+- Klasör: `admin-gui/` (YENİ)
+- Dosyalar: package.json, electron-builder.yml, main.js, preload.js, renderer/ (index.html, app.js, styles.css)
+- 3 ekran: Kilit (parola) → Platform (PC/APK seç) → Keygen (istek kodu yapıştır, gün seç, KEY OLUŞTUR)
+- IPC handlers core'u çağırır (unlock, createKey, decodeRequest, listKeys, inspectKey, etc.)
+- Güvenlik: otomatik kilit 10dk, ağ erişimi YOK, contextIsolation:true
+- Build: `electron-builder` ile portable .exe
+
+**ADIM 6:** UI bileşenleri (lisans ekranları)
+- `license-native/ui/LicenseScreen.pc.jsx` (Electron + React)
+- `license-native/ui/LicenseScreen.mobile.jsx` (React Native)
+- Gösterim: Hesap ID + istek kodu (kopyala/paylaş) + kök kod girişi + anahtar girişi + aktifleştir
+- Hesap ID **bir kez üretilir** (kalıcı), her açılışta yeniden üretilmez
+
+**ADIM 7:** Testler + scripts + README
+- `test/test.js` (30+ test: planlar, sequence, features, gate, vektörler)
+- `test/vectors.json` (CRC16, Base32, imza - tweetnacl-js ile çapraz)
+- `scripts/release-check.js` (binary strip, log yok, ağ yok)
+- `android/CMakeLists.txt` (nodejs-mobile için)
+- `README.md` (build, kullanım, güvenlik, tehdit modeli)
+
+**ÖNEMLI NOTLAR:**
+- Payload düzeni (2.6 tablosu) KİLİTLİ: 33 bayt, offset'ler C++ ve JS'te birebir aynı
+- tweetnacl.c TAM (16KB), Ed25519/SHA-512/secretbox çalışır
+- `src/public_keys.h` placeholder - ilk `admin keygen` üretir
+- Context: SADECE lazım dosyaları oku, kodu bellekte tutma, yol/özet tut
+
+**DOSYALAR:**
+- Handoff: `C:\Users\User\Desktop\Biznes Hasap PC-APK 1\license-native\HANDOFF.md`
+- Spec: `C:\Users\User\Downloads\lisans-sistemi-spec-v2-gui-keygen.md`
+- Proje: `C:\Users\User\Desktop\Biznes Hasap PC-APK 1\`
+
+**BAŞLA:** ADIM 5 (Admin GUI) oluştur. Her adım bitince özet ver, onay bekle. Türkçe yaz, her adım için izin iste.
+
+---
+
+# CONTEXT YÖNETİMİ (ÖNEMLİ - UYGULANACAK)
+
+**KURAL:** Kod içeriğini bellekte tutma, sadece yol + özet tut.
+
+**Örnek (YANLIŞ - yapma):**
+```
+license.cc dosyası şu içerikte:
+[2000 satır kod buraya yapıştırılır]
+```
+
+**Örnek (DOĞRU - yap):**
+```
+license.cc: Activate fonksiyonu var (payload parse, imza verify, cihaz check, saat check).
+Offset'ler: version=0, keyId=1, accountId=2, deviceAnchor=10, plan=14, flags=15, ...
+```
+
+**Dosya okuma:**
+- Dosya gerektiğinde Read ile oku
+- Özet çıkar (fonksiyon isimleri, önemli değerler)
+- Kodu context'te tutma
+- Aynı dosyayı tekrar okuma (zaten özetini aldın)
+
+**Her adımda:**
+1. Hangi dosyaları oluşturacağını söyle
+2. Dosyaları oluştur (Write)
+3. Özet ver (ne yaptın, kaç satır, önemli kısımlar)
+4. Onay bekle
+
+**Her adım sonu:**
+```
+✅ ADIM X TAMAMLANDI
+- Oluşturulan: [dosya listesi]
+- Satır: ~XXX
+- Önemli: [1-2 cümle]
+Devam edelim mi? (ADIM X+1)
+```
+
+---
+
+Bu promptu olduğu gibi yeni oturuma yapıştırabilirsiniz.

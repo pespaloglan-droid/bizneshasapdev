@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lisans Yönetici</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- EKRAN 1: Kilit -->
+  <div id="lock-screen" class="screen active">
+    <div class="lock-container">
+      <h1>🔒 Lisans Yönetici</h1>
+      <p id="lock-message">Parola girin</p>
+      <div class="input-group">
+        <input type="password" id="password-input" placeholder="Parola" autocomplete="off">
+        <button id="unlock-btn" class="primary">Aç</button>
+      </div>
+      <div id="lock-error" class="error hidden"></div>
+      
+      <!-- İlk kurulum -->
+      <div id="first-setup" class="hidden">
+        <hr>
+        <p>İlk kullanım - yeni kök anahtar oluşturun:</p>
+        <div class="input-group">
+          <input type="password" id="setup-password" placeholder="Yeni parola (min 8 karakter)">
+          <input type="password" id="setup-password-confirm" placeholder="Parola tekrar">
+        </div>
+        <button id="setup-btn" class="primary">Kök Anahtar Oluştur</button>
+        <div id="setup-error" class="error hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EKRAN 2: Platform seçimi -->
+  <div id="platform-screen" class="screen">
+    <div class="platform-container">
+      <h2>Platform seçin</h2>
+      <p class="hint">Anahtar her iki platformda da çalışır. Bu seçim sadece kayıt için.</p>
+      
+      <div class="platform-buttons">
+        <button class="platform-btn" data-platform="PC">
+          <div class="platform-icon">💻</div>
+          <div class="platform-name">PC</div>
+          <div class="platform-desc">Windows, macOS, Linux</div>
+        </button>
+        
+        <button class="platform-btn" data-platform="APK">
+          <div class="platform-icon">📱</div>
+          <div class="platform-name">Android APK</div>
+          <div class="platform-desc">arm64, armeabi-v7a, x86_64</div>
+        </button>
+      </div>
+      
+      <button id="logout-btn" class="secondary">🔒 Kilitle</button>
+    </div>
+  </div>
+
+  <!-- EKRAN 3: Keygen -->
+  <div id="keygen-screen" class="screen">
+    <div class="keygen-container">
+      <div class="header">
+        <button id="back-btn" class="secondary">← Geri</button>
+        <h2 id="platform-title">PC Lisans Anahtarı</h2>
+      </div>
+
+      <!-- İstek kodu girişi -->
+      <div class="section">
+        <label>İstek Kodu (kullanıcıdan alınan)</label>
+        <textarea id="request-code-input" rows="2" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"></textarea>
+        <div id="request-error" class="error hidden"></div>
+        
+        <div id="request-info" class="info-box hidden">
+          <div class="info-row">
+            <span>Hesap ID:</span>
+            <span id="info-account-id"></span>
+          </div>
+          <div class="info-row">
+            <span>Cihaz Çıpası:</span>
+            <span id="info-device-anchor"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Süre seçimi -->
+      <div class="section">
+        <label>Süre</label>
+        <div class="duration-grid">
+          <button class="duration-btn" data-days="30">1 Ay</button>
+          <button class="duration-btn" data-days="90">3 Ay</button>
+          <button class="duration-btn" data-days="180">6 Ay</button>
+          <button class="duration-btn" data-days="365">1 Yıl</button>
+          <button class="duration-btn custom" data-days="custom">Özel</button>
+        </div>
+        <div id="custom-days-input" class="hidden">
+          <input type="number" id="custom-days" min="1" max="730" placeholder="Gün sayısı (1-730)">
+        </div>
+        <div id="duration-error" class="error hidden"></div>
+      </div>
+
+      <!-- Anahtar oluştur -->
+      <div class="section">
+        <button id="generate-btn" class="primary large" disabled>ANAHTAR OLUŞTUR</button>
+      </div>
+
+      <!-- Sonuç -->
+      <div id="result-section" class="section hidden">
+        <div class="success-box">
+          <h3>✓ Anahtar oluşturuldu</h3>
+          <div class="key-display">
+            <textarea id="generated-key" readonly rows="3"></textarea>
+            <button id="copy-key-btn" class="secondary small">Kopyala</button>
+          </div>
+          
+          <div class="result-info">
+            <div class="info-row">
+              <span>Anahtar ID:</span>
+              <span id="result-key-id"></span>
+            </div>
+            <div class="info-row">
+              <span>Aktivasyon süresi:</span>
+              <span id="result-activate-by"></span>
+            </div>
+            <div class="info-row">
+              <span>Süre:</span>
+              <span id="result-duration"></span>
+            </div>
+          </div>
+
+          <button id="new-key-btn" class="primary">Yeni Anahtar</button>
+        </div>
+      </div>
+
+      <!-- Kayıtlar (son 10) -->
+      <div class="section">
+        <h3>Son Oluşturulanlar</h3>
+        <div id="key-history" class="key-history"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Genel yüklenme göstergesi -->
+  <div id="loading" class="loading hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+/* Mobil (telefon) katmanı — PC'yi etkilemez, dar ekranda devreye girer. */
+
+html, body, #root {
+  height: 100dvh;
+}
+
+/* Alt menü güvenli alan (jest çubuğu olan telefonlar) */
+.bh-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.bh-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@media (max-width: 768px) {
+  /* Dokunmatik hedefler: en az 44px */
+  .bh-touch button,
+  .bh-touch input,
+  .bh-touch select,
+  .bh-touch [role="button"] {
+    min-height: 44px;
+  }
+  .bh-touch input,
+  .bh-touch select {
+    font-size: 16px; /* iOS otomatik zoom engeli */
+  }
+
+  /* Modallar telefonda tam ekran sayfa olur */
+  .bh-touch [role="dialog"],
+  .bh-touch .fixed.inset-0 > div {
+    max-height: 100dvh;
+  }
+
+  /* Geniş tablolar yatay kayar, sayfa bozulmaz */
+  .bh-touch table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .bh-touch table thead,
+  .bh-touch table tbody {
+    min-width: 100%;
+  }
+
+  /* Uzun form satırları alt alta düşer */
+  .bh-touch .grid-cols-2 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}

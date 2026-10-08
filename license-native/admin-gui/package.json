@@ -1,0 +1,58 @@
+{
+  "name": "lisans-yonetici",
+  "version": "1.0.0",
+  "description": "Offline lisans anahtar üretici - Biznes Hasap PC + APK",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable --x64",
+    "build-all": "electron-builder --win --mac --linux",
+    "pack": "electron-builder --dir"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "tweetnacl": "1.0.3"
+  },
+  "devDependencies": {
+    "electron": "^32.1.2",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.bizneshasap.lisansyonetici",
+    "productName": "LisansYonetici",
+    "directories": {
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "../admin/core/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.developer-tools"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "build/icon.png",
+      "category": "Development"
+    },
+    "portable": {
+      "artifactName": "LisansYonetici-${version}.exe"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "license-native",
+  "version": "1.0.0",
+  "description": "Offline POS lisans modülü (PC + Android)",
+  "main": "native.js",
+  "scripts": {
+    "build-native": "node-gyp rebuild",
+    "build-android": "node ../nodejs-mobile/scripts/build-native-modules.js .",
+    "prebuild": "prebuildify --napi --strip",
+    "test": "node test/test.js",
+    "release-check": "node scripts/release-check.js"
+  },
+  "dependencies": {
+    "node-addon-api": "^8.3.0",
+    "node-gyp-build": "^4.8.1",
+    "tweetnacl": "1.0.3"
+  },
+  "devDependencies": {
+    "prebuildify": "^6.0.1",
+    "node-gyp": "^10.2.0"
+  },
+  "gypfile": true
+}

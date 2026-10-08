@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    # license.node gitignore'dadır; taze kurulumda native.js "bulunamadı" hatası
+    # verir. Bu yüzden CI derlemeden hiçbir paketleme/adım çalıştırmaz.
+    - name: Install license-native dependencies
+      working-directory: license-native
+      run: npm ci
+
+    - name: Build license native module
+      working-directory: license-native
+      run: npm run build-native
+
+    - name: Verify native module loads
+      run: node -e "const n=require('./license-native/native.js'); console.log('native version:', n.getVersion());"
+
+    - name: Type check
+      run: npx tsc --noEmit
+
+    - name: Run unit tests
+      run: npm test -- --run
+
+    # Spec 16.7: lisans testleri yeşil olmadan build çıkmaz (21 test).
+    - name: Run license spec test suite
+      working-directory: license-native
+      run: npm test
+
+    # Spec 16.7: release-check zorunlu kapı — continue-on-error YOK.
+    - name: License release check
+      working-directory: license-native
+      run: npm run release-check
+
+    - name: Build renderer
+      run: npm run build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+        retention-days: 7
+
+  build-desktop:
+    needs: test
+    runs-on: windows-latest
+    if: github.event_name == 'push'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install license-native dependencies
+      working-directory: license-native
+      run: npm ci
+
+    - name: Build license native module
+      working-directory: license-native
+      run: npm run build-native
+
+    - name: Build Electron app
+      run: npm run electron:build
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Electron artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: electron-build
+        path: dist-electron/*.exe
+        retention-days: 30

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lisans Yönetici</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Ekran 1: Kilit -->
+    <div id="screen-lock" class="screen active">
+      <div class="card">
+        <div class="icon-lock">🔒</div>
+        <h1>Lisans Yönetici</h1>
+        <p class="subtitle">Admin parolasını girin</p>
+        
+        <input 
+          type="password" 
+          id="password-input" 
+          class="input-field"
+          placeholder="Parola"
+          autocomplete="off"
+        />
+        
+        <button id="unlock-btn" class="btn btn-primary">Kilidi Aç</button>
+        
+        <div id="error-msg" class="error-msg hidden"></div>
+      </div>
+    </div>
+
+    <!-- Ekran 2: Platform Seçimi (sonraki fazda) -->
+    <div id="screen-platform" class="screen">
+      <div class="card">
+        <h1>Platform Seçin</h1>
+        <p class="subtitle">Key hangi platform için?</p>
+        
+        <div class="platform-buttons">
+          <button id="btn-pc" class="btn btn-platform">
+            <div class="platform-icon">💻</div>
+            <div class="platform-name">PC</div>
+            <div class="platform-desc">Windows / macOS / Linux</div>
+          </button>
+          
+          <button id="btn-apk" class="btn btn-platform">
+            <div class="platform-icon">📱</div>
+            <div class="platform-name">APK</div>
+            <div class="platform-desc">Android</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Üst sekme çubuğu (keygen ekranında görünür) -->
+      <div id="tabs-bar" class="tabs-bar hidden">
+        <button class="tab-btn active" data-tab="keygen-tab">Key Oluştur</button>
+        <button class="tab-btn" data-tab="records-tab">Kayıtlar</button>
+      </div>
+
+    <!-- Ekran 3: Key Oluştur (sonraki fazda) -->
+    <div id="screen-keygen" class="screen">
+      <div id="keygen-tab" class="tab-content active">
+      <div class="card large">
+        <div class="header">
+          <h1>Key Oluştur</h1>
+          <span id="platform-badge" class="badge">PC</span>
+        </div>
+
+        <div class="form-group">
+          <label>Müşteri / Şube Adı <span class="optional">(isteğe bağlı)</span></label>
+          <input 
+            type="text" 
+            id="note-input" 
+            class="input-field"
+            placeholder="Örn: Ahmet Yılmaz - Dükan 1"
+            maxlength="80"
+          />
+        </div>
+        
+        <div class="form-group">
+          <label>İstek Kodu</label>
+          <textarea 
+            id="request-code" 
+            class="input-field textarea"
+            placeholder="Kullanıcının gönderdiği istek kodunu buraya yapıştırın"
+            rows="2"
+          ></textarea>
+          <div id="request-info" class="info-box hidden"></div>
+        </div>
+        
+        <div class="form-group">
+          <label>Süre</label>
+          <div class="duration-buttons">
+            <button class="btn btn-duration" data-days="30">1 Ay<br>(30)</button>
+            <button class="btn btn-duration" data-days="90">3 Ay<br>(90)</button>
+            <button class="btn btn-duration" data-days="180">6 Ay<br>(180)</button>
+            <button class="btn btn-duration" data-days="365">1 Yıl<br>(365)</button>
+          </div>
+          <div class="custom-duration">
+            <label>Özel:</label>
+            <input type="number" id="custom-days" class="input-field small" min="1" max="730" placeholder="Gün">
+            <span class="day-hint">gün (1-730)</span>
+          </div>
+        </div>
+        
+        <button id="create-key-btn" class="btn btn-primary large" disabled>
+          KEY OLUŞTUR
+        </button>
+
+        <!-- Kök Kod Üret: ilk key'de verilen kök kod kaybolduysa veya
+             cihaz değişimi (rebind) gerekiyorsa hesap ID'den yeniden üretilir. -->
+        <details class="root-tool">
+          <summary>🔑 Kök Kod Üret / Yeniden Üret</summary>
+          <p class="root-tool-desc">
+            Kök kod hesap ID'den deterministik olarak üretilir. Müşteri ilk kök kodu
+            kaybettiyse veya cihaz değişimi gerekiyorsa buradan yeniden üretin.
+          </p>
+          <input
+            type="text"
+            id="root-code-account"
+            class="input-field mono"
+            placeholder="Hesap ID (örn. XXXX-XXXX-XXXX-XX)"
+            maxlength="17"
+          />
+          <button id="gen-root-btn" class="btn btn-root">KÖK KOD ÜRET</button>
+          <div id="root-code-result" class="root-tool-result hidden">
+            <div class="code-box" id="root-code-display-2"></div>
+            <button class="btn btn-copy" onclick="copyRawFromModal('root-code-display-2', this)">
+              📋 Kök Kodu Kopyala
+            </button>
+          </div>
+        </details>
+        
+        <div id="result-panel" class="result-panel hidden">
+          <!-- Sonuç burada gösterilecek -->
+        </div>
+      </div>
+      </div>
+
+      <!-- Kayıtlar sekmesi -->
+      <div id="records-tab" class="tab-content">
+        <div class="card large">
+          <div class="header">
+            <h1>Kayıtlar</h1>
+          </div>
+
+          <div class="search-box">
+            <input 
+              type="text" 
+              id="records-search" 
+              class="input-field"
+              placeholder="🔍 Ara: müşteri adı, hesap ID, platform, not..."
+            />
+            <div class="search-actions">
+              <button id="refresh-records" class="btn btn-refresh">↻ Yenile</button>
+              <button id="clear-records" class="btn btn-clear">🗑 Tümünü Temizle</button>
+            </div>
+          </div>
+
+          <div id="records-stats" class="records-stats"></div>
+          
+          <div class="records-table-wrapper">
+            <table class="records-table">
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Müşteri / Not</th>
+                  <th>Hesap ID</th>
+                  <th>Platform</th>
+                  <th>Süre</th>
+                  <th>#</th>
+                  <th>Key</th>
+                </tr>
+              </thead>
+              <tbody id="records-body">
+                <tr>
+                  <td colspan="7" class="empty-row">Yükleniyor...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="records-empty" class="empty-msg hidden">
+            Kayıt bulunamadı
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="app.js"></script>
+</body>
+</html>

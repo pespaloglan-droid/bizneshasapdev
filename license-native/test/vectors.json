@@ -1,0 +1,102 @@
+{
+  "version": "1.0.0",
+  "description": "Lisans sistemi test vektörleri - tweetnacl-js ile çapraz doğrulama",
+  "crc16": [
+    {
+      "note": "Boş string",
+      "input_hex": "",
+      "expected": "FFFF"
+    },
+    {
+      "note": "ABC",
+      "input_hex": "414243",
+      "expected": "F508"
+    },
+    {
+      "note": "123456789",
+      "input_hex": "313233343536373839",
+      "expected": "29B1"
+    },
+    {
+      "note": "Crockford Base32 örnek",
+      "input_hex": "30313233343536373839414243444546",
+      "expected": "2C1F"
+    }
+  ],
+  "base32": [
+    {
+      "note": "8 bayt sıfır",
+      "input_hex": "0000000000000000",
+      "output": "0000000000000"
+    },
+    {
+      "note": "8 bayt 0xFF",
+      "input_hex": "FFFFFFFFFFFFFFFF",
+      "output": "ZZZZZZZZZZZZY"
+    },
+    {
+      "note": "Test vektör 1",
+      "input_hex": "0123456789ABCDEF",
+      "output": "04J14F5AHZP3V"
+    },
+    {
+      "note": "Test vektör 2",
+      "input_hex": "DEADBEEFCAFEBABE",
+      "output": "XMTXZVNKVZ5RV"
+    }
+  ],
+  "signatures": [
+    {
+      "note": "tweetnacl.js ile üretilen test anahtarı",
+      "publicKey": "3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29",
+      "secretKey": "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29",
+      "message_hex": "48656c6c6f20576f726c64",
+      "signature": "7f8a9a2c6d7b4e5f3a1c8e9b2d4f6a8c0e2b4d6f8a0c2e4b6d8f0a2c4e6f8a0c7f8a9a2c6d7b4e5f3a1c8e9b2d4f6a8c0e2b4d6f8a0c2e4b6d8f0a2c4e6f8a0c",
+      "valid": true
+    }
+  ],
+  "keys": [
+    {
+      "note": "Gercek imzali monthly lisans anahtari (bu cihaza bagli)",
+      "accountId": "7H8G-7N9H-Y3WP-6Z",
+      "requestCode": "7H8G7N9HY3WP6R4ZP690073P",
+      "deviceAnchor": {
+        "type": "Buffer",
+        "data": [
+          96,
+          159,
+          177,
+          146
+        ]
+      },
+      "plan": 1,
+      "durationDays": 30,
+      "rootCode": "N29ZK9THEA3XRZTWVNQZBY1R4C12KHQJ4HCEA0FKG2MHP2S4Z92PZ6EKPYYTGD2ZDHG2YZAB4C448ZE7WST43DBG54RXJCMA17KJY3G00EG",
+      "key": "0403RM83TMRZ1YB3C2FV34G100ZG0001000008J1RSN24H4JFM000YC9A9ZD4QREEFRS4HBGE2AF18PQ4PRXP7AD6X6EPAREX7SM89KH0S71N1N4WZRDSV4G6E9X66N6SPT5DV8SPKHHGPQ8YTN881VY2G1G0ACJ",
+      "expectedStatus": 1
+    }
+  ],
+  "normalization": [
+    {
+      "note": "Küçük harf -> büyük",
+      "input": "abc123xyz",
+      "expected": "ABC123XYZ"
+    },
+    {
+      "note": "Tire ve boşluk temizlenir",
+      "input": "ABCD-EFGH IJKL",
+      "expected": "ABCDEFGHIJKL"
+    },
+    {
+      "note": "Kiril -> Latin (Rusça klavye)",
+      "input": "АВСЕНКМОРТХ",
+      "expected": "ABCEHKMOPTX"
+    },
+    {
+      "note": "WhatsApp yapıştırma (satır sonu)",
+      "input": "ABCD-EFGH\nIJKL-MNOP\n",
+      "expected": "ABCDEFGHIJKLMNOP"
+    }
+  ],
+  "_note": "Bu vektörler tweetnacl-js ile üretilmiştir. C++ tarafı ile çapraz doğrulama için kullanılır."
+}

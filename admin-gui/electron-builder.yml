@@ -1,0 +1,37 @@
+appId: com.pos.lisansyonetici
+productName: LisansYonetici
+directories:
+  output: dist
+files:
+  - main.js
+  - preload.js
+  - renderer/**
+  - from: ../license-native/admin
+    to: license-native/admin
+    filter:
+      - "**/*"
+extraResources:
+  - from: ../license-native/admin
+    to: license-native/admin
+    filter:
+      - "**/*"
+      # issued.json çalışma zamanında kullanıcı verisi klasörüne kopyalanır
+      - "!issued.json"
+  # license-core ASAR DIŞINDA çalıştığı için bağımlılıkları da
+  # resources/node_modules altına kopyala (Node çözümleme yolu).
+  - from: node_modules/tweetnacl
+    to: node_modules/tweetnacl
+    filter:
+      - "**/*"
+asar: true
+win:
+  target:
+    - target: portable
+      arch: [x64]
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+linux:
+  target: AppImage
+publish: null

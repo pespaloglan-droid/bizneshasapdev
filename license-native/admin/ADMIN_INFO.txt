@@ -1,0 +1,9 @@
+Admin Parola İpucu:
+- Format: BiznesHasap + Ürün + Yıl + Suffix
+- Uzunluk: 30+ karakter
+- Güvenlik: Scrypt N=2^14 (memory limit uyumu için)
+- Oluşturma: 2026-10-06T23:12:26.267Z
+
+PAROLAYI SAKLAYIN! Kaybolursa yeni anahtar çifti gerekir.
+
+Public Key: 4351ca47920d07262bc4d95632c481f2e0e2c334bee9bccae9f27b972e761a13

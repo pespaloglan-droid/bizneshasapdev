@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lux-license"
+version = "0.1.0"
+description = "Lux License System — Ed25519 + XChaCha20-Poly1305 + Argon2id defense-in-depth license engine for Biznes Hasap Lux"
+requires-python = ">=3.10"
+dependencies = [
+    "cryptography>=42.0.0",
+]
+
+[tool.setuptools]
+packages = ["license_core"]

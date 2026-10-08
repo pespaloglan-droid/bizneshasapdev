@@ -1,0 +1,74 @@
+.aider*
+
+# ── Bağımlılıklar ─────────────────────────────────────────────
+node_modules/
+**/node_modules/
+.npm/
+
+# ── Build çıktıları ──────────────────────────────────────────
+dist/
+dist-v2/
+dist-electron/
+release/
+build/
+*.tsbuildinfo
+
+# ── Capacitor / Android ─────────────────────────────────────
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/capacitor-cordova-android-plugins/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+ios/App/Pods/
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+
+# ── Ortam değişkenleri & gizli dosyalar ─────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+
+# ── Lisans üretim sırları — ASLA commit edilmez ─────────────
+license-native/admin/secret.key
+license-native/admin/secret.key.bak
+license-native/admin/*.key
+license-native/admin/issued.json
+license-native/admin/issued.json.*
+
+# ── Kullanıcı verisi / runtime DB ───────────────────────────
+pos-data/
+*.bhbak
+couchdb.config.json
+couchdb.local.json
+
+# ── Test & coverage ─────────────────────────────────────────
+coverage/
+.nyc_output/
+.vitest/
+test-results/
+playwright-report/
+blob-report/
+.playwright-mcp/
+
+# ── Editör / OS ─────────────────────────────────────────────
+.vscode/*
+!.vscode/settings.json
+.idea/
+*.swp
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ── Loglar ──────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ── Geçici ──────────────────────────────────────────────────
+tmp/
+temp/
+.cache/
