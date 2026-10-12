@@ -1,4 +1,5 @@
 import React from 'react';
+import { ConflictResolverModal } from '../ConflictResolverModal';
 import { Link2 } from 'lucide-react';
 import type { Account, LanguageCode } from '../../types';
 import { translate } from '../../locales/i18n';
@@ -40,6 +41,8 @@ export const AccountConnectionPanel: React.FC<Props> = ({ language, storeDb, acc
           </div>
         </div>
       </div>
+
+      <ConflictResolverModal dbName={storeDb} />
 
       <ConnectionFields
         accountId={account.id}

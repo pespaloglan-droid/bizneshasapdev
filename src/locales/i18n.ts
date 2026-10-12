@@ -67,6 +67,23 @@ export const translations: Record<LanguageCode, {
     panelNote: string;
   };
   /** POS / satış ekranı (PosWorkspace + pos/* yardımcı bileşenleri). */
+  conflicts: {
+    title: string;
+    review: string;
+    hint: string;
+    current: string;
+    other: string;
+    originHint: string;
+    choose: string;
+    apply: string;
+    newest: string;
+    empty: string;
+    changed: string;
+    refresh: string;
+    close: string;
+    loading: string;
+    readFailed: string;
+  };
   pos: {
     paymentCancelled: string;
     newSale: string;
@@ -1776,6 +1793,23 @@ export const translations: Record<LanguageCode, {
     printBtn: "Yazdır (Print)",
     closeBtn: "Kapat / Yeni Satış",
     thanksMsg: "Bizi tercih ettiğiniz için teşekkür ederiz!",
+    conflicts: {
+      title: "Çakışmaları incele",
+      review: "Çakışmaları otomatik çözmeden önce incele",
+      hint: "Kapalıyken en güncel kayıt otomatik seçilir. Açıkken bu cihazdaki çakışmalar seçiminizi bekler.",
+      current: "Yerel kazanan sürüm",
+      other: "Diğer replikasyon sürümü",
+      originHint: "Replikasyon kaynak cihazı belirtmez; diğer sürümün hangi cihazdan geldiği kesin değildir.",
+      choose: "Bu sürümü seç",
+      apply: "Seçilenleri çöz ({count})",
+      newest: "Tümü için en günceli seç",
+      empty: "İncelenecek çakışma yok.",
+      changed: "Bazı kayıtlar çözülemedi veya inceleme sırasında değişti. Yenileyip yeniden seçin.",
+      refresh: "Yenile",
+      close: "Kapat",
+      loading: "Yükleniyor…",
+      readFailed: "Çakışmalar okunamadı. Hiçbir sürüm silinmedi.",
+    },
     pos: {
       paymentCancelled: "Ödeme iptal edildi",
       newSale: "Yeni Satış",
@@ -3385,6 +3419,23 @@ export const translations: Record<LanguageCode, {
     printBtn: "Çek Çykar (Print)",
     closeBtn: "Ýap / Täze Söwda",
     thanksMsg: "Bizi saýlanyňyz üçin sag boluň!",
+    conflicts: {
+      title: "Gapma-garşylyklary barla",
+      review: "Awtomatiki çözmezden öň barla",
+      hint: "Ýapyk bolsa iň täze ýazgy saýlanýar. Açyk bolsa bu enjamdaky ýazgylar saýlawyňyza garaşýar.",
+      current: "Ýerli esasy görnüş",
+      other: "Beýleki replikasiýa görnüşi",
+      originHint: "Replikasiýa çeşme enjamyny görkezmeýär; beýleki görnüşiň enjamy belli däl.",
+      choose: "Şu görnüşi saýla",
+      apply: "Saýlananlary çöz ({count})",
+      newest: "Hemmesi üçin iň täzesini saýla",
+      empty: "Barlanjak gapma-garşylyk ýok.",
+      changed: "Käbir ýazgylar çözülmedi ýa-da barlagda üýtgedi. Täzeläp täzeden saýlaň.",
+      refresh: "Täzele",
+      close: "Ýap",
+      loading: "Ýüklenýär…",
+      readFailed: "Gapma-garşylyklar okalmady. Hiç bir görnüş pozulmady.",
+    },
     pos: {
       paymentCancelled: "Töleg ýatyryldy",
       newSale: "Täze Söwda",
@@ -4993,6 +5044,23 @@ export const translations: Record<LanguageCode, {
     printBtn: "Print Receipt",
     closeBtn: "Close / New Sale",
     thanksMsg: "Thank you for your purchase!",
+    conflicts: {
+      title: "Review conflicts",
+      review: "Review before resolving automatically",
+      hint: "When off, the newest record wins automatically. When on, conflicts on this device wait for your choice.",
+      current: "Current local winner",
+      other: "Other replicated version",
+      originHint: "Replication does not identify the source device; the other version's origin is unknown.",
+      choose: "Choose this version",
+      apply: "Resolve selected ({count})",
+      newest: "Select newest for all",
+      empty: "No conflicts to review.",
+      changed: "Some records could not be resolved or changed during review. Refresh and choose again.",
+      refresh: "Refresh",
+      close: "Close",
+      loading: "Loading…",
+      readFailed: "Conflicts could not be read. No versions were deleted.",
+    },
     pos: {
       paymentCancelled: "Payment cancelled",
       newSale: "New Sale",
@@ -6601,6 +6669,23 @@ export const translations: Record<LanguageCode, {
     printBtn: "Печать чека",
     closeBtn: "Закрыть / Новая продажа",
     thanksMsg: "Спасибо за покупку!",
+    conflicts: {
+      title: "Проверить конфликты",
+      review: "Проверять перед автоматическим разрешением",
+      hint: "Если выключено, выбирается самая новая запись. Если включено, конфликты на этом устройстве ожидают вашего выбора.",
+      current: "Текущая локальная версия",
+      other: "Другая реплицированная версия",
+      originHint: "Репликация не определяет исходное устройство; источник другой версии неизвестен.",
+      choose: "Выбрать эту версию",
+      apply: "Разрешить выбранные ({count})",
+      newest: "Выбрать новейшие для всех",
+      empty: "Нет конфликтов для проверки.",
+      changed: "Некоторые записи не разрешены или изменились при проверке. Обновите и выберите снова.",
+      refresh: "Обновить",
+      close: "Закрыть",
+      loading: "Загрузка…",
+      readFailed: "Не удалось прочитать конфликты. Версии не удалены.",
+    },
     pos: {
       paymentCancelled: "Оплата отменена",
       newSale: "Новая продажа",
