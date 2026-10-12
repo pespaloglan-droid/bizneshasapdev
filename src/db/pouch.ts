@@ -1,3 +1,4 @@
+import { measureOperation } from '../utils/performance';
 import { buildSelectivePullSelector, type SyncHistoryMonths } from './syncSelection';
 import PouchDB from 'pouchdb-browser';
 import { getLicenseId } from '../utils/gateMiddleware';
@@ -328,7 +329,7 @@ function bulkErrorText(row: unknown): string {
  * Kısmi başarı mumkin: her belge aýratyn netijelenýär. Şowsuz belgiler
  * YUTULMAÝAR — `failed` sanawyna aýratynlykda düşýär (satyr + sebäp).
  */
-export async function upsertDocsBatch(
+async function writeDocsBatch(
   dbName: string,
   entries: ReadonlyArray<{ id: string; fields: Record<string, unknown> }>,
   batchSize = BULK_BATCH_SIZE
@@ -410,6 +411,14 @@ export async function upsertDocsBatch(
     }
   }
   return { written, failed };
+}
+
+export function upsertDocsBatch(
+  dbName: string,
+  entries: ReadonlyArray<{ id: string; fields: Record<string, unknown> }>,
+  batchSize = BULK_BATCH_SIZE
+): Promise<BatchWriteResult> {
+  return measureOperation('database.batch', () => writeDocsBatch(dbName, entries, batchSize));
 }
 
 export async function listDocsByPrefix(
@@ -526,7 +535,10 @@ export function startCouchDbSync(
       syncInstances.set(localDbName, syncHandler);
     }
 
-    return () => stopCouchDbSync(localDbName);
+    return () => {
+      // Eski bileşenin cleanup'ı yeni bağlantıyı yanlışlıkla kapatamaz.
+      if (syncInstances.get(localDbName) === syncHandler) stopCouchDbSync(localDbName);
+    };
   } catch (err: any) {
     onStatusChange?.({
       status: 'error',
@@ -566,7 +578,9 @@ export async function destroyLocalDatabase(dbName: string): Promise<void> {
 export function stopCouchDbSync(localDbName: string) {
   if (syncInstances.has(localDbName)) {
     try {
-      syncInstances.get(localDbName)?.cancel();
+      const handler = syncInstances.get(localDbName);
+      handler?.cancel();
+      handler?.removeAllListeners?.();
     } catch {
       // ignore
     }

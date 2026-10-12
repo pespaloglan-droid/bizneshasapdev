@@ -1,53 +1,36 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { loadConnection, resumeLastConnection, type LinkStatusMap } from '../db/connectionStore';
+import { loadConnection, resumeLastConnection, SYNC_DOCS_CHANGED_EVENT, type LinkStatusMap } from '../db/connectionStore';
 import { importPcMirrorsIntoStore, SYNC_IMPORTED_EVENT } from '../db/schemaBridge';
-import { resolveConflicts } from '../db/conflictResolver';
-
-/**
- * Uygulama açılışında son aktif CouchDB bağlantısını otomatik başlatır.
- *
- * Ayarlar ekranı açılmasa da çalışır (PosWorkspace her zaman mount olur).
- * Bağlantı canlı senkron olduğu için, uzak sunucudan gelen
- * `urun:` / `kagent:` / `fatura:` belgeleri APK kayıtlarına aktarılır.
- */
-export function useAutoConnection(
-  accountId: string,
-  storeDb: string,
-  onStatus?: (s: LinkStatusMap) => void
-): void {
-  const startedFor = useRef<string | null>(null);
-
-  // PC formatındaki ayna belgeleri içeri al + çakışmaları çöz + arayüzü tazele
+import { resolveConflicts, isConflictReviewEnabled, hasReviewableConflicts } from '../db/conflictResolver';
+import { useCleanup } from './useCleanup';
+/** Çakışma seçilmeden köprü random CouchDB kazananını APK'ya kopyalayamaz. */
+export function useAutoConnection(accountId: string, storeDb: string, onStatus?: (s: LinkStatusMap) => void): void {
+  const timer = useRef<number>(); const active = useRef(false); const currentDb = useRef(storeDb);
+  currentDb.current = storeDb;
   const pullIn = useCallback(() => {
-    let timer: number | undefined;
-    const run = () => {
-      if (timer !== undefined) window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        void importPcMirrorsIntoStore(storeDb)
-          .then(() => resolveConflicts(storeDb))
-          .then(() => {
-            window.dispatchEvent(new CustomEvent(SYNC_IMPORTED_EVENT));
-          });
-      }, 1500);
-    };
-    run();
-    return () => {
-      if (timer !== undefined) window.clearTimeout(timer);
-    };
+    if (!active.current || currentDb.current !== storeDb) return;
+    if (timer.current !== undefined) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      const run = async () => {
+        if (!active.current || currentDb.current !== storeDb) return;
+        await resolveConflicts(storeDb);
+        if (!active.current || currentDb.current !== storeDb) return;
+        if (isConflictReviewEnabled(storeDb) && await hasReviewableConflicts(storeDb)) return;
+        await importPcMirrorsIntoStore(storeDb);
+        if (active.current && currentDb.current === storeDb) window.dispatchEvent(new CustomEvent(SYNC_IMPORTED_EVENT));
+      };
+      void run().catch(() => console.warn('[Sync]', 'bridge_failed'));
+    }, 1500);
   }, [storeDb]);
-
+  useCleanup(() => { active.current = false; if (timer.current !== undefined) window.clearTimeout(timer.current); }, [storeDb]);
   useEffect(() => {
-    if (!accountId || !storeDb) return;
-    if (!loadConnection(accountId).active) return;
-    if (startedFor.current === `${accountId}::${storeDb}`) return;
-    startedFor.current = `${accountId}::${storeDb}`;
-
-    const cancelImport = pullIn();
-    void resumeLastConnection(accountId, storeDb, onStatus ?? (() => {}), pullIn);
-
-    return () => {
-      cancelImport();
-      startedFor.current = null;
-    };
+    active.current = true;
+    const changed = (event: Event) => { if ((event as CustomEvent).detail === storeDb) pullIn(); };
+    window.addEventListener(SYNC_DOCS_CHANGED_EVENT, changed);
+    if (accountId && storeDb && loadConnection(accountId).active) {
+      pullIn(); void resumeLastConnection(accountId, storeDb, onStatus ?? (() => {}), pullIn)
+        .catch(() => console.warn('[Sync]', 'resume_failed'));
+    }
+    return () => window.removeEventListener(SYNC_DOCS_CHANGED_EVENT, changed);
   }, [accountId, storeDb, onStatus, pullIn]);
 }

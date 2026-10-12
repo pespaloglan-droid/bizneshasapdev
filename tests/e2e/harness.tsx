@@ -1,3 +1,5 @@
+import { markFirstRunPending, isFirstRunPending } from '../../src/utils/onboarding';
+import { seedDemoData } from '../../src/utils/demoData';
 import PouchDB from 'pouchdb-browser';
 import { buildSelectivePullSelector } from '../../src/db/syncSelection';
 import { listDocumentConflicts, resolveReviewedConflict } from '../../src/db/conflictResolver';
@@ -26,12 +28,23 @@ async function start() {
   const account = { id: `e2e_${crypto.randomUUID()}`, name: 'E2E isolated', couchDbUrl: '',
     databaseName: 'e2e', users: [user], createdAt: new Date().toISOString(), transactionCount: 0 };
   const storeDb = pouch.getAccountStoreKey(account);
-  await products.saveProductToDb({ id: 'e2e-product', sku: '00001', barcode: '00002', name: 'E2E Tea',
+  const firstRun = new URLSearchParams(window.location.search).has('firstRun');
+  if (!firstRun) await products.saveProductToDb({ id: 'e2e-product', sku: '00001', barcode: '00002', name: 'E2E Tea',
     category: 'E2E', price: 10, wholesalePrice: 8, stock: 5, imageType: 'default' }, storeDb);
-  await saveCustomerPrices(storeDb, 'c-general', [{ productId: 'e2e-product', price: 7.5 }]);
+  if (!firstRun) await saveCustomerPrices(storeDb, 'c-general', [{ productId: 'e2e-product', price: 7.5 }]);
   const settings = defaultSettings('en', account.name); settings.receipt.autoPrint = false;
   await saveAppSettings(settings, storeDb);
+  if (firstRun) markFirstRunPending(storeDb);
   (window as any).e2e = {
+    pendingFirstRun: () => isFirstRunPending(storeDb),
+    async retryDemo() { const p = (await products.getProductsForAccount(storeDb))[0]; await products.saveProductToDb({ ...p, stock: 77 }, storeDb); return seedDemoData(storeDb); },
+    async validationQa() {
+      const result = await pouch.upsertDocsBatch(storeDb, [
+        { id: 'product_bad', fields: { docType: 'product', product: { id: 'bad', price: 'SECRET_DO_NOT_LEAK' } } },
+        { id: 'product_e2e-product', fields: { product: { stock: 6 } } },
+      ]);
+      return { result, products: await products.getProductsForAccount(storeDb) };
+    },
     storeDb, t: (key: string) => translate('en', key),
     async selectiveQa() {
       const source = new PouchDB(`e2e-source-${crypto.randomUUID()}`);

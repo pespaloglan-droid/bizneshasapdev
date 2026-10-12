@@ -1,3 +1,4 @@
+import { ValidationError } from '../utils/errors';
 import { z } from 'zod';
 import { translate } from '../locales/i18n';
 import { getActiveLanguage } from '../utils/locale';
@@ -99,8 +100,7 @@ export const PcInvoiceSchema = z.object({
 export interface DocumentValidationIssue { path: string; code: string }
 
 /** Hata mesajı belge değerlerini (isim, telefon, fatura içeriği) sızdırmaz. */
-export class DocumentValidationError extends Error {
-  readonly code = 'VALIDATION_ERROR';
+export class DocumentValidationError extends ValidationError {
   constructor(readonly issues: readonly DocumentValidationIssue[]) {
     const paths = [...new Set(issues.map((issue) => issue.path || '$'))].join(', ');
     super(translate(getActiveLanguage(), 'errors.documentValidation', { fields: paths }));

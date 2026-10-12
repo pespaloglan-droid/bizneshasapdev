@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useT } from '../locales/LanguageContext';
 import { CONFLICT_REVIEW_EVENT, isConflictReviewEnabled, setConflictReviewEnabled,
-  listDocumentConflicts, resolveReviewedConflict, type DocumentConflict } from '../db/conflictResolver';
-import { SYNC_IMPORTED_EVENT } from '../db/schemaBridge';
+  listDocumentConflicts, resolveReviewedConflict, hasReviewableConflicts, type DocumentConflict } from '../db/conflictResolver';
+import { importPcMirrorsIntoStore, SYNC_IMPORTED_EVENT } from '../db/schemaBridge';
 
 /** Tercih bu hesap/veritabanı ve cihaz içindir; varsayılan sessiz LWW değişmez. */
 export function ConflictResolverModal({ dbName, disabled = false }: { dbName: string; disabled?: boolean }) {
@@ -33,6 +33,7 @@ export function ConflictResolverModal({ dbName, disabled = false }: { dbName: st
       try { await resolveReviewedConflict(dbName, record, choices[record.id]); }
       catch { failed = true; }
     }
+    try { if (!await hasReviewableConflicts(dbName)) await importPcMirrorsIntoStore(dbName); } catch { failed = true; }
     window.dispatchEvent(new CustomEvent(SYNC_IMPORTED_EVENT));
     await refresh();
     if (failed) setError(t('conflicts.changed'));

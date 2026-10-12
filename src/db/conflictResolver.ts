@@ -1,3 +1,4 @@
+import { SyncError } from '../utils/errors';
 import { getLocalDatabase } from './pouch';
 
 /**
@@ -71,13 +72,12 @@ export async function resolveConflicts(
   const db = getLocalDatabase(dbName);
   const stats: ConflictStats = { resolved: 0, removed: 0, noTimestamp: 0 };
 
-  if (isConflictReviewEnabled(dbName)) {
-    notifyConflictReview(dbName);
-    return stats;
-  }
   const result = await db.allDocs({ include_docs: true, conflicts: true });
+  const review = isConflictReviewEnabled(dbName);
+  if (review) notifyConflictReview(dbName);
   const conflicted = result.rows.filter((r) => {
-    const doc = r.doc as { _conflicts?: string[] } | undefined;
+    const doc = r.doc as { _id?: string; _conflicts?: string[] } | undefined;
+    if (review && doc?._id && isReviewableId(doc._id)) return false;
     return Array.isArray(doc?._conflicts) && doc._conflicts.length > 0;
   });
 
@@ -184,7 +184,7 @@ export async function listDocumentConflicts(dbName: string): Promise<DocumentCon
   const records: DocumentConflict[] = [];
   for (const row of result.rows) {
     const current = row.doc as Record<string, unknown> & { _id: string; _rev: string; _conflicts?: string[] };
-    if (!current?._conflicts?.length || !/^(product_|customer_|invoice_|money_|urun:|kagent:|fatura:)/.test(current._id)) continue;
+    if (!current?._conflicts?.length || !isReviewableId(current._id)) continue;
     const docs = [current];
     for (const rev of current._conflicts) docs.push(await db.get(current._id, { rev }) as typeof current);
     records.push({ id: current._id, currentRev: current._rev, versions: docs.map(doc => ({
@@ -200,7 +200,7 @@ export async function resolveReviewedConflict(dbName: string, snapshot: Document
   const revisions = [current._rev, ...(current._conflicts ?? [])].sort();
   const expected = snapshot.versions.map(v => v.rev).sort();
   if (current._rev !== snapshot.currentRev || JSON.stringify(revisions) !== JSON.stringify(expected) || !revisions.includes(selectedRev)) {
-    throw new Error('CONFLICT_SNAPSHOT_CHANGED');
+    throw new SyncError();
   }
   const selected = await db.get(snapshot.id, { rev: selectedRev }) as Record<string, unknown>;
   const { _rev, _conflicts, _revisions, _deleted_conflicts, ...fields } = selected;
@@ -209,4 +209,13 @@ export async function resolveReviewedConflict(dbName: string, snapshot: Document
   await db.put({ ...fields, _id: snapshot.id, _rev: current._rev } as never);
   for (const rev of current._conflicts ?? []) await db.remove(snapshot.id, rev);
   notifyConflictReview(dbName);
+}
+
+function isReviewableId(id: string): boolean { return /^(product_|customer_|invoice_|money_|urun:|kagent:|fatura:)/.test(id); }
+export async function hasReviewableConflicts(dbName: string): Promise<boolean> {
+  const result = await getLocalDatabase(dbName).allDocs({ include_docs: true, conflicts: true });
+  return result.rows.some(row => {
+    const doc = row.doc as { _id: string; _conflicts?: string[] } | undefined;
+    return doc && isReviewableId(doc._id) && Boolean(doc._conflicts?.length);
+  });
 }

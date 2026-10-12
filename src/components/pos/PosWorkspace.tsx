@@ -1,3 +1,4 @@
+import { FirstRunWizard } from '../FirstRunWizard';
 import { useTelemetry } from '../../hooks/useTelemetry';
 import { useCatalogActions } from '../../hooks/useCatalogActions';
 import { useDraftActions } from '../../hooks/useDraftActions';
@@ -1672,6 +1673,8 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
           onClose={() => setIsDraftFormOpen(false)}
         />
       )}
+
+      <FirstRunWizard key={storeDb} account={activeAccount} dbName={storeDb} language={language} isAdmin={isAdminUser(currentUser, stores.appUsers)} />
 
       {/* Toast Bildirimleri */}
       {toastMessage && (

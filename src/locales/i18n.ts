@@ -89,6 +89,18 @@ export const translations: Record<LanguageCode, {
     loading: string;
     readFailed: string;
   };
+  wizard: {
+    title: string;
+    welcome: string;
+    syncHint: string;
+    demoHint: string;
+    demoOptIn: string;
+    failed: string;
+    skip: string;
+    back: string;
+    next: string;
+    finish: string;
+  };
   pos: {
     paymentCancelled: string;
     newSale: string;
@@ -1233,6 +1245,10 @@ export const translations: Record<LanguageCode, {
   };
   /** Genel hata mesajları. */
   errors: {
+    databaseFailure: string;
+    licenseFailure: string;
+    syncFailure: string;
+    validationFailure: string;
     documentValidation: string;
     invalidBatchSize: string;
     generic: string;
@@ -1824,6 +1840,18 @@ export const translations: Record<LanguageCode, {
       close: "Kapat",
       loading: "Yükleniyor…",
       readFailed: "Çakışmalar okunamadı. Hiçbir sürüm silinmedi.",
+    },
+    wizard: {
+      title: "İlk kurulum",
+      welcome: "Hoş geldiniz. Bu sihirbaz yalnızca yeni hesabınız içindir. Bağlantı ve demo verileri isteğe bağlıdır.",
+      syncHint: "İsterseniz CouchDB bağlantısını yapılandırıp Bağlan'a basın. Atlayabilir ve daha sonra Ayarlar'dan bağlanabilirsiniz.",
+      demoHint: "Demo varsayılan kapalıdır. Seçerseniz 2 örnek ürün ve sıfır bakiyeli 1 müşteri eklenir. Fatura veya para hareketi oluşturulmaz; mevcut kayıtlar değiştirilmez.",
+      demoOptIn: "Örnek ürün ve müşteri ekle",
+      failed: "Kurulum tamamlanamadı. Eklenen kayıtlar korunur; yeniden denemek çoğaltmaz.",
+      skip: "Demo eklemeden bitir",
+      back: "Geri",
+      next: "Devam",
+      finish: "Bitir",
     },
     pos: {
       paymentCancelled: "Ödeme iptal edildi",
@@ -2954,6 +2982,10 @@ export const translations: Record<LanguageCode, {
       ledgerPerms: "Kasa Defteri İzinleri",
     },
     errors: {
+      databaseFailure: "Veritabanı işlemi tamamlanamadı.",
+      licenseFailure: "Bu işlem için geçerli lisans gerekiyor.",
+      syncFailure: "Eşitleme veya çakışma çözümü tamamlanamadı. Kaydı yenileyin.",
+      validationFailure: "Veri doğrulanamadı.",
       documentValidation: "Kayıt doğrulanamadı. Hatalı veya eksik alanlar: {fields}",
       invalidBatchSize: "Toplu yazım boyutu pozitif bir tam sayı olmalıdır.",
       generic: "Beklenmeyen bir hata oluştu.",
@@ -3460,6 +3492,18 @@ export const translations: Record<LanguageCode, {
       close: "Ýap",
       loading: "Ýüklenýär…",
       readFailed: "Gapma-garşylyklar okalmady. Hiç bir görnüş pozulmady.",
+    },
+    wizard: {
+      title: "Ilkinji sazlama",
+      welcome: "Hoş geldiňiz. Bu ussa diňe täze hasabyňyz üçin. Baglanyşyk we demo maglumatlary hökmany däl.",
+      syncHint: "Isleseňiz CouchDB baglanyşygyny sazlap Baglan düwmesine basyň. Geçirip, soň Sazlamalardan baglanyp bilersiňiz.",
+      demoHint: "Demo deslap ýapykdyr. Saýlasaňyz 2 nusga haryt we nol balansly 1 müşderi goşulýar. Faktura ýa-da pul hereketi döredilmeýär; bar ýazgylar üýtgedilmeýär.",
+      demoOptIn: "Nusga haryt we müşderi goş",
+      failed: "Sazlama tamamlanmady. Goşulan ýazgylar saklanýar; gaýtadan synanyşyk köpeltmeýär.",
+      skip: "Demo goşman tamamla",
+      back: "Yza",
+      next: "Dowam",
+      finish: "Tamamla",
     },
     pos: {
       paymentCancelled: "Töleg ýatyryldy",
@@ -4590,6 +4634,10 @@ export const translations: Record<LanguageCode, {
       ledgerPerms: "Depder rugsatlary",
     },
     errors: {
+      databaseFailure: "Maglumat bazasynyň işi tamamlanmady.",
+      licenseFailure: "Bu iş üçin hereket edýän ygtyýarnama gerek.",
+      syncFailure: "Eşitleme ýa-da gapma-garşylyk çözülmedi. Ýazgyny täzeläň.",
+      validationFailure: "Maglumat barlanmady.",
       documentValidation: "Ýazgy barlanmady. Nädogry ýa-da ýetmeýän meýdanlar: {fields}",
       invalidBatchSize: "Toplu ýazuwyň ölçegi položitel bitin san bolmalydyr.",
       generic: "Garaşylmadyk ýalňyşlyk ýüze çykdy.",
@@ -5095,6 +5143,18 @@ export const translations: Record<LanguageCode, {
       close: "Close",
       loading: "Loading…",
       readFailed: "Conflicts could not be read. No versions were deleted.",
+    },
+    wizard: {
+      title: "First-run setup",
+      welcome: "Welcome. This wizard is only for your new account. Connection and demo data are optional.",
+      syncHint: "Optionally configure CouchDB and press Connect. You can skip this and connect later from Settings.",
+      demoHint: "Demo data is off by default. If selected, 2 sample products and 1 zero-balance customer are added. No invoices or financial movements are created; existing records are not changed.",
+      demoOptIn: "Add sample products and customer",
+      failed: "Setup could not complete. Added records are retained; retrying does not duplicate them.",
+      skip: "Finish without demo",
+      back: "Back",
+      next: "Continue",
+      finish: "Finish",
     },
     pos: {
       paymentCancelled: "Payment cancelled",
@@ -6225,6 +6285,10 @@ export const translations: Record<LanguageCode, {
       ledgerPerms: "Ledger Permissions",
     },
     errors: {
+      databaseFailure: "The database operation could not be completed.",
+      licenseFailure: "A valid license is required for this operation.",
+      syncFailure: "Sync or conflict resolution could not complete. Refresh the record.",
+      validationFailure: "Data validation failed.",
       documentValidation: "Record validation failed. Invalid or missing fields: {fields}",
       invalidBatchSize: "Batch size must be a positive integer.",
       generic: "An unexpected error occurred.",
@@ -6730,6 +6794,18 @@ export const translations: Record<LanguageCode, {
       close: "Закрыть",
       loading: "Загрузка…",
       readFailed: "Не удалось прочитать конфликты. Версии не удалены.",
+    },
+    wizard: {
+      title: "Первоначальная настройка",
+      welcome: "Добро пожаловать. Мастер предназначен только для нового аккаунта. Подключение и демоданные необязательны.",
+      syncHint: "При желании настройте CouchDB и нажмите «Подключиться». Можно пропустить и подключиться позже в настройках.",
+      demoHint: "Демоданные по умолчанию выключены. При выборе добавляются 2 товара и 1 клиент с нулевым балансом. Счета и денежные операции не создаются; существующие записи не меняются.",
+      demoOptIn: "Добавить примеры товаров и клиента",
+      failed: "Настройка не завершена. Добавленные записи сохраняются; повтор не создаёт дубликаты.",
+      skip: "Завершить без демоданных",
+      back: "Назад",
+      next: "Продолжить",
+      finish: "Завершить",
     },
     pos: {
       paymentCancelled: "Оплата отменена",
@@ -7860,6 +7936,10 @@ export const translations: Record<LanguageCode, {
       ledgerPerms: "Права на журналы",
     },
     errors: {
+      databaseFailure: "Операция с базой данных не выполнена.",
+      licenseFailure: "Для операции требуется действующая лицензия.",
+      syncFailure: "Синхронизация или разрешение конфликта не завершены. Обновите запись.",
+      validationFailure: "Данные не прошли проверку.",
       documentValidation: "Запись не прошла проверку. Неверные или отсутствующие поля: {fields}",
       invalidBatchSize: "Размер пакета должен быть положительным целым числом.",
       generic: "Произошла непредвиденная ошибка.",

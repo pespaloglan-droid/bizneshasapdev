@@ -4,7 +4,11 @@ const state = (page: Page) => page.evaluate(() => (window as any).e2e.state());
 async function fillField(page: Page, key: string, value: string) {
   await page.locator('label').filter({ hasText: await text(page, key) }).locator('..').locator('input').fill(value);
 }
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
+  if (testInfo.title.startsWith('sihirbaz:')) {
+    await page.goto('/tests/e2e/harness.html?firstRun=1');
+    await expect(page.getByRole('dialog', { name: 'First-run setup' })).toBeVisible(); return;
+  }
   await page.goto('/tests/e2e/harness.html');
   await expect(page.getByText('E2E Tea', { exact: true })).toBeVisible();
 });
@@ -78,4 +82,33 @@ test('telemetri: varsayılan izinler kapalı, kendiliğinden servis isteği yok'
   await page.reload(); await expect(page.getByText('E2E Tea', { exact: true })).toBeVisible();
   const consent = await page.evaluate(async () => (await import('/src/utils/telemetry.ts')).readTelemetryConsent());
   expect(consent).toEqual({ analytics: false, crashes: false }); expect(telemetryRequests).toEqual([]);
+});
+
+
+test('sihirbaz: demo varsayılan kapalı ve atlama finansal kayıt oluşturmaz', async ({ page }) => {
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(page.getByRole('checkbox', { name: 'Add sample products and customer' })).not.toBeChecked();
+  await page.getByRole('button', { name: 'Finish without demo', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'First-run setup' })).not.toBeVisible();
+  const saved = await state(page); expect(saved.products).toEqual([]); expect(saved.invoices).toEqual([]);
+  expect(await page.evaluate(() => (window as any).e2e.pendingFirstRun())).toBe(false);
+});
+test('sihirbaz: açık rızalı demo idempotent ve mevcut stok ezilmez', async ({ page }) => {
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Add sample products and customer' }).check();
+  await page.getByRole('button', { name: 'Finish', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'First-run setup' })).not.toBeVisible();
+  await expect.poll(async () => (await state(page)).products.length).toBe(2);
+  expect((await state(page)).invoices).toEqual([]);
+  expect((await state(page)).customers.filter((c: any) => c.id === 'demo-customer-v1')).toHaveLength(1);
+  expect(await page.evaluate(() => (window as any).e2e.retryDemo())).toEqual({ products: 0, customers: 0 });
+  expect((await state(page)).products.some((p: any) => p.stock === 77)).toBe(true);
+});
+test('doğrulama: karışık batch geçerliyi yazar hatalı değeri ve sıfırlı SKUyu değiştirmez', async ({ page }) => {
+  const { result, products } = await page.evaluate(() => (window as any).e2e.validationQa());
+  expect(result.written).toBe(1); expect(result.failed).toHaveLength(1);
+  expect(JSON.stringify(result.failed)).not.toContain('SECRET_DO_NOT_LEAK');
+  expect(products).toHaveLength(1); expect(products[0]).toMatchObject({ stock: 6, sku: '00001', price: 10 });
 });

@@ -1,3 +1,4 @@
+import { markFirstRunPending } from './utils/onboarding';
 import React, { useState, useEffect } from 'react';
 import { TitleBar } from './components/TitleBar';
 import { LeftAccountPanel } from './components/LeftAccountPanel';
@@ -244,6 +245,7 @@ const AppContent: React.FC<AppContentProps> = ({ state, setState, onLanguageChan
   };
 
   const handleAddAccount = (newAccount: Account) => {
+    try { markFirstRunPending(getAccountStoreKey(newAccount)); } catch {}
     setState(prev => ({
       ...prev,
       accounts: [...prev.accounts, newAccount],

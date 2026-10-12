@@ -1,3 +1,4 @@
+export const SYNC_DOCS_CHANGED_EVENT = 'bh:sync-docs-changed';
 import {
   basicAuth,
   describeFetchError,
@@ -373,6 +374,7 @@ export async function startConnection(opts: StartOptions): Promise<TestResult> {
           opts.onProgress?.({ received, sent, done: true, remoteTotal });
           // İlk aktarım bitti — köprü aktarımı + arayüz tazeleme tetikle
           onDocsChanged?.();
+          window.dispatchEvent(new CustomEvent(SYNC_DOCS_CHANGED_EVENT, { detail: storeDb }));
           received = 0;
           sent = 0;
           sawChange = false;
