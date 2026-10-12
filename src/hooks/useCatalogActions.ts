@@ -86,7 +86,7 @@ const handleImportCustomers = async (
 const handleAddCustomer = (newCustomer: Customer) => {
     setCustomers(prev => [newCustomer, ...prev]);
     saveCustomerToDb(newCustomer, storeDb).catch(() => {});
-    setToastMessage({ type: 'success', text: `${newCustomer.name} üstünlikli goşuldy.` });
+    setToastMessage({ type: 'success', text: t('pos.customerAdded', { name: newCustomer.name }) });
     setTimeout(() => setToastMessage(null), 3000);
   };
 

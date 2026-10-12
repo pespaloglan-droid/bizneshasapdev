@@ -1,5 +1,6 @@
 import type React from 'react';
-import { useT } from '../locales/LanguageContext';
+import { formatMoney } from '../utils/locale';
+import { useT, useLanguage } from '../locales/LanguageContext';
 import type { OperationSettings } from '../types';
 import { InvoiceRecord, CartItem, Customer, InvoiceType, PaymentMethod, Product, User } from '../types';
 import { addDaysIso, todayIso } from '../utils/paymentLabels';
@@ -43,6 +44,7 @@ interface Options {
 
 export function useInvoiceActions({ paymentMethod, creditAdvance, ops, creditTermDays, setIsPosTerminalModalOpen, setLastAuthCode, invoiceType, selectedCustomer, cartItems, subtotal, discountTotal, amountDue, fixedInvoiceAt, currentUser, internalNote, storeDb, setCompletedInvoices, applyStockChanges, applyCustomerBalance, setActiveReceiptInvoice, setToastMessage, setCartItems, setCashReceived, setInternalNote, setGlobalPercent, compositionMapRef, products, loadedDraftId, acceptLoadedDraft, cashReceived, setCreditAdvance }: Options) {
   const t = useT();
+  const { language } = useLanguage();
 
 const creditFields = (
     total: number
@@ -100,7 +102,7 @@ const handleCardPaymentApproved = async (authCode: string) => {
 
     setToastMessage({
       type: 'success',
-      text: `${t('posApproved')} (${newInvoice.invoiceNo})`
+      text: t('pos.cardApprovedInvoice', { invoice: newInvoice.invoiceNo })
     });
 
     // Sepeti Sıfırla
@@ -173,7 +175,7 @@ const handleCompleteSale = async () => {
         if (currentReceivable + newReceivable > limit) {
           setToastMessage({
             type: 'info',
-            text: t('pos.creditLimitExceeded', { limit: limit.toFixed(2) }),
+            text: t('pos.creditLimitExceeded', { limit: formatMoney(limit, language) }),
           });
           setTimeout(() => setToastMessage(null), 3500);
           return;
@@ -234,7 +236,7 @@ const handleCompleteSale = async () => {
 
     setToastMessage({
       type: 'success',
-      text: `${t('saleCompletedToast')} (${newInvoice.invoiceNo} • ${amountDue.toFixed(2)})`
+      text: t('pos.saleCompletedInvoice', { invoice: newInvoice.invoiceNo, amount: formatMoney(amountDue, language) })
     });
 
     // Reset Cart and Notes for next customer

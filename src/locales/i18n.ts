@@ -102,6 +102,20 @@ export const translations: Record<LanguageCode, {
     finish: string;
   };
   pos: {
+    customerAdded: string;
+    invoiceVoided: string;
+    draftCreated: string;
+    draftUpdated: string;
+    draftSaved: string;
+    draftAccepted: string;
+    draftOpened: string;
+    draftRejected: string;
+    newDraftsReceived: string;
+    creditReminderCount: string;
+    cardApprovedInvoice: string;
+    saleCompletedInvoice: string;
+    creditReminderWeek: string;
+    creditReminderToday: string;
     paymentCancelled: string;
     newSale: string;
     noPermission: string;
@@ -1854,6 +1868,20 @@ export const translations: Record<LanguageCode, {
       finish: "Bitir",
     },
     pos: {
+      customerAdded: "{name} başarıyla eklendi.",
+      invoiceVoided: "Fatura iptal edildi: {invoice}",
+      draftCreated: "Taslak oluşturuldu: {invoice}",
+      draftUpdated: "Taslak güncellendi: {invoice}",
+      draftSaved: "Taslak fatura kaydedildi: {invoice}",
+      draftAccepted: "Kabul edildi: {invoice}",
+      draftOpened: "Taslak açıldı: {invoice}",
+      draftRejected: "Reddedildi: {invoice}",
+      newDraftsReceived: "{count} yeni taslak fatura geldi",
+      creditReminderCount: "{count} vadeli borç hatırlatması var",
+      cardApprovedInvoice: "Kart ödemesi onaylandı ({invoice})",
+      saleCompletedInvoice: "Satış tamamlandı ({invoice} • {amount})",
+      creditReminderWeek: "«{name}» müşterisinin {amount} TMT borcunun vadesine 1 hafta kaldı ({date}).",
+      creditReminderToday: "«{name}» müşterisinin {amount} TMT borcunun vadesi bugün.",
       paymentCancelled: "Ödeme iptal edildi",
       newSale: "Yeni Satış",
       noPermission: "Yetkiniz yok",
@@ -3506,6 +3534,20 @@ export const translations: Record<LanguageCode, {
       finish: "Tamamla",
     },
     pos: {
+      customerAdded: "{name} üstünlikli goşuldy.",
+      invoiceVoided: "Faktura pozuldy: {invoice}",
+      draftCreated: "Garalama döredildi: {invoice}",
+      draftUpdated: "Garalama täzelendi: {invoice}",
+      draftSaved: "Garalama faktura ýazga alyndy: {invoice}",
+      draftAccepted: "Kabul edildi: {invoice}",
+      draftOpened: "Garalama açyldy: {invoice}",
+      draftRejected: "Ret edildi: {invoice}",
+      newDraftsReceived: "{count} täze garalama faktura geldi",
+      creditReminderCount: "{count} nesiýe bergisi barada hatyrlatma bar",
+      cardApprovedInvoice: "Kart tölegi tassyklandy ({invoice})",
+      saleCompletedInvoice: "Satuw tamamlandy ({invoice} • {amount})",
+      creditReminderWeek: "«{name}» müşderiniň {amount} TMT bergisiniň möhletine 1 hepde galdy ({date}).",
+      creditReminderToday: "«{name}» müşderiniň {amount} TMT bergisiniň möhleti şu gün dolýar.",
       paymentCancelled: "Töleg ýatyryldy",
       newSale: "Täze Söwda",
       noPermission: "Rugsat ýok",
@@ -5157,6 +5199,20 @@ export const translations: Record<LanguageCode, {
       finish: "Finish",
     },
     pos: {
+      customerAdded: "{name} added successfully.",
+      invoiceVoided: "Invoice voided: {invoice}",
+      draftCreated: "Draft created: {invoice}",
+      draftUpdated: "Draft updated: {invoice}",
+      draftSaved: "Draft invoice saved: {invoice}",
+      draftAccepted: "Accepted: {invoice}",
+      draftOpened: "Draft opened: {invoice}",
+      draftRejected: "Rejected: {invoice}",
+      newDraftsReceived: "{count} new draft invoices received",
+      creditReminderCount: "{count} credit reminders",
+      cardApprovedInvoice: "Card payment approved ({invoice})",
+      saleCompletedInvoice: "Sale completed ({invoice} • {amount})",
+      creditReminderWeek: "«{name}» owes {amount} TMT, due in 1 week ({date}).",
+      creditReminderToday: "«{name}» owes {amount} TMT, due today.",
       paymentCancelled: "Payment cancelled",
       newSale: "New Sale",
       noPermission: "Not authorized",
@@ -6808,6 +6864,20 @@ export const translations: Record<LanguageCode, {
       finish: "Завершить",
     },
     pos: {
+      customerAdded: "{name} успешно добавлен.",
+      invoiceVoided: "Счёт отменён: {invoice}",
+      draftCreated: "Черновик создан: {invoice}",
+      draftUpdated: "Черновик обновлён: {invoice}",
+      draftSaved: "Черновик счёта сохранён: {invoice}",
+      draftAccepted: "Принято: {invoice}",
+      draftOpened: "Черновик открыт: {invoice}",
+      draftRejected: "Отклонено: {invoice}",
+      newDraftsReceived: "Получено новых черновиков: {count}",
+      creditReminderCount: "Напоминаний о задолженности: {count}",
+      cardApprovedInvoice: "Оплата картой подтверждена ({invoice})",
+      saleCompletedInvoice: "Продажа завершена ({invoice} • {amount})",
+      creditReminderWeek: "Долг клиента «{name}»: {amount} TMT, срок через неделю ({date}).",
+      creditReminderToday: "Долг клиента «{name}»: {amount} TMT, срок сегодня.",
       paymentCancelled: "Оплата отменена",
       newSale: "Новая продажа",
       noPermission: "Нет доступа",

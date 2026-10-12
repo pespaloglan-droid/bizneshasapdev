@@ -1,5 +1,7 @@
-import type { InvoiceRecord } from '../types';
-import { daysBetweenIso, formatIsoDate, todayIso } from './paymentLabels';
+import { translate } from '../locales/i18n';
+import { formatMoney, formatDate } from './locale';
+import type { InvoiceRecord, LanguageCode } from '../types';
+import { daysBetweenIso, todayIso } from './paymentLabels';
 
 export interface CreditReminder {
   readonly invoiceId: string;
@@ -89,7 +91,7 @@ export function overdueDebts(invoices: readonly InvoiceRecord[]): OverdueDebt[] 
  * Günde bir gezek (her faktura + görnüş üçin) gaýtarylýar.
  * Möhleti geçen bergiler üçin täze hatyrlatma döredilmeýär (spam bolmasyn).
  */
-export function takeCreditReminders(invoices: readonly InvoiceRecord[]): CreditReminder[] {
+export function takeCreditReminders(invoices: readonly InvoiceRecord[], language: LanguageCode = 'tm'): CreditReminder[] {
   const today = todayIso();
   const notified = readNotified();
   const fresh: Record<string, string> = {};
@@ -113,7 +115,7 @@ export function takeCreditReminders(invoices: readonly InvoiceRecord[]): CreditR
     }
     fresh[key] = today;
 
-    const amount = row.remaining.toFixed(2);
+    const amount = formatMoney(row.remaining, language);
     reminders.push({
       invoiceId: row.invoice.id,
       invoiceNo: row.invoice.invoiceNo,
@@ -121,10 +123,9 @@ export function takeCreditReminders(invoices: readonly InvoiceRecord[]): CreditR
       remaining: row.remaining,
       dueDate: row.dueDate,
       kind,
-      message:
-        kind === 'week'
-          ? `«${row.invoice.customerName}» müşderiniň ${amount} TMT bergisiniň möhletine 1 hepde galdy (${formatIsoDate(row.dueDate)}).`
-          : `«${row.invoice.customerName}» müşderiniň ${amount} TMT bergisiniň möhleti şu gün dolýar.`,
+      message: translate(language, kind === 'week' ? 'pos.creditReminderWeek' : 'pos.creditReminderToday', {
+        name: row.invoice.customerName, amount, date: formatDate(row.dueDate, language),
+      }),
     });
   }
 

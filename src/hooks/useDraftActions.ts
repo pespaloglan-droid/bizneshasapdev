@@ -85,7 +85,7 @@ const handleVoidInvoice = (invoice: InvoiceRecord) => {
       voidedBy: currentUser.name,
     });
 
-    setToastMessage({ type: 'success', text: `Faktura pozuldy: ${invoice.invoiceNo}` });
+    setToastMessage({ type: 'success', text: t('pos.invoiceVoided', { invoice: invoice.invoiceNo }) });
     setTimeout(() => setToastMessage(null), 3000);
   };
 
@@ -93,7 +93,7 @@ const handleCreateDraft = (invoice: InvoiceRecord) => {
     upsertInvoice(invoice);
     setIsDraftFormOpen(false);
     setIsGaralamaOpen(true);
-    setToastMessage({ type: 'success', text: `Garalama döredildi: ${invoice.invoiceNo}` });
+    setToastMessage({ type: 'success', text: t('pos.draftCreated', { invoice: invoice.invoiceNo }) });
     setTimeout(() => setToastMessage(null), 3000);
   };
 
@@ -151,8 +151,8 @@ const handleSaveDraftFromCart = () => {
     setToastMessage({
       type: 'success',
       text: existing
-        ? `Garalama täzelendi: ${draft.invoiceNo}`
-        : `Garalama faktura ýazga alyndy: ${draft.invoiceNo}`,
+        ? t('pos.draftUpdated', { invoice: draft.invoiceNo })
+        : t('pos.draftSaved', { invoice: draft.invoiceNo }),
     });
     setTimeout(() => setToastMessage(null), 3000);
 
@@ -193,7 +193,7 @@ const applyAcceptedDraft = (accepted: InvoiceRecord) => {
       }
     }
 
-    setToastMessage({ type: 'success', text: `Kabul edildi: ${accepted.invoiceNo}` });
+    setToastMessage({ type: 'success', text: t('pos.draftAccepted', { invoice: accepted.invoiceNo }) });
     setTimeout(() => setToastMessage(null), 3000);
   };
 
@@ -218,7 +218,7 @@ const handleOpenDraft = (invoice: InvoiceRecord) => {
     setLoadedDraftId(invoice.id);
     setIsGaralamaOpen(false);
     handleTabChange('checkout');
-    setToastMessage({ type: 'info', text: `Garalama açyldy: ${invoice.invoiceNo}` });
+    setToastMessage({ type: 'info', text: t('pos.draftOpened', { invoice: invoice.invoiceNo }) });
     setTimeout(() => setToastMessage(null), 3000);
   };
 
@@ -266,7 +266,7 @@ const handleRejectDraft = (invoice: InvoiceRecord, reason: string) => {
       draftStatus: 'rejected',
       rejectedReason: reason ? reason : undefined,
     });
-    setToastMessage({ type: 'info', text: `Ret edildi: ${invoice.invoiceNo}` });
+    setToastMessage({ type: 'info', text: t('pos.draftRejected', { invoice: invoice.invoiceNo }) });
     setTimeout(() => setToastMessage(null), 3000);
   };
 

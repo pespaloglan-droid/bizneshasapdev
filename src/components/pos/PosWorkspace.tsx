@@ -1,3 +1,5 @@
+import { ResetCheckoutModal } from './ResetCheckoutModal';
+import { WorkspaceToastView } from './WorkspaceToast';
 import { FirstRunWizard } from '../FirstRunWizard';
 import { useTelemetry } from '../../hooks/useTelemetry';
 import { useCatalogActions } from '../../hooks/useCatalogActions';
@@ -82,7 +84,7 @@ import { useCustomerPriceActions } from '../../hooks/useCustomerPriceActions';
 import { useWorkspaceData } from '../../hooks/useWorkspaceData';
 import { translate } from '../../locales/i18n';
 import { useT } from '../../locales/LanguageContext';
-import { CheckCircle2, FileText, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { checkRouteAccess } from '../../utils/gateMiddleware';
 import type { LicenseInfo } from '../../types/license';
 
@@ -682,22 +684,6 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     }
   };
 
-  // ── F10 onam diýalogy: Enter = geri al, Escape = ýatyr ───────────────────
-  useEffect(() => {
-    if (!isResetConfirmOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setIsResetConfirmOpen(false);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        handleResetCheckout();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isResetConfirmOpen, language]);
-
   // Ödeme Yöntemi Değiştirildiğinde (Karta seçilirse Logo gibi Terminali Tetikle)
   const handleSelectPaymentMethod = (method: PaymentMethod) => {
     setPaymentMethod(method);
@@ -1074,7 +1060,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
         if (soundEnabled) playNotificationPing();
         setToastMessage({
           type: 'info',
-          text: `${incoming.length} täze garalama faktura geldi`,
+          text: t('pos.newDraftsReceived', { count: incoming.length }),
         });
         setTimeout(() => setToastMessage(null), 4000);
       }
@@ -1083,11 +1069,11 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     }, 15000);
 
     return () => window.clearInterval(timer);
-  }, [storeDb, currentUser.name, soundEnabled]);
+  }, [storeDb, currentUser.name, soundEnabled, language]);
 
   // ─ Nesiýe möhleti hatyrlatmalary (günde bir gezek) ──────────────
   useEffect(() => {
-    const reminders = takeCreditReminders(completedInvoices);
+    const reminders = takeCreditReminders(completedInvoices, language);
     if (reminders.length === 0) return;
     if (soundEnabled) playNotificationPing();
     setToastMessage({
@@ -1095,10 +1081,10 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       text:
         reminders.length === 1
           ? reminders[0].message
-          : `${reminders.length} nesiýe bergisi barada hatyrlatma bar`,
+          : t('pos.creditReminderCount', { count: reminders.length }),
     });
     setTimeout(() => setToastMessage(null), 6000);
-  }, [completedInvoices, soundEnabled]);
+  }, [completedInvoices, soundEnabled, language]);
 
   return (
     <div className={`w-full h-screen bg-[#F1F5F9] flex flex-col justify-between overflow-hidden select-none font-sans ${native ? 'bh-touch' : ''}`}>
@@ -1554,35 +1540,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
         />
       )}
 
-      {/* F10 — Geri al onam diýalogy */}
-      {isResetConfirmOpen && (
-        <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5">
-            <div className="text-sm font-bold text-gray-800 mb-1">
-              {t('pos.resetTitle')}
-            </div>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              {t('pos.resetMsg')}
-            </p>
-            <div className="flex justify-end gap-2 pt-3">
-              <button
-                type="button"
-                onClick={() => setIsResetConfirmOpen(false)}
-                className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
-              >
-                {t('pos.resetCancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleResetCheckout}
-                className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
-              >
-                {t('pos.resetConfirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {isResetConfirmOpen && <ResetCheckoutModal onCancel={() => setIsResetConfirmOpen(false)} onConfirm={handleResetCheckout} />}
 
       {/* F12 — Sepet çap penjiresi */}
       {isPrintDraftOpen && (
@@ -1676,21 +1634,8 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
 
       <FirstRunWizard key={storeDb} account={activeAccount} dbName={storeDb} language={language} isAdmin={isAdminUser(currentUser, stores.appUsers)} />
 
-      {/* Toast Bildirimleri */}
-      {toastMessage && (
-        <div
-          className={`fixed bottom-12 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl shadow-2xl flex items-center space-x-2.5 text-white text-xs font-bold animate-in fade-in slide-in-from-bottom-2 duration-150 ${
-            toastMessage.type === 'success' ? 'bg-[#10b981]' : 'bg-[#0B1F3A]'
-          }`}
-        >
-          {toastMessage.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-white" />
-          ) : (
-            <FileText className="w-4 h-4 text-amber-400" />
-          )}
-          <span>{toastMessage.text}</span>
-        </div>
-      )}
+      {toastMessage && <WorkspaceToastView {...toastMessage} />}
+
     </div>
   );
 };
