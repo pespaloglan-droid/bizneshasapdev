@@ -68,6 +68,16 @@ function base64ToBytes(base64: string): Uint8Array {
  * Capacitor (Android) bolsa Documents bukjasyna native ýazýar;
  * Electron ýok we web bolsa download hökmünde işleýär.
  */
+export function uniqueNativeExportName(name: string): string {
+  // Android otomatik kayıtta eski dışa aktarmayı ezmez; PC diyaloğu değişmez.
+  const base = name.replace(/[\\/]/g, '_');
+  const dot = base.lastIndexOf('.');
+  const stem = dot > 0 ? base.slice(0, dot) : base;
+  const extension = dot > 0 ? base.slice(dot) : '';
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return `${stem}-${stamp}-${crypto.randomUUID().slice(0, 8)}${extension}`;
+}
+
 export async function saveFileAs(options: SaveFileAsOptions): Promise<boolean> {
   const bridge = electronBridge();
   if (bridge.saveFileAs) {
@@ -79,7 +89,7 @@ export async function saveFileAs(options: SaveFileAsOptions): Promise<boolean> {
     try {
       const { Filesystem, Directory } = await import('@capacitor/filesystem');
       await Filesystem.writeFile({
-        path: options.defaultName || 'faýl.xlsx',
+        path: uniqueNativeExportName(options.defaultName || 'faýl.xlsx'),
         data: options.data,
         directory: Directory.Documents,
         recursive: true,

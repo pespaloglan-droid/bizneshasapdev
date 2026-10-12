@@ -37,7 +37,7 @@ export const DEFAULT_SYNC_CONFIG: SyncConfig = {
     { id: 'domain', url: '', kind: 'domain' },
   ],
   username: 'biznes_app',
-  password: 'bh_app_4nR7yT9wK3sD',
+  password: '',
   enabled: false,
 };
 

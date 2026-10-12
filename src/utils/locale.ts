@@ -1,3 +1,4 @@
+import { SETTINGS_KEY } from './storageKeys';
 import type { LanguageCode } from '../types';
 import { detectInitialLanguage } from './languageDetect';
 
@@ -14,7 +15,7 @@ export const DEFAULT_CURRENCY_CODE = 'TMT';
 
 // accountStore'daki hızlı önbellek anahtarı — döngüsel import olmasın diye
 // burada doğrudan localStorage okunur.
-const SETTINGS_KEY = 'biznes_hasap_settings_v1';
+
 
 /** Aktif dil: localStorage'daki son seçim; yoksa cihaz dilinden türetilir. */
 export function getActiveLanguage(): LanguageCode {

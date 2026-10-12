@@ -1,38 +1,72 @@
 # Faz C / D çalışma kaydı
 
-Başlangıç: `main`, `a229c6f`. Bu kayıt kaynak değişikliklerini takip eder;
-üretilmemiş APK veya imzalı EXE için tamamlanmış dağıtım iddiası değildir.
+Başlangıç `main / a229c6f`. PC 1.150.0 ve Android 1.3.8 / versionCode 25 ayrı sürümlerdir.
+Bu kayıt kaynak uygulamasını ve doğrulama sınırlarını belirtir; yapılmamış cihaz veya
+imzalı Windows dağıtım testlerini tamamlanmış saymaz.
 
-## Faz C — D4 öncesi Excel mimari temizliği
+## Kaynak uygulaması
 
-- C1: Faktura ve hasaplama export'u `excelWriter.ts` üzerinden ExcelJS kullanır.
-  Fakturadaki satır hesaplaması ve mevcut genel toplam korunur. Raporların sayısal
-  kolonları sayısal hücre olarak yazılır; SKU gibi kimlikler metin kalır.
-  Kesirli miktarlar tam sayıya yuvarlanmış görünmez.
-- C2: `excelIO.ts` ExcelJS ile ilk worksheet'i okur; tarih, rich text, hyperlink
-  metni ve formüllerin mevcut sonuçlarını normalleştirir. Formül çalıştırmaz.
-  Boş ara satırların fiziksel satır numaraları korunur. 10 MB / 50.000 satır
-  limitleri devam eder. Okuma hataları 4 dilde sözlüğe bağlandı.
-- Ürün/müşteri dosyalarındaki kullanılmayan legacy export/template fonksiyonları
-  kaldırıldı. Aktif stilli export/template fonksiyonları korunur.
-- C3: `read-excel-file` ve `write-excel-file` dependency + lockfile'dan kaldırıldı.
-- C4 (alias haritası + manuel kolon eşleme UI'ı): **henüz uygulanmadı**.
-  C1–C3 temizliğinden bağımsız, ayrı bir sonraki adımdır.
+- **C1–C3:** ortak ExcelJS stilli faktura/rapor export'u ve import okuyucu;
+  legacy bağımlılıklar kaldırıldı. Sayısal hücreler, kesirli miktarlar, fatura
+  genel toplamı, sıfırlı barkod/SKU, dosya/satır limitleri ve formula escape korunur.
+- **C4:** TR/TM/EN/RU import alias'ları, başlık tespiti ve manuel kolon eşleme.
+  Belirsiz veya yinelenen eşleşme otomatik kabul edilmez. Export başlıkları
+  tüm UI dillerinde canonical Türkmençe kalır.
+- **D1:** sertifika zorunlu Windows imzalı build ve SHA256 zaman damgalama;
+  sertifika/parola git'e girmez. Workflow çıktı imzasını doğrular.
+- **D2:** yalnızca paketli ve imzalı Windows uygulamasında updater;
+  indirme ve kurulum ayrı kullanıcı onayı ister. Dev/portable otomatik güncellenmez.
+- **D3:** Zod son-belge doğrulaması, güvenli kısmi merge, batch kısmi başarı,
+  409 tekrar denemesi ve değer sızdırmayan hata kodları. Eski veriler dönüştürülmez.
+- **D4:** workspace veri, sepet, fiyat, katalog, taslak ve faktura işlemleri ayrı
+  hook'lara; reset modalı ve toast ayrı bileşenlere alındı. Root 9 prop korunur.
+  Kalan kullanıcı toast'ları dört dilde interpolasyonla üretilir.
+- **D5:** cihaz+hesap bazlı isteğe bağlı manuel conflict inceleme; varsayılan LWW.
+  Seçim stale revision kontrolüyle yazılır, başarılı yazım öncesi dal silinmez.
+  Bekleyen review varken PC köprüsü aktarımı tutulur; gizli alanlar gösterilmez.
+- **D6:** gerçek POS ve PouchDB/IndexedDB kullanan Playwright fixture + CI.
+  Test giriş noktası üretim bundle'ına dahil edilmez; lisans stub'ı yalnızca fixture'dadır.
+- **D7:** PostHog ve Sentry ayrı, varsayılan kapalı cihaz izinleri.
+  Analytics yalnızca allowlist özellik seçimini, Electron hataları sabit teknik
+  kodu taşır. Kullanıcı/veri değerleri, URL, breadcrumb veya minidump gönderilmez.
+- **D8:** 3/12 aylık seçenek yalnızca tarihli, completed native mobile faturaların
+  eski olanlarını pull'dan dışlar. Push ve stok/bakiye/master/taslak/iptal/tombstone
+  tam kalır. PC, şifreli ve tanınmayan belgeler güvenlik için tam alınır.
+  Önceden indirilmiş yerel tarihçe silinmez; kesin boyut sınırı değildir.
+- **D9:** typed error sınıfları, >1000 ms operasyon ölçümü, sahipli sync cleanup,
+  yeni hesaplarda ilk-kurulum sihirbazı ve açık onaylı idempotent demo.
+  Demo finansal belge oluşturmaz; mevcut veya düzenlenmiş kayıtları ezmez.
 
-Excel kolon başlıkları Türkmençe ve ürün/müşteri başlıkları mevcut tek kaynaktan
-üretilmeye devam eder. Veri etiketi tabloları ve DB belge formatı değiştirilmedi.
-Yeni repo test dosyası eklenmedi.
+## Küçük kalıntılar
 
-## Faz D1 — hazırlık
+Ayar önbellek anahtarı tek kaynağa alındı. Android Documents otomatik export'unda
+zaman damgası + rastgele son ek eski dosyayı ezmeyi önler; PC save diyaloğu değişmez.
+1.3.2–1.3.5 sürüm tablosu mevcut ISLEM-LOG kanıtından tamamlandı.
+Büyük Vite chunk uyarısı hâlâ vardır; modülleri gelişigüzel bölerek davranış
+riski yaratılmadı. PostHog izin sonrası dinamik yüklenir.
 
-İmzalı build komutu, sertifika gitignore kuralları, Windows workflow'u ve
-`WINDOWS-IMZALAMA.md` eklendi. Sertifika eksikse imzalı yol hata verir.
-Gerçek sertifika ile Windows EXE/imza/zaman damgası doğrulaması **bekliyor**.
-Linux'ta Windows paketleme denemesi Wine olmadığı için tamamlanamadı.
+## Doğrulama sınırları
 
-## Mobil dağıtım
+Birim testleri, TypeScript/web build ve gerçek Chromium E2E sonuçları son dağıtım
+kaydıyla birlikte tutulur. E2E: satış/fiyat/stok, ürün/müşteri CRUD, selective pull,
+conflict branch/stale guard, izin kapalı telemetri, demo atlama/idempotence,
+karma batch doğrulama, Excel roundtrip/alias ve F10 reset.
 
-Kaynak sürümü v1.3.8 / versionCode 25 için ayrıldı.
-Bu ortamda Android SDK kurulu değil. APK üretimi, çıktı dosyasının
-`bizneshasap-apk/BiznesHasap-v1.3.8.apk` konumuna kopyalanması ve Android cihazda
-Documents kayıt/import kontrolü yapılmadan mobil iş dağıtıma hazır sayılmaz.
+Aşağıdakiler ayrıca gerçek ortam gerektirir ve kaynak testleriyle doğrulanmış sayılmaz:
+- güvenilir Windows sertifikasıyla EXE / Authenticode / timestamp;
+- yayımlanmış imzalı release üzerinden canlı updater testi;
+- fiziksel Android cihazda Documents yazma, import ve mevcut APK üzerine kurulum;
+- gerçek CouchDB HTTP sunucusunda selective live sync;
+- kullanıcıya ait Sentry/PostHog projelerinde açık izinli canlı teslimat.
+
+## Son kaynak kontrolü — 2026-10-12
+
+- TypeScript: başarılı; birim testleri 17 dosya / 308 başarılı.
+- Playwright: 11 / 11 başarılı (gerçek Chromium + IndexedDB).
+- Web build ve `build:mobile` / Capacitor sync: başarılı.
+- `npm run electron:build`: Linux AppImage ve snap oluşturuldu; paket ASAR'ında
+  electron-updater, js-yaml ve auto-update.cjs bulundu. Bu Windows imza testi değildir.
+- Windows `electron-builder --win --dir`: Wine eksikliği nedeniyle tamamlanamadı.
+  Güvenilir sertifikalı dağıtım ve canlı updater kontrolü Windows workflow'unda bekliyor.
+- APK assembleDebug ve GitHub push henüz yapılmadı; Android SDK lisans onayı ve
+  authenticated Git push için kullanıcı bağlantısı sonraki dağıtım adımıdır.

@@ -1,3 +1,4 @@
+import { SETTINGS_KEY } from '../utils/storageKeys';
 import { Account, LanguageCode, PrinterMode } from '../types';
 import { detectInitialLanguage } from '../utils/languageDetect';
 import {
@@ -8,7 +9,7 @@ import {
 } from '../db/accountService';
 
 const STORAGE_KEY = 'biznes_hasap_accounts_v1';
-const SETTINGS_KEY = 'biznes_hasap_settings_v1';
+
 
 export interface AppState {
   accounts: Account[];

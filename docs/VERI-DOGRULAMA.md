@@ -83,7 +83,7 @@ handler'ları bu adımda kapsamlı olarak yeniden tasarlanmadı.
 
 ## Doğrulama
 
-- Mevcut 17 dosya / 305 birim testi ve TypeScript/web build.
+- Mevcut 17 dosya / 308 birim testi ve TypeScript/web build.
 - Repo dışında, gerçek Chromium + IndexedDB PouchDB ile tip/enum/ID,
   PC köprü belgeleri, bilinmeyen alanlar, kısmi yazımlar, karma batch ve
   servis aynalama/hata iletimi.
@@ -91,6 +91,6 @@ handler'ları bu adımda kapsamlı olarak yeniden tasarlanmadı.
   tombstone/yeniden yaratma ve audit davranışı.
 - Gerçek şifreli PouchDB üzerinde kısmi yazım ve hatalı değer reddi.
 
-Yeni repo test dosyası eklenmedi. Bu kontroller Android cihaz veya gerçek
+D6 kapsamında kullanıcı talimatıyla Playwright E2E dosyaları eklendi; karma batch senaryosu gerçek IndexedDB üzerinde de kontrol edilir. Bu kontroller Android cihaz veya gerçek
 Windows dağıtım testi yerine geçmez. APK build/push, tüm kaynak düzeltmelerinden
 sonraki ayrı dağıtım adımıdır.
