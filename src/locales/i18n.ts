@@ -28,6 +28,11 @@ export const translations: Record<LanguageCode, {
   selectLogo: string;
   /** CouchDB bağlantı arayüzü (hesap ekranı + ayarlar). */
   conn: {
+    historyTitle: string;
+    historyAll: string;
+    historyThree: string;
+    historyYear: string;
+    historyHint: string;
     sectionTitle: string;
     sectionHint: string;
     localTitle: string;
@@ -1684,6 +1689,11 @@ export const translations: Record<LanguageCode, {
     cancel: "İptal",
     selectLogo: "Logo Seç",
     conn: {
+      historyTitle: "Mobil fatura geçmişi indirme aralığı",
+      historyAll: "Tüm geçmiş (varsayılan)",
+      historyThree: "Son 3 ay — doğrulanmış mobil faturalar",
+      historyYear: "Son 12 ay — doğrulanmış mobil faturalar",
+      historyHint: "Değiştirmek için bağlantıyı durdurun. Yalnızca eski, tarihli ve tamamlanmış mobil faturalar indirmede filtrelenir. Taslaklar, iptaller, bakiye kayıtları ve ürün/müşteri verileri korunur. Tarihi belirsiz, şifreli ve PC ayna kayıtları tam indirilir. Yerel geçmiş silinmez; gönderim tamdır. Raporlar eksik geçmiş içerebilir.",
       sectionTitle: "CouchDB Bağlantısı",
       sectionHint: "Kaydetmeden önce bağlantıyı sına ve sunucudaki veriyi çek",
       localTitle: "Yerel bağlantı (aynı Wi-Fi)",
@@ -3315,6 +3325,11 @@ export const translations: Record<LanguageCode, {
     cancel: "Ýatyr",
     selectLogo: "Logo Saýla",
     conn: {
+      historyTitle: "Mobil faktura taryhynyň ýükleme aralygy",
+      historyAll: "Ähli taryh (deslapky)",
+      historyThree: "Soňky 3 aý — tassyklanan mobil fakturalar",
+      historyYear: "Soňky 12 aý — tassyklanan mobil fakturalar",
+      historyHint: "Üýtgetmek üçin baglanyşygy duruzyň. Diňe köne, seneli we tamamlanan mobil fakturalar ýüklemede süzülýär. Garalamalar, ýatyrylanlar, balans we haryt/müşderi maglumatlary saklanýar. Senesi näbelli, şifrlenen we PC ýazgylary doly ýüklenýär. Ýerli taryh pozulmaýar; iberme doludyr. Hasabatlarda taryh doly bolman biler.",
       sectionTitle: "CouchDB Baglantysy",
       sectionHint: "Saklamazdan öň baglantysy syna we serwerdäki maglumaty çek",
       localTitle: "Ýerel baglanty (şaher Wi-Fi)",
@@ -4946,6 +4961,11 @@ export const translations: Record<LanguageCode, {
     cancel: "Cancel",
     selectLogo: "Choose Logo",
     conn: {
+      historyTitle: "Mobile invoice history download window",
+      historyAll: "All history (default)",
+      historyThree: "Last 3 months — confirmed mobile invoices",
+      historyYear: "Last 12 months — confirmed mobile invoices",
+      historyHint: "Stop the connection to change this. Only old, dated, completed mobile invoices are filtered on download. Drafts, voids, balances and product/customer data are kept. Undated, encrypted and PC mirror records download fully. Local history is not deleted; upload is complete. Reports may have incomplete history.",
       sectionTitle: "CouchDB Connection",
       sectionHint: "Test the connection and pull server data before saving",
       localTitle: "Local connection (same Wi-Fi)",
@@ -6576,6 +6596,11 @@ export const translations: Record<LanguageCode, {
     cancel: "Отмена",
     selectLogo: "Выбрать логотип",
     conn: {
+      historyTitle: "Период загрузки мобильных счетов",
+      historyAll: "Вся история (по умолчанию)",
+      historyThree: "Последние 3 месяца — подтверждённые мобильные счета",
+      historyYear: "Последние 12 месяцев — подтверждённые мобильные счета",
+      historyHint: "Остановите соединение для изменения. Фильтруются при загрузке только старые датированные завершённые мобильные счета. Черновики, отменённые счета, остатки и товары/клиенты сохраняются. Записи без даты, зашифрованные и зеркальные PC-записи загружаются полностью. Локальная история не удаляется; отправка полная. История отчётов может быть неполной.",
       sectionTitle: "Подключение CouchDB",
       sectionHint: "Проверьте подключение и загрузите данные с сервера до сохранения",
       localTitle: "Локальное подключение (та же Wi-Fi)",

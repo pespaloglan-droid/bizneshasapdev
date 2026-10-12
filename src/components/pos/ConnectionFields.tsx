@@ -142,6 +142,23 @@ export const ConnectionFields: React.FC<ConnectionFieldsProps> = ({
 
   return (
     <>
+      <section className="rounded-xl border bg-white p-3 space-y-2">
+        <label className="block text-xs font-semibold">{t.historyTitle}
+          <select className="block mt-2 w-full border rounded-lg p-2" value={conn.historyMonths ?? 0}
+            disabled={busy !== null || status.local.state === 'connected' || status.online.state === 'connected' || conn.active !== null}
+            onChange={event => {
+              const value = Number(event.target.value);
+              const historyMonths: 0 | 3 | 12 = value === 3 || value === 12 ? value : 0;
+              const next = { ...conn, historyMonths };
+              setConn(next); if (accountId) saveConnection(accountId, next);
+            }}>
+            <option value={0}>{t.historyAll}</option>
+            <option value={3}>{t.historyThree}</option>
+            <option value={12}>{t.historyYear}</option>
+          </select>
+        </label>
+        <p className="text-[11px] text-gray-500">{t.historyHint}</p>
+      </section>
       {rows.map((r) => (
         <ConnectionRow
           key={r.kind}

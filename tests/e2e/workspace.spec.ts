@@ -58,3 +58,24 @@ test('müşteri: kart ekle, düzenle, sil; genel müşteri korunur', async ({ pa
   await expect.poll(async () => (await state(page)).customers.some((c: any) => c.name === 'E2E New Customer')).toBe(false);
   expect((await state(page)).customers.some((c: any) => c.id === 'c-general')).toBe(true);
 });
+
+
+test('seçici indirme: bakiye taslak iptal eski format ve tombstone korunur', async ({ page }) => {
+  const result = await page.evaluate(() => (window as any).e2e.selectiveQa());
+  expect(result.rows).not.toContain('invoice_old');
+  for (const id of ['invoice_recent', 'invoice_draft', 'invoice_void', 'invoice_legacy',
+    'fatura:legacy', 'product_old', 'customer_old', 'money_old']) expect(result.rows).toContain(id);
+  expect(result.tombstone).toBe(true);
+});
+test('çakışma seçimi: gerçek revision dalları temizlenir eski seçim reddedilir', async ({ page }) => {
+  expect(await page.evaluate(() => (window as any).e2e.conflictQa())).toEqual({
+    hidden: true, name: 'Newer', conflicts: 0, staleRejected: true,
+  });
+});
+test('telemetri: varsayılan izinler kapalı, kendiliğinden servis isteği yok', async ({ page }) => {
+  const telemetryRequests: string[] = [];
+  page.on('request', request => { if (/posthog\.com|sentry\.io/.test(request.url())) telemetryRequests.push(request.url()); });
+  await page.reload(); await expect(page.getByText('E2E Tea', { exact: true })).toBeVisible();
+  const consent = await page.evaluate(async () => (await import('/src/utils/telemetry.ts')).readTelemetryConsent());
+  expect(consent).toEqual({ analytics: false, crashes: false }); expect(telemetryRequests).toEqual([]);
+});

@@ -1,3 +1,4 @@
+import { buildSelectivePullSelector, type SyncHistoryMonths } from './syncSelection';
 import PouchDB from 'pouchdb-browser';
 import { getLicenseId } from '../utils/gateMiddleware';
 import { ensureCryptoPlugin } from './cryptoPlugin';
@@ -448,7 +449,8 @@ export function startCouchDbSync(
   auth?: CouchAuth,
   onStatusChange?: (status: SyncStatus) => void,
   /** Aktarım ilerlemesi: kaç belge geldi / gitti. */
-  onDocsChanged?: (info: { written: number; read: number }) => void
+  onDocsChanged?: (info: { written: number; read: number }) => void,
+  historyMonths: SyncHistoryMonths = 0
 ): () => void {
   try {
     const localDb = getLocalDatabase(localDbName);
@@ -468,6 +470,10 @@ export function startCouchDbSync(
     const syncHandler = localDb.sync(remoteDb, {
       live: true,
       retry: true,
+      ...(historyMonths === 3 || historyMonths === 12 ? {
+        pull: { selector: buildSelectivePullSelector(historyMonths) },
+        push: {},
+      } : {}),
       back_off_function: (delay: number) => (delay === 0 ? 1000 : delay * 2 > 30000 ? 30000 : delay * 2)
     });
 

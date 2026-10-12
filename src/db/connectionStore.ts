@@ -6,6 +6,7 @@ import {
   type ParsedAddress,
 } from './couchAddress';
 import { startCouchDbSync, getLocalDatabase, upsertDocsBatch, type CouchAuth, type SyncStatus } from './pouch';
+import type { SyncHistoryMonths } from './syncSelection';
 import type { LanguageCode } from '../types';
 import { translations } from '../locales/i18n';
 
@@ -63,6 +64,7 @@ export interface StoredConnection {
   online: string;
   /** Hangi bağlantı son kullanıldı (yeniden açılışta otomatik başlatılır). */
   active: ConnectionKind | null;
+  historyMonths?: SyncHistoryMonths;
 }
 
 export interface LinkStatus {
@@ -87,6 +89,7 @@ export function loadConnection(accountId: string): StoredConnection {
       local: typeof p.local === 'string' ? p.local : '',
       online: typeof p.online === 'string' ? p.online : '',
       active: p.active === 'local' || p.active === 'online' ? p.active : null,
+      ...(p.historyMonths === 3 || p.historyMonths === 12 ? { historyMonths: p.historyMonths } : {}),
     };
   } catch {
     return emptyConnection();
@@ -389,7 +392,8 @@ export async function startConnection(opts: StartOptions): Promise<TestResult> {
       received += info.read;
       sent += info.written;
       opts.onProgress?.({ received, sent, done: false, remoteTotal });
-    }
+    },
+    loadConnection(accountId).historyMonths ?? 0
   );
 
   running = { stop, accountId, storeDb, kind };

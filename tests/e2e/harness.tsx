@@ -1,3 +1,6 @@
+import PouchDB from 'pouchdb-browser';
+import { buildSelectivePullSelector } from '../../src/db/syncSelection';
+import { listDocumentConflicts, resolveReviewedConflict } from '../../src/db/conflictResolver';
 // Yalnızca E2E giriş noktası. Üretim index.html/build bu modülü içermez.
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -30,6 +33,47 @@ async function start() {
   await saveAppSettings(settings, storeDb);
   (window as any).e2e = {
     storeDb, t: (key: string) => translate('en', key),
+    async selectiveQa() {
+      const source = new PouchDB(`e2e-source-${crypto.randomUUID()}`);
+      const target = new PouchDB(`e2e-target-${crypto.randomUUID()}`);
+      try {
+        await source.bulkDocs([
+          { _id: 'invoice_old', invoice: { status: 'completed', createdAt: '2025-01-01' } },
+          { _id: 'invoice_recent', invoice: { status: 'completed', createdAt: '2026-09-01' } },
+          { _id: 'invoice_draft', invoice: { status: 'completed', draftStatus: 'pending', createdAt: '2025-01-01' } },
+          { _id: 'invoice_void', invoice: { status: 'voided', createdAt: '2025-01-01' } },
+          { _id: 'invoice_legacy', invoice: { status: 'completed' } },
+          { _id: 'fatura:legacy', durum: 'onayli', tarih: '2025-01-01' },
+          { _id: 'product_old', product: { stock: 4 } },
+          { _id: 'customer_old', customer: { balance: 30 } },
+          { _id: 'money_old', transaction: { amount: 20, date: '2025-01-01' } },
+          { _id: 'invoice_deleted', _deleted: true },
+        ]);
+        await source.replicate.to(target, { selector: buildSelectivePullSelector(3, new Date('2026-10-12T12:00:00Z')) });
+        const rows = (await target.allDocs()).rows.map(row => row.id);
+        const deleted = (await target.allDocs({ keys: ['invoice_deleted'] })).rows[0];
+        return { rows, tombstone: 'value' in deleted && deleted.value.deleted === true };
+      } catch (error: any) { throw new Error(JSON.stringify({ name: error.name, status: error.status, message: error.message, reason: error.reason })); }
+      finally { await source.destroy(); await target.destroy(); }
+    },
+    async conflictQa() {
+      const dbName = `e2e-conflicts-${crypto.randomUUID()}`;
+      const db = pouch.getLocalDatabase(dbName);
+      try {
+        await db.bulkDocs([
+          { _id: 'urun:1', _rev: '1-aaa', _revisions: { start: 1, ids: ['aaa'] }, ad: 'Newer', updatedAt: '2026-10-01', password: 'must-not-display' },
+          { _id: 'urun:1', _rev: '1-bbb', _revisions: { start: 1, ids: ['bbb'] }, ad: 'Older', updatedAt: '2026-01-01' },
+        ], { new_edits: false });
+        const records = await listDocumentConflicts(dbName);
+        const hidden = !JSON.stringify(records).includes('must-not-display');
+        await resolveReviewedConflict(dbName, records[0], '1-aaa');
+        const saved = await db.get('urun:1', { conflicts: true });
+        let staleRejected = false;
+        try { await resolveReviewedConflict(dbName, records[0], '1-bbb'); } catch { staleRejected = true; }
+        return { hidden, name: saved.ad, conflicts: saved._conflicts?.length ?? 0, staleRejected };
+      } finally { await db.destroy(); }
+    },
+
     state: async () => ({ products: await products.getProductsForAccount(storeDb),
       customers: await customers.getCustomersForAccount(storeDb), invoices: await sales.getInvoicesForAccount(storeDb) }),
   };
