@@ -546,3 +546,42 @@ Türkmençe bırakıldı (FAZ A roundtrip uyumluluğu).
 ### Sürüm
 - versionName 1.3.7, versionCode 24 → `bizneshasap-apk/BiznesHasap-v1.3.7.apk` (~17.3 MB)
 - `aapt2`: `versionCode='24' versionName='1.3.7'`
+
+## 2026-10-12 — v1.3.8: Faz C ve D kaynak çalışması + test APK
+
+- C1–C4: ortak stilli ExcelJS export/import, canonical Türkmençe export başlıkları,
+  TR/TM/EN/RU import alias'ları, manuel kolon eşleme, formül kaçışı, sayısal hücreler
+  ve sıfırlı barkod/SKU roundtrip. Android export dosya adları benzersiz.
+- D1/D2: güvenilir sertifika zorunlu Windows workflow'u ve onaylı updater hazırlığı.
+  Sertifikalı Windows EXE / Authenticode / canlı update henüz doğrulanmadı.
+- D3/D4: Zod son-belge merge/batch doğrulaması; POS hook ve reset/toast bileşenlerine
+  ayrıldı; dört dilde işlem mesajları tamamlandı. Veri biçimi ve root 9 prop korunur.
+- D5/D6: revision guard'lı manuel conflict inceleme; gerçek POS/PouchDB E2E + CI.
+- D7/D8/D9: varsayılan kapalı ayrı telemetri izinleri; güvenli sınırlı pull;
+  typed error/performance/cleanup; yeni hesapta açık onaylı idempotent demo.
+- Legacy sabit sync parolası kaynakta kaldırıldı; geçmişte açık bulunan parolanın
+  sunucu sahibi tarafından değiştirilmesi gerekir. Git geçmişi yeniden yazılmadı.
+- `graphify/` değiştirilmedi; PC 1.150.0 / Android 1.3.8 ayrı sürüm mantığı korundu.
+
+### Doğrulama
+
+- 17 dosya / 308 birim testi; TypeScript ve web build başarılı.
+- 11 / 11 Playwright Chromium testi: satış/fiyat/stok, CRUD, conflict/stale,
+  selective pull/tombstone, telemetri kapalı, wizard/demo, batch, Excel ve F10.
+- `build:mobile` / Capacitor sync başarılı; SDK lisansı açık kullanıcı onayıyla kabul edildi.
+- Java 17 + Android SDK 34: `gradlew assembleDebug` BUILD SUCCESSFUL (2m30s).
+  Gradle wrapper Linux çalıştırma biti düzeltildi.
+- aapt: `com.bizneshasap.pos`, versionName `1.3.8`, versionCode `25`.
+- apksigner: v1/v2 imzaları geçerli; APK üretim index'i içeriyor, E2E fixture yok.
+- Linux Electron AppImage/snap build başarılı; ASAR'da updater runtime bağımlılıkları mevcut.
+  Windows paket denemesi Wine eksikliğiyle durdu; sertifikalı build Windows'ta bekliyor.
+
+### Çıktı ve sınırlar
+
+`bizneshasap-apk/BiznesHasap-v1.3.8.apk` — debug/test build.
+SHA-256: `67ac8d3eb8f44db9bcade2113ef2dc7a994d14c87609024ffa9653c01e5e816f`.
+
+İmza repodaki v1.3.7 ile farklıdır: yerinde güncelleme için eski keystore gerekir.
+Yedeksiz uninstall veri kaybettirebilir; bu işlem yapılmadı ve önerilen bir yükseltme yolu değildir.
+Fiziksel Android cihazda Documents/import ve donanım işlevleri henüz test edilmedi.
+Gerçek CouchDB live sync ve kullanıcı Sentry/PostHog projeleri ayrıca doğrulanmalıdır.

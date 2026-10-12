@@ -68,5 +68,8 @@ Aşağıdakiler ayrıca gerçek ortam gerektirir ve kaynak testleriyle doğrulan
   electron-updater, js-yaml ve auto-update.cjs bulundu. Bu Windows imza testi değildir.
 - Windows `electron-builder --win --dir`: Wine eksikliği nedeniyle tamamlanamadı.
   Güvenilir sertifikalı dağıtım ve canlı updater kontrolü Windows workflow'unda bekliyor.
-- APK assembleDebug ve GitHub push henüz yapılmadı; Android SDK lisans onayı ve
-  authenticated Git push için kullanıcı bağlantısı sonraki dağıtım adımıdır.
+- Android SDK lisansı kullanıcı onayıyla kabul edildi. Java 17 / Android 34 ile
+  assembleDebug başarılı: v1.3.8 / code 25; apksigner v1/v2 doğrulaması başarılı.
+  APK repodaki dosyaya kopyalandı; üretim paketinde E2E fixture yok.
+  Yeni debug imzası eski v1.3.7 ile eşleşmediğinden yerinde güncelleme için eski
+  keystore gerekir. Fiziksel cihaz testi hâlâ yapılmadı.

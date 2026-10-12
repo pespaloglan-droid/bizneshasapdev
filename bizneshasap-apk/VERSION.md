@@ -28,8 +28,13 @@ Dosya adı: `BiznesHasap-vX.Y.Z.apk` — klasörde saklanır.
 | 1.3.5 | 2026-10-05 | Giriş formundaki ikinci dil seçicinin kaldırılması (ISLEM-LOG kaydı) |
 | 1.3.6 | 2026-10-09 | **Kritik Excel düzeltmeleri (FAZ A):** APK'da Excel export artık çalışıyor (Documents klasörüne kayıt, hata mesajı gösterimi); export→import veri kaybı giderildi (alış fiyatı, kritik stok, SKT, 2. birim korunuyor; şablon uyumlu); toplu import hata raporlama (satır no + sebep + indirilebilir .xlsx rapor); formula injection koruması + dosya/satır limitleri. **Çeviri düzeltmeleri:** en "Faktura"→"Register", tr Türkmen kalıntıları, tm Türkçe kırması ifadeler, dinamik versiyon (package.json'dan), "Test versiyon" başlığı kaldırıldı |
 | 1.3.7 | 2026-10-12 | **Dil sistemi konsolidasyonu (FAZ B):** tüm uygulama 4 dile (tr/tm/en/ru) geçti — ~770 yeni çeviri anahtarı, 60+ dosyadaki `tm?tr` ternary'leri ve hardcoded modüller (hasaplama, lisans, ayarlar, fiş/çek) sözlüğe taşındı. `useT()` hook'u + LanguageContext, tek dil kaynağı (localStorage↔PouchDB senkron), ilk açılışta otomatik dil algılama (`navigator.language`), dile göre tarih/para formatı (`tr-TR`/`tk-TM`/`en-US`/`ru-RU`), interpolasyon desteği. Artık en/ru kullanıcısı her yerde kendi dilini görüyor (önceden Türkçe'ye düşüyordu) |
-| 1.3.8 (hazırlık — APK üretilmedi) | 2026-10-12 | FAZ C 1–3: faktura/hasaplama export'u ortak stilli ExcelJS motoruna taşındı; import okuyucusu ExcelJS'e geçirildi; eski export kodu ve read/write-excel-file bağımlılıkları kaldırıldı. Okuma hataları 4 dilde; kesirli miktarlar korunur. Yedekleme sıkıştırma akışında TypedArray uyumluluğu düzeltildi. Android derleme ve cihaz doğrulaması bekliyor; yayınlanmış APK değildir. |
+| 1.3.8 | 2026-10-12 | FAZ C1–C4 ve D1–D9 kaynak uygulaması; ExcelJS/manuel kolon eşleme, Zod, POS refactor, conflict inceleme, E2E, açık izinli telemetri, güvenli seçici sync ve ilk kurulum. Android debug APK başarıyla derlendi; imzalı Windows/canlı servis ve fiziksel cihaz testleri ayrı bekliyor. |
 
-Kaynak `versionCode`: 25. Son üretilmiş APK: v1.3.7 / versionCode 24.
-v1.3.8 APK'sı başarıyla derlenip `BiznesHasap-v1.3.8.apk` adıyla kopyalanmadan
-bu sürüm dağıtılmış sayılmaz.
+Kaynak `versionCode`: 25. Son üretilmiş test APK: v1.3.8 / versionCode 25.
+Dosya: `BiznesHasap-v1.3.8.apk`; paket: `com.bizneshasap.pos`.
+SHA-256: `67ac8d3eb8f44db9bcade2113ef2dc7a994d14c87609024ffa9653c01e5e816f`.
+
+**Önemli imza uyarısı:** bu APK yeni ortamın Android debug anahtarıyla imzalandı.
+İmzası repodaki v1.3.7 APK ile eşleşmez; v1.3.7 üzerine veri korunarak güncelleme
+kurulamaz. Yerinde güncelleme için eski keystore ile tekrar build gerekir.
+Yedek almadan mevcut uygulamayı kaldırmayın. Bu dosya mağaza/release imzalı sürüm değildir.
