@@ -34,16 +34,12 @@ export function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  const copy = new Uint8Array(bytes.byteLength);
-  copy.set(bytes);
-  return copy.buffer;
-}
-
 async function gzipCompress(input: Uint8Array): Promise<Uint8Array> {
   const stream = new CompressionStream('gzip');
   const writer = stream.writable.getWriter();
-  await writer.write(toArrayBuffer(input));
+  // TypedArray hem tarayıcıda hem Node test akışında kabul edilir.
+  // Kopya, SharedArrayBuffer tabanlı girişleri de normal ArrayBuffer'a taşır.
+  await writer.write(new Uint8Array(input));
   await writer.close();
   return new Uint8Array(await new Response(stream.readable).arrayBuffer());
 }
@@ -51,7 +47,7 @@ async function gzipCompress(input: Uint8Array): Promise<Uint8Array> {
 async function gzipDecompress(input: Uint8Array): Promise<Uint8Array> {
   const stream = new DecompressionStream('gzip');
   const writer = stream.writable.getWriter();
-  await writer.write(toArrayBuffer(input));
+  await writer.write(new Uint8Array(input));
   await writer.close();
   return new Uint8Array(await new Response(stream.readable).arrayBuffer());
 }

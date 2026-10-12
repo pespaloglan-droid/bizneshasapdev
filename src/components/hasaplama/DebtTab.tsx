@@ -61,7 +61,7 @@ export const DebtTab: React.FC<DebtTabProps> = ({
             })
           }
           csvName="bergi-borc"
-          headers={[t('hasaplama.colCustomer'), t('hasaplama.colDebtTmt'), t('hasaplama.colLastPayment')]}
+          exportKind="debt"
           rows={csvRows}
           disabled={rows.length === 0}
         />

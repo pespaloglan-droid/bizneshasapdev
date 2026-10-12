@@ -90,6 +90,8 @@ function widthFor(header: string, sample: (string | number | Date | null)[]): nu
 }
 
 export interface StyledSheetOptions<Row> {
+  /** Saklama diyaloğunun aktif UI dilindeki başlığı. */
+  readonly dialogTitle?: string;
   readonly sheetName: string;
   /** Belge başlygy — "Haryt Listesi", "Müşderi Listesi" ... */
   readonly title: string;
@@ -104,6 +106,8 @@ export interface StyledSheetOptions<Row> {
   readonly generatedAt?: Date;
   /** Boş şablon — 2 nusga setir + düşündiriş setiri goşulýar. */
   readonly template?: boolean;
+  /** Önceden özetlenmiş raporlarda boş/yanıltıcı bir toplam satırı eklenmez. */
+  readonly showTotals?: boolean;
 }
 
 /**
@@ -219,7 +223,7 @@ export function buildStyledSheet<Row>(
           const parsed = Number(raw.replace(',', '.'));
           cell.value = Number.isFinite(parsed) ? parsed : escapeFormulaText(raw);
         } else cell.value = null;
-        const fmt = numFmtFor(kind);
+        const fmt = column.numFmt ?? numFmtFor(kind);
         if (fmt && typeof cell.value === 'number') cell.numFmt = fmt;
       } else {
         cell.value = raw === null ? '' : typeof raw === 'string' ? escapeFormulaText(raw) : raw;
@@ -249,7 +253,7 @@ export function buildStyledSheet<Row>(
   }
 
   // Aşaky jem setiri — has sütunlary toplanýar.
-  if (!template && bodyRows.length > 0) {
+  if (!template && options.showTotals !== false && bodyRows.length > 0) {
     const totalRowIndex = lastDataRow + 1;
     const totalRow = sheet.getRow(totalRowIndex);
     columns.forEach((column, i) => {
@@ -257,14 +261,16 @@ export function buildStyledSheet<Row>(
       if (i === 0) {
         cell.value = totalLabel;
         cell.alignment = { horizontal: 'left', vertical: 'middle' };
-      } else if (column.total === 'sum') {
-        let sum = 0;
-        for (const row of rows) {
-          const value = column.get(row);
-          if (typeof value === 'number' && Number.isFinite(value)) sum += value;
+      } else if (column.total === 'sum' || typeof column.total === 'number') {
+        let sum = typeof column.total === 'number' ? column.total : 0;
+        if (column.total === 'sum') {
+          for (const row of rows) {
+            const value = column.get(row);
+            if (typeof value === 'number' && Number.isFinite(value)) sum += value;
+          }
         }
         cell.value = Math.round(sum * 100) / 100;
-        const fmt = numFmtFor(column.kind ?? 'qty');
+        const fmt = column.numFmt ?? numFmtFor(column.kind ?? 'qty');
         if (fmt) cell.numFmt = fmt;
         cell.alignment = { horizontal: 'right', vertical: 'middle' };
       }
@@ -341,7 +347,7 @@ export async function createAndSaveStyledWorkbook<Row>(
     binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
   return saveFileAs({
-    title: 'Excel-e çyk',
+    title: options.dialogTitle ?? 'Excel-e çyk',
     defaultName,
     data: btoa(binary),
     filters: [{ name: 'Excel (.xlsx)', extensions: ['xlsx'] }],

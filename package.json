@@ -9,16 +9,18 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "electron:dev": "concurrently \"vite\" \"electron .\"",
-    "electron:build": "vite build && electron-builder",
-    "electron:dir": "vite build && electron-builder --win --dir",
-    "electron:deploy": "vite build && electron-builder --win --dir && node scripts/deploy-installed.mjs",
+    "electron:build": "vite build && electron-builder --publish never",
+    "electron:build:signed": "vite build && electron-builder --win --config electron-builder.signing.cjs --publish never",
+    "electron:dir": "vite build && electron-builder --win --dir --publish never",
+    "electron:deploy": "vite build && electron-builder --win --dir --publish never && node scripts/deploy-installed.mjs",
     "release:check": "node license-native/scripts/release-check.js",
     "shortcuts": "powershell -ExecutionPolicy Bypass -File scripts/create-shortcuts.ps1",
     "cap:sync": "cap sync",
     "build:mobile": "vite build && cap sync",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "electron:release": "vite build && electron-builder --win --config electron-builder.signing.cjs --publish always"
   },
   "dependencies": {
     "@capacitor-community/bluetooth-le": "^6.0.0",
@@ -30,16 +32,17 @@
     "@capacitor/preferences": "^6.0.3",
     "clsx": "^2.1.1",
     "crypto-pouch": "^4.0.2",
+    "electron-updater": "6.8.9",
     "events": "^3.3.0",
     "exceljs": "^4.4.0",
+    "js-yaml": "5.4.3",
     "lucide-react": "^0.475.0",
     "pouchdb-browser": "^9.0.0",
     "pouchdb-find": "^9.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "read-excel-file": "^9.3.10",
     "tailwind-merge": "^2.6.0",
-    "write-excel-file": "^4.1.1"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.1.4",
@@ -80,7 +83,6 @@
       "license-native/gate.js",
       "license-native/package.json",
       "license-native/build/Release/*.node",
-      "!node_modules/**/*",
       "!**/*.md",
       "!license-native/admin/**/*",
       "!license-native/admin-gui/**/*",
@@ -92,14 +94,31 @@
       "license-native/build/Release/*.node"
     ],
     "win": {
+      "signDlls": true,
+      "signtoolOptions": {
+        "signingHashAlgorithms": [
+          "sha256"
+        ],
+        "rfc3161TimeStampServer": "http://timestamp.digicert.com"
+      },
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "verifyUpdateCodeSignature": true
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
+    },
+    "extraMetadata": {
+      "desktopUpdatesEnabled": false
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "pespaloglan-droid",
+      "repo": "bizneshasapdev",
+      "releaseType": "draft"
     }
   }
 }

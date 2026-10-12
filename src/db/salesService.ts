@@ -2,6 +2,7 @@ import { InvoiceRecord } from '../types';
 import { listDocsByPrefix, removeDoc, upsertDoc } from './pouch';
 import { sanitizeInvoice } from './sanitize';
 import { mirrorToPc } from './schemaBridge';
+import { DocumentValidationError } from './validation';
 
 export async function saveInvoiceToDb(invoice: InvoiceRecord, dbName: string = 'default_store'): Promise<InvoiceRecord> {
   try {
@@ -15,6 +16,7 @@ export async function saveInvoiceToDb(invoice: InvoiceRecord, dbName: string = '
     await mirrorToPc(dbName, 'invoice', invoice);
   } catch (error) {
     console.error('Failed to save invoice to PouchDB', error);
+    if (error instanceof DocumentValidationError) throw error;
   }
   return invoice;
 }

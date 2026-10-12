@@ -1,3 +1,4 @@
+import { useInvoiceActions } from '../../hooks/useInvoiceActions';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { TopNavBar, PosTabType } from './TopNavBar';
 import { MobileBottomNav, MobileDrawer, MobileHeader } from '../mobile/MobileShell';
@@ -37,14 +38,12 @@ import {
   PrinterMode,
   Product,
   ProductCategory,
-  UnitType,
   User
 } from '../../types';
-import { ALL_CATEGORIES, filterProducts, saveProductToDb, saveProductsBatchDb, deleteProductFromDb, getProductsForAccount } from '../../db/productService';
-import { SYNC_IMPORTED_EVENT } from '../../db/schemaBridge';
+import { ALL_CATEGORIES, filterProducts, saveProductToDb, saveProductsBatchDb, deleteProductFromDb } from '../../db/productService';
 import { useAutoConnection } from '../../hooks/useAutoConnection';
 import { generateInvoiceNo, getInvoicesForAccount, saveInvoiceToDb } from '../../db/salesService';
-import { deleteCustomerFromDb, ensureGeneralCustomerSeeded, GENERAL_CUSTOMER_ID, saveCustomerToDb, saveCustomersBatchDb } from '../../db/customerService';
+import { deleteCustomerFromDb, GENERAL_CUSTOMER_ID, saveCustomerToDb, saveCustomersBatchDb } from '../../db/customerService';
 import { getAccountStoreKey, type BatchWriteResult } from '../../db/pouch';
 import { resolveModulePermission } from '../../db/ledgerService';
 import {
@@ -57,12 +56,9 @@ import {
 } from '../../db/accessService';
 import { INVOICE_TYPE_OPTIONS } from '../../utils/invoiceTypeOptions';
 import { getAllCompositions } from '../../db/compositionService';
-import { getCustomerPrices, saveCustomerPrices } from '../../db/customerPriceService';
 import { expandCompositionStock, insufficientCompositionStock } from '../../utils/compositionStock';
-import { writeExcelFile } from '../../utils/excelIO';
-import { saveFileAs } from '../../utils/electron';
-import { defaultSettings, getAppSettings } from '../../db/settingsService';
-import { setAuditEnabled, setAuditUser } from '../../db/auditLog';
+import { exportInvoiceStyled } from '../../utils/documentExports';
+import { defaultSettings } from '../../db/settingsService';
 import { BASE_CURRENCY_CODE } from '../../db/currencyService';
 import { pendingDraftCount as countPendingDrafts } from '../../db/draftService';
 import { playNotificationPing, readSoundEnabled, writeSoundEnabled } from '../../utils/notify';
@@ -76,6 +72,9 @@ import { GaralamaListModal } from '../faktura/GaralamaListModal';
 import { DraftFormModal } from '../faktura/DraftFormModal';
 import { useModuleStores } from '../../hooks/useModuleStores';
 import { useMoneyStore, type CustomerAdjustment } from '../../hooks/useMoneyStore';
+import { useCartActions, type WorkspaceToast } from '../../hooks/useCartActions';
+import { useCustomerPriceActions } from '../../hooks/useCustomerPriceActions';
+import { useWorkspaceData } from '../../hooks/useWorkspaceData';
 import { translate } from '../../locales/i18n';
 import { useT } from '../../locales/LanguageContext';
 import { CheckCircle2, FileText, Plus } from 'lucide-react';
@@ -370,59 +369,10 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     [currentUser, stores.appUsers]
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const [loadedProducts, loadedCustomers, loadedInvoices, loadedSettings] = await Promise.all([
-        getProductsForAccount(storeDb),
-        ensureGeneralCustomerSeeded(storeDb),
-        getInvoicesForAccount(storeDb),
-        getAppSettings(storeDb)
-      ]);
-      if (cancelled) return;
-      setProducts(loadedProducts);
-      setCustomers(loadedCustomers);
-      setCompletedInvoices(loadedInvoices);
-      setAppSettings(loadedSettings);
-      // FAZ 2.2 audit: bayrak ayarlardan beslenir (upsertDoc her yazmada settings okumaz)
-      setAuditEnabled(loadedSettings?.general?.auditLogEnabled ?? false);
-      setCartItems([]);
-      // "Umumy Müşderi" hakyky ýazgy — deslapky saýlaw şoňa işleýär.
-      setSelectedCustomer(
-        loadedCustomers.find((customer) => customer.id === GENERAL_CUSTOMER_ID) ?? null
-      );
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [storeDb]);
-
-  // Bulut eşitleme sırasında PC'den gelen kayıtlar eklendi → listeleri tazele.
-  useEffect(() => {
-    let cancelled = false;
-    const reload = async () => {
-      const [loadedProducts, loadedCustomers, loadedInvoices] = await Promise.all([
-        getProductsForAccount(storeDb),
-        ensureGeneralCustomerSeeded(storeDb),
-        getInvoicesForAccount(storeDb),
-      ]);
-      if (cancelled) return;
-      setProducts(loadedProducts);
-      setCustomers(loadedCustomers);
-      setCompletedInvoices(loadedInvoices);
-    };
-    const handler = () => void reload();
-    window.addEventListener(SYNC_IMPORTED_EVENT, handler);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(SYNC_IMPORTED_EVENT, handler);
-    };
-  }, [storeDb]);
-
-  // FAZ 2.2 audit: günlüğe yazan kullanıcı kimliği
-  useEffect(() => {
-    setAuditUser(currentUser?.id);
-  }, [currentUser?.id]);
+  useWorkspaceData({
+    storeDb, currentUserId: currentUser?.id, setProducts, setCustomers,
+    setCompletedInvoices, setAppSettings, setCartItems, setSelectedCustomer,
+  });
 
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
@@ -436,26 +386,8 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
    * Nesiýe satuw üçin bergi meýdanlaryny hasaplaýar.
    * Galan bergi = jemi tutar − öňünden berlen pul.
    */
-  const creditFields = (
-    total: number
-  ): Pick<InvoiceRecord, 'paidAmount' | 'remainingDebt' | 'creditTermDays' | 'dueDate'> => {
-    if (paymentMethod !== 'credit') {
-      return { paidAmount: undefined, remainingDebt: 0, creditTermDays: undefined, dueDate: undefined };
-    }
-    const paid = Math.min(Math.max(0, creditAdvance), total);
-    // Nesiýe möhleti: düzgün boýunça [creditMinDays, creditMaxDays] aralygynda.
-    const minDays = ops?.creditMinDays ?? 3;
-    const maxDays = ops?.creditMaxDays ?? 360;
-    const defaultDays = ops?.creditDefaultDays ?? 90;
-    const term = Math.min(maxDays, Math.max(minDays, creditTermDays || defaultDays));
-    return {
-      paidAmount: paid,
-      remainingDebt: Math.max(0, total - paid),
-      creditTermDays: term,
-      dueDate: addDaysIso(todayIso(), term),
-    };
-  };
-  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'info'; text: string } | null>(null);
+
+  const [toastMessage, setToastMessage] = useState<WorkspaceToast | null>(null);
 
   // Bank POS Terminal & Otomatik Çek Modalleri
   const [isPosTerminalModalOpen, setIsPosTerminalModalOpen] = useState(false);
@@ -612,84 +544,14 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
 
   const amountDue = subtotal;
 
-  const canSellBeyondStock = (product: Product, nextQty: number) => {
-    if (product.allowNegativeStock) return true;
-    return nextQty <= product.stock;
-  };
-
-  const showNoStockToast = () => {
-    setToastMessage({
-      type: 'info',
-      text: t('pos.noStock')
-    });
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
-  // Add Product to Cart (passiw haryt düzgüni bilen)
-  const handleAddToCart = (product: Product) => {
-    if (product.isActive === false && !(ops?.allowInactiveProduct)) {
-      setToastMessage({
-        type: 'info',
-        text: t('pos.inactiveProduct'),
-      });
-      setTimeout(() => setToastMessage(null), 3000);
-      return;
-    }
-    setCartItems((prev) => {
-      const existing = prev.find((item) => item.productId === product.id);
-      const nextQty = (existing?.qty || 0) + 1;
-      if (!canSellBeyondStock(product, nextQty)) {
-        showNoStockToast();
-        return prev;
-      }
-      if (existing) {
-        return prev.map((item) =>
-          item.productId === product.id ? { ...item, qty: item.qty + 1 } : item
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: `cart-${Date.now()}-${Math.random()}`,
-          productId: product.id,
-          sku: product.sku,
-          name: product.name,
-          // F8: toptan režimde lomoy (wholesale) baha, beýle perakende.
-          price:
-            priceMode === 'wholesale'
-              ? (product.wholesalePrice ?? product.price)
-              : product.price,
-          qty: 1,
-          percent: globalPercent || 0,
-          unit: product.unit,
-          imageType: product.imageType,
-          imageUrl: product.imageUrl
-        }
-      ];
-    });
-  };
-
-  // ── F8: baha görnüşi üýtgese, sepetdäki fiyatlar täzelenýär ───────────────
-  useEffect(() => {
-    if (cartItems.length === 0) return;
-    setCartItems((prev) =>
-      prev.map((item) => {
-        const product = products.find((p) => p.id === item.productId);
-        if (!product) return item;
-        const base =
-          priceMode === 'wholesale'
-            ? (product.wholesalePrice ?? product.price)
-            : product.price;
-        // İkinji birlik (karopka) saýlanan bolsa çarpan ulanylýar.
-        const unit2Price =
-          product.unit2 && product.unit2Qty && item.unit === product.unit2
-            ? base * product.unit2Qty
-            : base;
-        return { ...item, price: unit2Price };
-      })
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [priceMode]);
+  const {
+    handleAddToCart, handleUpdateQty, handleSetQty, handleUpdatePrice,
+    handleUpdatePercent, handleUpdateUnit, handleApplyGlobalPercent,
+    handleRemoveItem, cartBasePriceOf,
+  } = useCartActions({
+    products, cartItems, setCartItems, priceMode, globalPercent, setGlobalPercent,
+    ops, fakturaExtras, setToastMessage,
+  });
 
   // ── F10: geri al — häzirki ekrandaky üýtgeşmeleri arassala ────────────────
   const handleResetCheckout = () => {
@@ -716,27 +578,6 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
 
   // ── F11: häzirki sepedi Excel (.xlsx) faýlyna eksport et ──────────────────
   // ── F11: Excel eksport — açyk faktura bar bolsa O FAKTURA, ýogsam sepet ──
-  const buildExcelRows = (
-    source: readonly CartItem[],
-    codeLabel: string,
-    total: number
-  ): (string | number)[][] => [
-    ['Biznes Hasap — Faktura', codeLabel],
-    ['№', 'Haryt', 'SKU', 'Ölçeg', 'Mukdar', 'Baha', '%', 'Jemi'],
-    ...source.map((item, i) => [
-      i + 1,
-      item.name,
-      item.sku,
-      item.unit ?? '',
-      item.qty,
-      item.price,
-      item.percent ?? 0,
-      Math.round(item.qty * item.price * (1 + (item.percent || 0) / 100) * 100) / 100,
-    ]),
-    [],
-    ['Jemi', '', '', '', '', '', '', total],
-  ];
-
   const handleExportInvoiceExcel = async () => {
     // F4-den açylan faktura bar bolsa — şony eksport et (F11 = o faktura).
     const openInvoice = activeReceiptInvoiceRef.current;
@@ -750,23 +591,15 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       setTimeout(() => setToastMessage(null), 3000);
       return;
     }
-    const rows = buildExcelRows(
-      source,
-      codeLabel,
-      openInvoice ? openInvoice.amountDue : subtotal
-    );
     try {
-      const blob = await writeExcelFile(rows).toBlob();
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      let binary = '';
-      for (const b of bytes) binary += String.fromCharCode(b);
-      const data = btoa(binary);
       const safeCode = (codeLabel || 'FAKTURA').replace(/[^\w.-]+/g, '_');
-      const saved = await saveFileAs({
-        title: t('pos.exportDialogTitle'),
-        defaultName: `${safeCode}-${todayIso()}.xlsx`,
-        data,
-        filters: [{ name: 'Excel (.xlsx)', extensions: ['xlsx'] }],
+      const saved = await exportInvoiceStyled({
+        items: source,
+        invoiceCode: codeLabel,
+        total: openInvoice ? openInvoice.amountDue : subtotal,
+        accountName: activeAccount.name,
+        fileName: `${safeCode}-${todayIso()}.xlsx`,
+        dialogTitle: t('pos.exportDialogTitle'),
       });
       setToastMessage({
         type: saved ? 'success' : 'info',
@@ -809,187 +642,9 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     }
   };
 
-  // Update Item Qty with delta
-  const handleUpdateQty = (productId: string, delta: number) => {
-    const product = products.find((p) => p.id === productId);
-    setCartItems((prev) =>
-      prev
-        .map((item) => {
-          if (item.productId === productId) {
-            const newQty = item.qty + delta;
-            if (newQty <= 0) return null;
-            if (product && delta > 0 && !canSellBeyondStock(product, newQty)) {
-              showNoStockToast();
-              return item;
-            }
-            return { ...item, qty: newQty };
-          }
-          return item;
-        })
-        .filter(Boolean) as CartItem[]
-    );
-  };
-
-  // Set Item Qty directly
-  const handleSetQty = (productId: string, qty: number) => {
-    const validQty = Math.max(1, qty || 1);
-    const product = products.find((p) => p.id === productId);
-    if (product && !canSellBeyondStock(product, validQty)) {
-      showNoStockToast();
-      return;
-    }
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.productId === productId ? { ...item, qty: validQty } : item
-      )
-    );
-  };
-
-  // Update Item Price directly (inçe rugsat: "Bahany üýtget" + alş bahasy düzgüni)
-  const handleUpdatePrice = (productId: string, newPrice: number) => {
-    if (!fakturaExtras.editPrice) {
-      setToastMessage({ type: 'info', text: t('pos.noPermission') });
-      setTimeout(() => setToastMessage(null), 2500);
-      return;
-    }
-    const validPrice = Math.max(0, newPrice || 0);
-    // "Alş bahasynyň aşagyna sat" kapalysa — alş bahasyndan aşak baha goýulmaýar.
-    if (!(ops?.allowBelowCostSale ?? true)) {
-      const product = products.find((p) => p.id === productId);
-      const cost = product?.purchasePrice ?? 0;
-      if (cost > 0 && validPrice < cost) {
-        setToastMessage({
-          type: 'info',
-          text: t('pos.belowCost', { cost: cost.toFixed(2) }),
-        });
-        setTimeout(() => setToastMessage(null), 3000);
-        return;
-      }
-    }
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.productId === productId ? { ...item, price: validPrice } : item
-      )
-    );
-  };
-
-  // ── F6/F7: müşteriýe özel baha — sakla / ulan ────────────────────────────
-  /** Kartoňdaky harydyň esas bahasy (F8 režimi + ikinji birim hasaba alynýar). */
-  const cartBasePriceOf = (item: CartItem): number | null => {
-    const product = products.find((p) => p.id === item.productId);
-    if (!product) return null;
-    const base =
-      priceMode === 'wholesale' ? (product.wholesalePrice ?? product.price) : product.price;
-    return product.unit2 && product.unit2Qty && item.unit === product.unit2
-      ? base * Number(product.unit2Qty)
-      : base;
-  };
-
-  /** F6 — sepetdäki ELLE girizilen bahalary saýlanan müşdere sakla. */
-  const handleSaveCustomerPrices = async () => {
-    const customer = selectedCustomer;
-    if (!customer) {
-      setToastMessage({
-        type: 'info',
-        text: t('pos.selectCustomer'),
-      });
-      setTimeout(() => setToastMessage(null), 3000);
-      return;
-    }
-    if (cartItems.length === 0) {
-      setToastMessage({
-        type: 'info',
-        text: t('pos.cartEmpty'),
-      });
-      setTimeout(() => setToastMessage(null), 3000);
-      return;
-    }
-    // Diňe esasy bahadan gyşgaýan (elle girizilen) bahalar saklanýar.
-    const entries: { productId: string; price: number }[] = [];
-    for (const item of cartItems) {
-      const base = cartBasePriceOf(item);
-      if (base === null) continue;
-      if (Math.abs(item.price - base) > 0.001) {
-        entries.push({ productId: item.productId, price: item.price });
-      }
-    }
-    if (entries.length === 0) {
-      setToastMessage({
-        type: 'info',
-        text: t('pos.specialPriceMissing'),
-      });
-      setTimeout(() => setToastMessage(null), 3000);
-      return;
-    }
-    try {
-      const written = await saveCustomerPrices(storeDb, customer.id, entries);
-      setToastMessage({
-        type: 'success',
-        text: t('pos.specialPriceSaved', { count: written, customer: customer.name }),
-      });
-      setTimeout(() => setToastMessage(null), 4000);
-    } catch (err) {
-      console.error('[F6] ozel baha saklamak', err);
-      setToastMessage({
-        type: 'info',
-        text: t('pos.priceSaveFailed'),
-      });
-      setTimeout(() => setToastMessage(null), 3000);
-    }
-  };
-
-  /** F7 — saýlanan müşderiniň saklanan ozel bahalaryny sepete ulan. */
-  const handleApplyCustomerPrices = async () => {
-    const customer = selectedCustomer;
-    if (!customer) {
-      setToastMessage({
-        type: 'info',
-        text: t('pos.selectCustomer'),
-      });
-      setTimeout(() => setToastMessage(null), 3000);
-      return;
-    }
-    if (cartItems.length === 0) {
-      setToastMessage({
-        type: 'info',
-        text: t('pos.cartEmpty'),
-      });
-      setTimeout(() => setToastMessage(null), 3000);
-      return;
-    }
-    const saved = await getCustomerPrices(storeDb, customer.id);
-    const prices = saved?.prices ?? {};
-    // Diňe bu müşderä saklanan harytlaryň bahasy üýtgedilýär — galyndary öz bahasynda galýar.
-    // (Sanawy setState-den ÖŇ ýygnalýar: updater render aşamasynda işleýär, hemişe şerti däl.)
-    const updates: Record<string, number> = {};
-    let applied = 0;
-    for (const item of cartItems) {
-      const custom = prices[item.productId];
-      if (custom === undefined || custom === null) continue;
-      if (Math.abs(item.price - custom) > 0.001) applied += 1;
-      updates[item.productId] = custom;
-    }
-    if (applied === 0) {
-      setToastMessage({
-        type: 'info',
-        text: t('pos.specialPriceNotFound'),
-      });
-      setTimeout(() => setToastMessage(null), 4000);
-      return;
-    }
-    setCartItems((prev) =>
-      prev.map((item) =>
-        updates[item.productId] !== undefined
-          ? { ...item, price: updates[item.productId] }
-          : item
-      )
-    );
-    setToastMessage({
-      type: 'success',
-      text: t('pos.pricesApplied', { count: applied }),
-    });
-    setTimeout(() => setToastMessage(null), 4000);
-  };
+  const { handleSaveCustomerPrices, handleApplyCustomerPrices } = useCustomerPriceActions({
+    storeDb, selectedCustomer, cartItems, setCartItems, cartBasePriceOf, setToastMessage,
+  });
 
   // ── F12: çap — açyk faktura bar bolsa O FAKTURA, ýogsam sepedäki çap ──────
   const handlePrintActive = async () => {
@@ -1036,62 +691,6 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isResetConfirmOpen, language]);
-
-  // Update Individual Item +/- % (inçe rugsat: "Arzanladyş ber")
-  const handleUpdatePercent = (productId: string, percent: number) => {
-    if (!fakturaExtras.allowDiscount) {
-      setToastMessage({ type: 'info', text: t('pos.noPermission') });
-      setTimeout(() => setToastMessage(null), 2500);
-      return;
-    }
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.productId === productId ? { ...item, percent: isNaN(percent) ? 0 : percent } : item
-      )
-    );
-  };
-
-  const handleUpdateUnit = (productId: string, unit: UnitType) => {
-    setCartItems((prev) =>
-      prev.map((item) => {
-        if (item.productId === productId) {
-          const prod = products.find((p) => p.id === productId);
-          let newPrice = item.price;
-          if (prod) {
-            // Eğer seçilen birim ürünün 2. birimi ise fiyatı çarp
-            if (prod.unit2 && prod.unit2Qty && unit === prod.unit2) {
-              newPrice = Number(prod.price) * Number(prod.unit2Qty);
-            } 
-            // Eğer seçilen birim ana birim ise normal fiyatı kullan
-            else if (unit === (prod.unit || 'adet')) {
-              newPrice = Number(prod.price);
-            }
-          }
-          return { ...item, unit, price: newPrice };
-        }
-        return item;
-      })
-    );
-  };
-
-  // Apply Global Toptan % to All Cart Items (inçe rugsat: "Arzanladyş ber")
-  const handleApplyGlobalPercent = (percent: number) => {
-    if (!fakturaExtras.allowDiscount) {
-      setToastMessage({ type: 'info', text: t('pos.noPermission') });
-      setTimeout(() => setToastMessage(null), 2500);
-      return;
-    }
-    const validPct = isNaN(percent) ? 0 : percent;
-    setGlobalPercent(validPct);
-    setCartItems((prev) =>
-      prev.map((item) => ({ ...item, percent: validPct }))
-    );
-  };
-
-  // Remove Item
-  const handleRemoveItem = (productId: string) => {
-    setCartItems((prev) => prev.filter((item) => item.productId !== productId));
-  };
 
   // Ödeme Yöntemi Değiştirildiğinde (Karta seçilirse Logo gibi Terminali Tetikle)
   const handleSelectPaymentMethod = (method: PaymentMethod) => {
@@ -1173,189 +772,10 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
   };
 
   // POS Terminal Kart Ödemesi Onaylandı (Logo POS Otomatik Çek Akışı)
-  const handleCardPaymentApproved = async (authCode: string) => {
-    setIsPosTerminalModalOpen(false);
-    setLastAuthCode(authCode);
-
-    const newInvoice: InvoiceRecord = {
-      id: `inv-${Date.now()}`,
-      invoiceNo: generateInvoiceNo(),
-      invoiceType,                               // ← artık state'ten geliyor
-      customerId: selectedCustomer?.id || null,
-      customerName: selectedCustomer?.name || t('generalCustomer'),
-      items: [...cartItems],
-      itemCount: cartItems.reduce((sum, item) => sum + item.qty, 0),
-      subtotal,
-      discountTotal,
-      taxTotal: 0,
-      amountDue,
-      paymentMethod: 'card',
-      cashReceived: amountDue,
-      changeDue: 0,
-      status: 'completed',
-      createdAt: (fixedInvoiceAt ?? new Date()).toISOString(),
-      cashierName: currentUser.name,
-      internalNote: internalNote.trim() ? internalNote.trim() : undefined
-    };
-
-    await saveInvoiceToDb(newInvoice, storeDb);
-    setCompletedInvoices(prev => [newInvoice, ...prev]);
-
-    applyStockChanges(cartItems, invoiceType);
-    applyCustomerBalance(newInvoice);
-
-    // Çeki Otomatik Aç ve Göster
-    setActiveReceiptInvoice(newInvoice);
-
-    setToastMessage({
-      type: 'success',
-      text: `${t('posApproved')} (${newInvoice.invoiceNo})`
-    });
-
-    // Sepeti Sıfırla
-    setCartItems([]);
-    setCashReceived(0);
-    setInternalNote('');
-    setGlobalPercent(0);
-
-    setTimeout(() => setToastMessage(null), 4000);
-  };
+  const { creditFields, handleCardPaymentApproved, handleCompleteSale } = useInvoiceActions({ paymentMethod, creditAdvance, ops, creditTermDays, setIsPosTerminalModalOpen, setLastAuthCode, invoiceType, selectedCustomer, cartItems, subtotal, discountTotal, amountDue, fixedInvoiceAt, currentUser, internalNote, storeDb, setCompletedInvoices, applyStockChanges, applyCustomerBalance, setActiveReceiptInvoice, setToastMessage, setCartItems, setCashReceived, setInternalNote, setGlobalPercent, compositionMapRef, products, loadedDraftId, acceptLoadedDraft: (...args) => acceptLoadedDraft(...args), cashReceived, setCreditAdvance });
 
   // Standart Nakit / Satışı Tamamla
-  const handleCompleteSale = async () => {
-    if (cartItems.length === 0) return;
 
-    // ── Düzüm (set) bölekleriniň stogy ýeterlik mi? ───────────────────────
-    if (invoiceType === 'sales' || invoiceType === 'other_out') {
-      const short = insufficientCompositionStock(
-        compositionMapRef.current,
-        cartItems,
-        products
-      );
-      if (short.length > 0) {
-        setToastMessage({
-          type: 'info',
-          text: t('pos.compositionShort', {
-            list: short.map((s) => `${s.name} (${s.available}/${s.required})`).join(', '),
-          }),
-        });
-        setTimeout(() => setToastMessage(null), 5000);
-        return;
-      }
-    }
-
-    // ── Operasiýa düzgünleri (seneler) ──────────────────────────────────────
-    const effDate = (fixedInvoiceAt ?? new Date()).toISOString().slice(0, 10);
-    if (ops?.operationStartDate && effDate < ops.operationStartDate) {
-      setToastMessage({
-        type: 'info',
-        text: t('pos.dateBeforeStart', { date: ops.operationStartDate }),
-      });
-      setTimeout(() => setToastMessage(null), 3500);
-      return;
-    }
-    if (ops?.operationEndDate && effDate > ops.operationEndDate) {
-      setToastMessage({
-        type: 'info',
-        text: t('pos.dateAfterEnd', { date: ops.operationEndDate }),
-      });
-      setTimeout(() => setToastMessage(null), 3500);
-      return;
-    }
-
-    // ── Nagt satuw gadagan müşderi ──────────────────────────────────────────
-    if (paymentMethod === 'cash' && selectedCustomer?.cashSalesBlocked) {
-      setToastMessage({
-        type: 'info',
-        text: t('pos.cashSaleBlocked'),
-      });
-      setTimeout(() => setToastMessage(null), 3500);
-      return;
-    }
-
-    // ── Nesiýe: karz limiti ─────────────────────────────────────────────────
-    if (paymentMethod === 'credit' && selectedCustomer) {
-      const limit = selectedCustomer.creditLimit ?? 0;
-      if (limit > 0) {
-        const paid = Math.min(Math.max(0, creditAdvance), amountDue);
-        const newReceivable = Math.max(0, amountDue - paid);
-        const currentReceivable = Math.max(0, selectedCustomer.balance ?? 0);
-        if (currentReceivable + newReceivable > limit) {
-          setToastMessage({
-            type: 'info',
-            text: t('pos.creditLimitExceeded', { limit: limit.toFixed(2) }),
-          });
-          setTimeout(() => setToastMessage(null), 3500);
-          return;
-        }
-      }
-    }
-
-    // Açylan garalama bar bolsa — sebetdäki üýtgeşmeler bilen tassyklaýarys.
-    if (loadedDraftId) {
-      acceptLoadedDraft();
-      return;
-    }
-
-    if (paymentMethod === 'card') {
-      setIsPosTerminalModalOpen(true);
-      return;
-    }
-
-    const newInvoice: InvoiceRecord = {
-      id: `inv-${Date.now()}`,
-      invoiceNo: generateInvoiceNo(),
-      invoiceType,                               // ← artık state'ten geliyor
-      customerId: selectedCustomer?.id || null,
-      customerName: selectedCustomer?.name || t('generalCustomer'),
-      items: [...cartItems],
-      itemCount: cartItems.reduce((sum, item) => sum + item.qty, 0),
-      subtotal,
-      discountTotal,
-      taxTotal: 0,
-      amountDue,
-      amountTmt: amountDue,
-      paymentMethod,
-      cashReceived:
-        paymentMethod === 'credit'
-          ? Math.min(creditAdvance, amountDue)
-          : cashReceived > 0
-          ? cashReceived
-          : amountDue,
-      changeDue:
-        paymentMethod === 'credit'
-          ? 0
-          : Math.max(0, (cashReceived > 0 ? cashReceived : amountDue) - amountDue),
-      status: 'completed',
-      createdAt: (fixedInvoiceAt ?? new Date()).toISOString(),
-      cashierName: currentUser.name,
-      internalNote: internalNote.trim() ? internalNote.trim() : undefined,
-      ...creditFields(amountDue)
-    };
-
-    await saveInvoiceToDb(newInvoice, storeDb);
-    setCompletedInvoices(prev => [newInvoice, ...prev]);
-
-    applyStockChanges(cartItems, invoiceType);
-    applyCustomerBalance(newInvoice);
-
-    // Çek Önizleme Aç
-    setActiveReceiptInvoice(newInvoice);
-
-    setToastMessage({
-      type: 'success',
-      text: `${t('saleCompletedToast')} (${newInvoice.invoiceNo} • ${amountDue.toFixed(2)})`
-    });
-
-    // Reset Cart and Notes for next customer
-    setCartItems([]);
-    setCashReceived(0);
-    setInternalNote('');
-    setGlobalPercent(0);
-    setCreditAdvance(0);
-
-    setTimeout(() => setToastMessage(null), 4000);
-  };
 
   // Çap sazlamalary — settings ýok bolsa deslapky bahalar.
   const receiptSettings = useMemo(

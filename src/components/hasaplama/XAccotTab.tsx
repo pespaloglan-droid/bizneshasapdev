@@ -171,7 +171,7 @@ export const XAccotTab: React.FC<XAccotTabProps> = ({
               })
             }
             csvName={`x-accot-${day}`}
-            headers={invoiceHeaders}
+            exportKind="xaccot"
             rows={invoiceRows}
           />
         </div>

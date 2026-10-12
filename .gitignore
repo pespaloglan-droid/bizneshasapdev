@@ -31,6 +31,11 @@ ios/App/App/capacitor.config.json
 .env.local
 .env.*.local
 *.pem
+certs/
+*.pfx
+*.p12
+.omo/
+.opencode/
 
 # ── Lisans üretim sırları — ASLA commit edilmez ─────────────
 license-native/admin/secret.key

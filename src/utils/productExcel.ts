@@ -1,6 +1,6 @@
+import { detectExcelColumns, requireExcelSelection, type ImportColumn, type ExcelColumnSelection } from './excelColumnMapping';
 import {
   readSheet,
-  writeExcelFile,
   cellText,
   cellNumber,
   isTotalRowLabel,
@@ -11,23 +11,19 @@ import { makeUnitCode, type MeasurementUnit } from '../db/unitService';
 export { describeReadError } from './excelIO';
 
 /** Excel faýlynyň kolonlary — forma meýdançalary bilen birebir deň. */
-export const PRODUCT_EXCEL_COLUMNS: readonly {
-  key: keyof ProductDraft;
-  header: string;
-  required: boolean;
-}[] = [
-  { key: 'name', header: 'Haryt Ady', required: true },
-  { key: 'category', header: 'Kategoriýa', required: false },
-  { key: 'barcode', header: 'Ana Barkod', required: true },
-  { key: 'sku', header: 'SKU', required: false },
-  { key: 'unit', header: 'Ölçeg Birligi 1', required: false },
-  { key: 'unit2', header: 'Ölçeg Birligi 2', required: false },
-  { key: 'unit2Qty', header: '1 (2-nji birlik) = ? (1-nji birlik)', required: false },
-  { key: 'purchasePrice', header: 'Alyş Bahasy', required: false },
-  { key: 'price', header: 'Satyş Bahasy', required: true },
-  { key: 'stock', header: 'Bar Stok Mukdary', required: false },
-  { key: 'criticalStock', header: 'Kritik Stok Duýdurşy', required: false },
-  { key: 'expiryDate', header: 'Ýaramlylyk Möhleti (SKT)', required: false },
+export const PRODUCT_EXCEL_COLUMNS: readonly ImportColumn<keyof ProductDraft>[] = [
+  { key: 'name', header: 'Haryt Ady', required: true, aliases: ["ürün adı", "urun adi", "product name", "name", "наименование", "название товара", "haryt"] },
+  { key: 'category', header: 'Kategoriýa', required: false, aliases: ["kategori", "category", "категория"] },
+  { key: 'barcode', header: 'Ana Barkod', required: true, aliases: ["barkod", "barcode", "штрих-код", "штрихкод", "barkod nomeri"] },
+  { key: 'sku', header: 'SKU', required: false, aliases: ["stok kodu", "stock code", "артикул"] },
+  { key: 'unit', header: 'Ölçeg Birligi 1', required: false, aliases: ["birim", "ölçü birimi", "unit", "unit 1", "единица", "единица измерения"] },
+  { key: 'unit2', header: 'Ölçeg Birligi 2', required: false, aliases: ["ikinci birim", "birim 2", "unit 2", "secondary unit", "вторая единица"] },
+  { key: 'unit2Qty', header: '1 (2-nji birlik) = ? (1-nji birlik)', required: false, aliases: ["birim çarpanı", "unit multiplier", "conversion factor", "коэффициент пересчета"] },
+  { key: 'purchasePrice', header: 'Alyş Bahasy', required: false, aliases: ["alış fiyatı", "alis fiyati", "purchase price", "cost price", "закупочная цена"] },
+  { key: 'price', header: 'Satyş Bahasy', required: true, aliases: ["satış fiyatı", "satis fiyati", "price", "sale price", "selling price", "цена продажи"] },
+  { key: 'stock', header: 'Bar Stok Mukdary', required: false, aliases: ["stok", "stok miktarı", "stock", "quantity in stock", "остаток", "количество на складе"] },
+  { key: 'criticalStock', header: 'Kritik Stok Duýdurşy', required: false, aliases: ["kritik stok", "minimum stok", "critical stock", "minimum stock", "минимальный остаток"] },
+  { key: 'expiryDate', header: 'Ýaramlylyk Möhleti (SKT)', required: false, aliases: ["son kullanma tarihi", "skt", "expiry date", "expiration date", "срок годности"] },
 ];
 
 export interface ProductDraft {
@@ -107,45 +103,20 @@ export async function readProductFile(file: File): Promise<SheetData> {
  * saýlanýar (aynyndan ilkinji setir däl-de, islendik setir).
  */
 export function findHeaderRowIndex(data: SheetData): number {
-  const limit = Math.min(data.length, 12);
-  let best = 0;
-  let bestScore = -1;
-  for (let r = 0; r < limit; r += 1) {
-    const row = data[r];
-    if (!row) continue;
-    let score = 0;
-    for (const column of PRODUCT_EXCEL_COLUMNS) {
-      if (row.some((cell) => cellText(cell).toLowerCase() === column.header.toLowerCase())) {
-        score += 1;
-      }
-    }
-    if (score > bestScore) {
-      bestScore = score;
-      best = r;
-    }
-  }
-  return bestScore > 0 ? best : 0;
+  return detectExcelColumns(data, PRODUCT_EXCEL_COLUMNS).headerIndex;
 }
 
 /** Excel setirlerini kadalara laýyklykda barlap, önümiň garalama döredýär. */
-export function parseRows(data: SheetData, units: readonly MeasurementUnit[]): ParsedRow[] {
-  const headerIndex = findHeaderRowIndex(data);
-  if (data.length < headerIndex + 2) return [];
-
-  const headerRow = data[headerIndex];
-  const indexOf: Record<string, number> = {};
-  for (const column of PRODUCT_EXCEL_COLUMNS) {
-    const index = headerRow.findIndex(
-      (cell) => cellText(cell).toLowerCase() === column.header.toLowerCase()
-    );
-    if (index >= 0) indexOf[column.key] = index;
-  }
+export function parseRows(data: SheetData, units: readonly MeasurementUnit[], selection?: ExcelColumnSelection<keyof ProductDraft>): ParsedRow[] {
+  if (data.length < 2) return [];
+  const { headerIndex, mapping: indexOf } = requireExcelSelection(data, PRODUCT_EXCEL_COLUMNS, selection);
 
   const seenBarcodes = new Map<string, number>();
   const parsed: ParsedRow[] = [];
 
   for (let rowIndex = headerIndex + 1; rowIndex < data.length; rowIndex += 1) {
     const row = data[rowIndex];
+    if (row.every((cell) => !cellText(cell))) continue;
     // Stilli eksportyň aşakyndaky «Jemi» setiri importda geçilýär.
     if (isTotalRowLabel(cellText(row[0]))) continue;
     // Excel-de görnýän hakyky setir belgisi (0-based index + 1).
@@ -196,59 +167,4 @@ export function parseRows(data: SheetData, units: readonly MeasurementUnit[]): P
   }
 
   return parsed;
-}
-
-// ─ Excel ýazmak ────────────────────────────────────────────────────────────
-
-export function buildExportRows(
-  products: readonly {
-    name: string;
-    category: string;
-    barcode: string;
-    sku: string;
-    unit?: string;
-    unit2?: string;
-    unit2Qty?: number;
-    purchasePrice?: number;
-    price: number;
-    stock: number;
-    criticalStock?: number;
-    expiryDate?: string;
-  }[],
-  units: readonly MeasurementUnit[]
-): (string | number)[][] {
-  const header = PRODUCT_EXCEL_COLUMNS.map((column) => column.header);
-  const rows = products.map((product) => [
-    product.name,
-    product.category,
-    product.barcode,
-    product.sku,
-    unitText(units, product.unit ?? 'adet'),
-    product.unit2 ? unitText(units, product.unit2) : '',
-    product.unit2 ? product.unit2Qty ?? 1 : '',
-    product.purchasePrice ?? 0,
-    product.price,
-    product.stock,
-    product.criticalStock ?? 0,
-    product.expiryDate ?? '',
-  ]);
-  return [header, ...rows];
-}
-
-export async function writeProductExcel(
-  rows: (string | number)[][],
-  fileName: string
-): Promise<void> {
-  await writeExcelFile(rows).toFile(fileName);
-}
-
-/** Örnek şablon: sözbaşy + bir nusga setir. */
-export function buildTemplateRows(): (string | number)[][] {
-  const header = PRODUCT_EXCEL_COLUMNS.map((column) => column.header);
-  const sample = ['Nusga haryt', 'Programma', '1234567890', 'SKU-1', 'SANY', '', '', 100, 150, 10, 5, ''];
-  return [header, sample];
-}
-
-export async function downloadTemplate(): Promise<void> {
-  await writeExcelFile(buildTemplateRows()).toFile('haryt-sablon.xlsx');
 }

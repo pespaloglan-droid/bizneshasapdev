@@ -1,0 +1,148 @@
+name: Windows doğrulanmış release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Mevcut PC sürüm tag'i (ör. v1.150.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      CERT_FILE: ${{ runner.temp }}/bizneshasap-signing/bizneshasap.pfx
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Repo, tag ve yeni yayın kontrolü
+        run: node scripts/prepare-desktop-release.cjs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bağımlılıkları kur
+        run: npm ci
+
+      - name: Native lisans bağımlılıklarını kur
+        working-directory: license-native
+        run: npm ci
+
+      - name: Native lisans modülünü derle
+        working-directory: license-native
+        run: npm run build-native
+
+      - name: Native modülü doğrula
+        run: node -e "const n=require('./license-native/native.js'); console.log('native version:', n.getVersion());"
+
+      - name: Birim testleri
+        run: npm test -- --run
+
+      - name: Lisans testleri
+        working-directory: license-native
+        run: npm test
+
+      - name: Lisans release kontrolü
+        working-directory: license-native
+        run: npm run release-check
+
+      - name: TypeScript ve renderer build
+        run: npm run build
+
+      - name: Sertifikayı geçici dizine yaz
+        shell: pwsh
+        env:
+          CERT_PFX_BASE64: ${{ secrets.CERT_PFX_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:CERT_PFX_BASE64) -or
+              [string]::IsNullOrEmpty($env:CERT_PASSWORD)) {
+            throw "CERT_PFX_BASE64 ve CERT_PASSWORD secrets zorunludur."
+          }
+          New-Item -ItemType Directory -Force -Path (Split-Path -Parent $env:CERT_FILE) | Out-Null
+          [IO.File]::WriteAllBytes($env:CERT_FILE, [Convert]::FromBase64String($env:CERT_PFX_BASE64))
+
+      - name: Yeni draft release oluştur
+        id: draft
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create $env:RELEASE_TAG --draft --verify-tag --title $env:RELEASE_TAG
+          if ($LASTEXITCODE -ne 0) { throw "Draft release oluşturulamadı." }
+
+      - name: İmzalı Windows build ve draft yükleme
+        run: npm run electron:release
+        env:
+          CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Installer ve portable imzalarını doğrula
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem -Path dist-electron -Filter *.exe -File)
+          if ($files.Count -lt 2) { throw "Installer ve portable çıktısı bekleniyor." }
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $file.FullName
+            if ($signature.Status -ne 'Valid' -or $null -eq $signature.TimeStamperCertificate) {
+              throw "İmza/zaman damgası doğrulanamadı: $($file.Name)"
+            }
+          }
+
+      - name: Paket runtime ve güncelleme feed kontrolü
+        run: node scripts/check-desktop-update-package.cjs
+
+      - name: Doğrulanmış çıktıları arşivle
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: |
+            dist-electron/*.exe
+            dist-electron/*.blockmap
+            dist-electron/latest.yml
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Doğrulanmış release yayınla
+        id: promote
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit $env:RELEASE_TAG --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw "Release yayınlanamadı." }
+
+      - name: Başarısız taslağı temizle
+        if: failure() && steps.draft.outcome == 'success'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $draft = gh release view $env:RELEASE_TAG --json isDraft --jq .isDraft
+          if ($LASTEXITCODE -eq 0 -and $draft -eq 'true') {
+            gh release delete $env:RELEASE_TAG --yes
+            if ($LASTEXITCODE -ne 0) { Write-Warning "Başarısız draft manuel temizlenmeli." }
+          }
+
+      - name: Sertifikayı sil
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path -LiteralPath $env:CERT_FILE) {
+            Remove-Item -LiteralPath $env:CERT_FILE -Force
+          }

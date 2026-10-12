@@ -2,6 +2,7 @@ import { Customer } from '../types';
 import { listDocsByPrefix, removeDoc, upsertDoc, upsertDocsBatch, type BatchWriteResult } from './pouch';
 import { sanitizeCustomer } from './sanitize';
 import { mirrorToPc } from './schemaBridge';
+import { DocumentValidationError } from './validation';
 
 function customerDocId(customerId: string): string {
   return `customer_${customerId}`;
@@ -57,6 +58,7 @@ export async function saveCustomerToDb(customer: Customer, dbName: string = 'def
     await mirrorToPc(dbName, 'customer', customer);
   } catch (error) {
     console.error('Failed to save customer to PouchDB', error);
+    if (error instanceof DocumentValidationError) throw error;
   }
   return customer;
 }

@@ -2,6 +2,9 @@ import PouchDB from 'pouchdb-browser';
 import { getLicenseId } from '../utils/gateMiddleware';
 import { ensureCryptoPlugin } from './cryptoPlugin';
 import { getCachedPassword, isEncryptionEnabled, isEncryptionPrepared } from './encryptionState';
+import { prepareDocumentForWrite } from './validation';
+import { translate } from '../locales/i18n';
+import { getActiveLanguage } from '../utils/locale';
 
 export interface SyncStatus {
   status: 'idle' | 'active' | 'paused' | 'denied' | 'error' | 'offline';
@@ -213,7 +216,7 @@ export async function upsertDoc(
   const task = previous.catch(() => undefined).then(() => writeDocWithRetry(dbName, id, fields));
   writeLocks.set(lockKey, task);
   try {
-    const { previousDoc } = await task;
+    const { previousDoc, writtenDoc } = await task;
     // FAZ 2.2 audit: dinamik import — pouch ↔ auditLog döngüsünü kırar.
     // Bayrak kapalıysa logAudit no-op'tur; hata ana akışı bozmaz (kendi içinde yakalanır).
     if (dbName !== AUDIT_DB_NAME) {
@@ -223,7 +226,7 @@ export async function upsertDoc(
         docType: docTypeFromId(id),
         docId: id,
         storeDb: dbName,
-        changes: previousDoc ? calculateDiff(previousDoc, { _id: id, ...fields }) : undefined,
+        changes: previousDoc ? calculateDiff(previousDoc, writtenDoc) : undefined,
       });
     }
   } finally {
@@ -236,25 +239,35 @@ async function writeDocWithRetry(
   dbName: string,
   id: string,
   fields: Record<string, unknown>
-): Promise<{ previousDoc?: Record<string, unknown> }> {
+): Promise<{ previousDoc?: Record<string, unknown>; writtenDoc: Record<string, unknown> }> {
   const db = getLocalDatabase(dbName);
   let lastError: unknown;
   let previousDoc: Record<string, unknown> | undefined;
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    let rev: string | undefined;
+    let existing: Record<string, unknown> | undefined;
+    previousDoc = undefined;
     try {
-      const existing = (await db.get(id)) as Record<string, unknown>;
-      rev = existing._rev as string | undefined;
-      if (previousDoc === undefined) previousDoc = existing;
-    } catch {
-      // yeni belge
+      existing = (await db.get(id)) as Record<string, unknown>;
+      previousDoc = existing;
+    } catch (error) {
+      // Yetki/ağ/şifreleme hatası yeni belge demek değildir.
+      if ((error as { status?: number } | null)?.status !== 404) throw error;
+      const missing = error as { reason?: string; message?: string };
+      if (missing.reason === 'deleted' || missing.message === 'deleted') {
+        // get(), tombstone için 404 verir ama yeniden yaratmada son rev gerekir.
+        const result = await db.allDocs({ keys: [id] });
+        const row = result.rows[0];
+        if (row && 'value' in row) existing = { _id: id, _rev: row.value.rev };
+      }
     }
+    const writtenDoc = prepareDocumentForWrite(id, fields, existing);
     try {
-      await db.put({ _id: id, _rev: rev, ...fields });
-      return { previousDoc };
+      await db.put(writtenDoc as never);
+      return { previousDoc, writtenDoc };
     } catch (error) {
       lastError = error;
-      // 409 conflict -> rev tazele, tekrar dene
+      // Yalnızca 409 conflict -> rev tazele, birleştir/doğrula, tekrar dene.
+      if ((error as { status?: number } | null)?.status !== 409) throw error;
     }
   }
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
@@ -319,6 +332,9 @@ export async function upsertDocsBatch(
   entries: ReadonlyArray<{ id: string; fields: Record<string, unknown> }>,
   batchSize = BULK_BATCH_SIZE
 ): Promise<BatchWriteResult> {
+  if (!Number.isSafeInteger(batchSize) || batchSize <= 0) {
+    throw new RangeError(translate(getActiveLanguage(), 'errors.invalidBatchSize'));
+  }
   if (entries.length === 0) return { written: 0, failed: [] };
   const db = getLocalDatabase(dbName);
   let written = 0;
@@ -328,28 +344,53 @@ export async function upsertDocsBatch(
     const chunk = entries.slice(i, i + batchSize);
     const keys = chunk.map((e) => e.id);
 
-    let revs = new Map<string, string>();
+    const existing = new Map<string, Record<string, unknown>>();
     try {
-      const res = await db.allDocs({ keys, include_docs: false });
+      const res = await db.allDocs({ keys, include_docs: true });
       for (const row of res.rows) {
         const rev = (row as { value?: { rev?: string } }).value?.rev;
-        if (row.key && rev) revs.set(row.key, rev);
+        if (row.key && rev) {
+          existing.set(row.key, {
+            ...('doc' in row ? row.doc as Record<string, unknown> | null : undefined),
+            _id: row.key, _rev: rev,
+          });
+        }
       }
     } catch {
-      // allDocs başarısızsa rev'siz denenir (bulkDocs çakışma döndürebilir)
+      // Rev/gövde okunmadan kısmi belge bulk'a verilmez. Tekil güvenli yolu dene.
+      for (const entry of chunk) {
+        try {
+          await upsertDoc(dbName, entry.id, entry.fields);
+          written += 1;
+        } catch (error) {
+          failed.push({ id: entry.id, error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+      if (i + batchSize < entries.length) await new Promise((r) => setTimeout(r, 0));
+      continue;
     }
 
-    const docs = chunk.map((e) => ({ _id: e.id, _rev: revs.get(e.id), ...e.fields }));
+    const docs: Array<Record<string, unknown> & { _id: string }> = [];
+    const validEntries: typeof chunk = [];
+    for (const entry of chunk) {
+      try {
+        docs.push(prepareDocumentForWrite(entry.id, entry.fields, existing.get(entry.id)));
+        validEntries.push(entry);
+      } catch (error) {
+        failed.push({ id: entry.id, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
     try {
-      const res = await db.bulkDocs(docs as never[]);
-      for (const row of res) {
+      const res = docs.length ? await db.bulkDocs(docs as never[]) : [];
+      for (let index = 0; index < docs.length; index += 1) {
+        const row = res[index];
         const r = row as { id?: string; ok?: boolean };
-        if (r.ok) written += 1;
-        else failed.push({ id: r.id ?? '?', error: bulkErrorText(row) });
+        if (r?.ok) written += 1;
+        else failed.push({ id: docs[index]._id, error: bulkErrorText(row) });
       }
     } catch {
       // Toplu yazma başarısızsa tek tek dene (kısmi başarı korunur)
-      for (const entry of chunk) {
+      for (const entry of validEntries) {
         try {
           await upsertDoc(dbName, entry.id, entry.fields);
           written += 1;

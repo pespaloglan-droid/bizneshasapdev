@@ -84,7 +84,7 @@ export const CashFlowTab: React.FC<CashFlowTabProps> = ({
             })
           }
           csvName="kassa-hasabaty"
-          headers={[t('hasaplama.colLedger'), t('hasaplama.colCurrency'), t('hasaplama.income'), t('hasaplama.expense'), t('hasaplama.colBalance'), 'TMT']}
+          exportKind="cash"
           rows={csvRows}
           disabled={ledgers.length === 0}
         />

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Loader2, Printer, Sheet } from 'lucide-react';
-import { writeExcelFile } from '../../utils/excelIO';
-import { saveFileAs } from '../../utils/electron';
+import { exportReportStyled, type ReportExportKind } from '../../utils/documentExports';
 import { useT } from '../../locales/LanguageContext';
 
 interface FlowTrendChartProps {
@@ -118,7 +117,7 @@ interface ReportActionsProps {
   isPrinting: boolean;
   onPrint: () => void;
   csvName: string;
-  headers: readonly string[];
+  exportKind: ReportExportKind;
   rows: readonly (readonly (string | number)[])[];
   disabled?: boolean;
 }
@@ -127,7 +126,7 @@ export const ReportActions: React.FC<ReportActionsProps> = ({
   isPrinting,
   onPrint,
   csvName,
-  headers,
+  exportKind,
   rows,
   disabled,
 }) => {
@@ -139,19 +138,11 @@ export const ReportActions: React.FC<ReportActionsProps> = ({
     if (busy || disabled) return;
     setBusy(true);
     try {
-      const data: (string | number)[][] = [
-        [...headers],
-        ...rows.map((row) => [...row]),
-      ];
-      const blob = await writeExcelFile(data).toBlob();
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      let binary = '';
-      for (const b of bytes) binary += String.fromCharCode(b);
-      await saveFileAs({
-        title: t('hasaplama.excelBtn'),
-        defaultName: `${csvName}.xlsx`,
-        data: btoa(binary),
-        filters: [{ name: 'Excel (.xlsx)', extensions: ['xlsx'] }],
+      await exportReportStyled({
+        kind: exportKind,
+        rows,
+        fileName: `${csvName}.xlsx`,
+        dialogTitle: t('hasaplama.excelBtn'),
       });
     } catch (err) {
       console.error('[Excel eksport]', err);

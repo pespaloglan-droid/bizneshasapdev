@@ -1,10 +1,13 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { ExcelColumnMappingPanel } from '../ExcelColumnMappingPanel';
+import { useExcelColumnMapping } from '../../hooks/useExcelColumnMapping';
 import { AlertTriangle, Download, FileSpreadsheet, Loader2, Upload, X } from 'lucide-react';
 import type { LanguageCode, Product } from '../../types';
 import { useT } from '../../locales/LanguageContext';
 import type { MeasurementUnit } from '../../db/unitService';
 import {
   describeReadError,
+  PRODUCT_EXCEL_COLUMNS,
   parseRows,
   readProductFile,
   type ParsedRow,
@@ -54,7 +57,14 @@ export const ProductExcelImportModal: React.FC<ProductExcelImportModalProps> = (
   const t = useT();
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState('');
-  const [rows, setRows] = useState<ParsedRow[]>([]);
+  const columnMapping = useExcelColumnMapping(PRODUCT_EXCEL_COLUMNS);
+  const fileRequest = useRef(0);
+  const rows = useMemo<ParsedRow[]>(() =>
+    columnMapping.data && columnMapping.selection && !columnMapping.isMapping
+      ? parseRows(columnMapping.data, units, columnMapping.selection)
+      : [],
+    [columnMapping.data, columnMapping.selection, columnMapping.isMapping, units]
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState('');
@@ -72,19 +82,23 @@ export const ProductExcelImportModal: React.FC<ProductExcelImportModalProps> = (
   }, [products]);
 
   const handleFile = async (file: File | undefined) => {
-    if (!file) return;
+    if (!file || isImporting) return;
+    const request = ++fileRequest.current;
+    columnMapping.clear();
     setError('');
     setSummary(null);
     setIsLoading(true);
     setFileName(file.name);
     try {
       const data = await readProductFile(file);
-      setRows(parseRows(data, units));
+      if (request !== fileRequest.current) return;
+      columnMapping.load(data);
     } catch (err) {
-      setRows([]);
-      setError(describeReadError(err));
+      if (request !== fileRequest.current) return;
+      columnMapping.clear();
+      setError(describeReadError(err, language));
     } finally {
-      setIsLoading(false);
+      if (request === fileRequest.current) setIsLoading(false);
     }
   };
 
@@ -98,7 +112,7 @@ export const ProductExcelImportModal: React.FC<ProductExcelImportModalProps> = (
     const entries: ProductImportEntry[] = validRows
       .map((row) => ({ draft: row.draft, rowNumber: row.rowNumber }))
       .filter((entry): entry is ProductImportEntry => entry.draft !== null);
-    if (entries.length === 0) return;
+    if (entries.length === 0 || columnMapping.isMapping || isLoading || isImporting) return;
     setIsImporting(true);
     try {
       setSummary(await onImport(entries, mode));
@@ -143,6 +157,7 @@ export const ProductExcelImportModal: React.FC<ProductExcelImportModalProps> = (
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
+              disabled={isImporting}
               className="h-10 px-4 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs flex items-center gap-2"
             >
               <FileSpreadsheet className="w-4 h-4" />
@@ -156,6 +171,15 @@ export const ProductExcelImportModal: React.FC<ProductExcelImportModalProps> = (
               <Download className="w-4 h-4" />
               {t('excel.downloadTemplate')}
             </button>
+            {columnMapping.data && !summary && !columnMapping.isMapping && !isLoading && (
+              <button
+                type="button" disabled={isImporting}
+                onClick={() => { setError(''); columnMapping.edit(); }}
+                className="h-10 px-3 rounded-xl border border-gray-200 text-gray-700 font-bold text-xs disabled:opacity-40"
+              >
+                {t('excel.mapColumns')}
+              </button>
+            )}
             {fileName && (
               <span className="text-[11px] font-semibold text-gray-500 font-mono truncate">
                 {fileName}
@@ -165,6 +189,7 @@ export const ProductExcelImportModal: React.FC<ProductExcelImportModalProps> = (
               ref={fileRef}
               type="file"
               accept=".xlsx"
+              disabled={isImporting}
               className="hidden"
               onChange={(e) => {
                 void handleFile(e.target.files?.[0]);
@@ -178,6 +203,18 @@ export const ProductExcelImportModal: React.FC<ProductExcelImportModalProps> = (
               <Loader2 className="w-4 h-4 animate-spin" />
               {t('excel.readingFile')}
             </div>
+          )}
+
+          {columnMapping.data && columnMapping.selection && columnMapping.isMapping && !isLoading && (
+            <ExcelColumnMappingPanel
+              data={columnMapping.data}
+              columns={PRODUCT_EXCEL_COLUMNS}
+              selection={columnMapping.selection}
+              isValid={columnMapping.isValid}
+              onHeaderChange={columnMapping.chooseHeader}
+              onColumnChange={columnMapping.chooseColumn}
+              onConfirm={columnMapping.confirm}
+            />
           )}
 
           {error && (
@@ -306,7 +343,7 @@ export const ProductExcelImportModal: React.FC<ProductExcelImportModalProps> = (
             </>
           )}
 
-          {rows.length === 0 && !error && !isLoading && (
+          {rows.length === 0 && !error && !isLoading && !columnMapping.isMapping && (
             <div className="text-[11px] font-semibold text-gray-400 text-center py-6">
               {t('excel.selectFileHint')}
             </div>

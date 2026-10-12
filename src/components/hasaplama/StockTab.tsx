@@ -73,7 +73,7 @@ export const StockTab: React.FC<StockTabProps> = ({
             })
           }
           csvName="ambar-hasabaty"
-          headers={[t('hasaplama.colProduct'), 'SKU', t('hasaplama.colQty'), t('hasaplama.colPurchase'), t('hasaplama.colPurchaseValue'), t('hasaplama.colSaleValue')]}
+          exportKind="stock"
           rows={csvRows}
           disabled={products.length === 0}
         />

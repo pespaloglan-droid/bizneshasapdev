@@ -1,10 +1,10 @@
+import { detectExcelColumns, requireExcelSelection, type ImportColumn, type ExcelColumnSelection } from './excelColumnMapping';
 import type { Customer, CustomerType } from '../types';
 import {
   readSheet,
   cellText,
   cellNumber,
   isTotalRowLabel,
-  writeExcelFile,
   type SheetData,
 } from './excelIO';
 
@@ -15,18 +15,14 @@ import {
  * işaratly `balance` meýdançasy bar: `balance = algy − bergi`.
  * (+) → müşderi bize borçly (Algy) | (−) → biz müşderä borçly (Bergi).
  */
-export const CUSTOMER_EXCEL_COLUMNS: readonly {
-  key: keyof CustomerDraft;
-  header: string;
-  required: boolean;
-}[] = [
-  { key: 'name', header: 'Ady Familiýasy', required: true },
-  { key: 'phone', header: 'Telefon belgisi', required: false },
-  { key: 'type', header: 'Görnüşi', required: false },
-  { key: 'addressNote', header: 'Salgy / Bellik', required: false },
-  { key: 'algy', header: 'Algy (TMT)', required: false },
-  { key: 'bergi', header: 'Bergi (TMT)', required: false },
-  { key: 'dueDateDays', header: 'Möhlet (gün)', required: false },
+export const CUSTOMER_EXCEL_COLUMNS: readonly ImportColumn<keyof CustomerDraft>[] = [
+  { key: 'name', header: 'Ady Familiýasy', required: true, aliases: ["ad soyad", "müşteri adı", "musteri adi", "customer name", "full name", "name", "фио", "имя клиента", "имя"] },
+  { key: 'phone', header: 'Telefon belgisi', required: false, aliases: ["telefon", "phone", "phone number", "телефон", "номер телефона"] },
+  { key: 'type', header: 'Görnüşi', required: false, aliases: ["tip", "tür", "tur", "type", "customer type", "тип", "тип клиента"] },
+  { key: 'addressNote', header: 'Salgy / Bellik', required: false, aliases: ["adres", "address", "address note", "note", "адрес", "примечание"] },
+  { key: 'algy', header: 'Algy (TMT)', required: false, aliases: ["alacak", "receivable", "receivables", "дебиторская задолженность", "algy"] },
+  { key: 'bergi', header: 'Bergi (TMT)', required: false, aliases: ["borç", "borc", "payable", "payables", "кредиторская задолженность", "bergi"] },
+  { key: 'dueDateDays', header: 'Möhlet (gün)', required: false, aliases: ["vade günü", "vade gunu", "due days", "due date days", "payment term days", "срок оплаты", "срок дней"] },
 ];
 
 /** Import setirinden döredilýän arassa garalama. */
@@ -110,39 +106,13 @@ export async function readCustomerFile(file: File): Promise<SheetData> {
  * başdan bolup biler (iň köp meşhur başlyk bar bolan setir saýlanýar).
  */
 export function findCustomerHeaderRowIndex(data: SheetData): number {
-  const limit = Math.min(data.length, 12);
-  let best = 0;
-  let bestScore = -1;
-  for (let r = 0; r < limit; r += 1) {
-    const row = data[r];
-    if (!row) continue;
-    let score = 0;
-    for (const column of CUSTOMER_EXCEL_COLUMNS) {
-      if (row.some((cell) => cellText(cell).toLowerCase() === column.header.toLowerCase())) {
-        score += 1;
-      }
-    }
-    if (score > bestScore) {
-      bestScore = score;
-      best = r;
-    }
-  }
-  return bestScore > 0 ? best : 0;
+  return detectExcelColumns(data, CUSTOMER_EXCEL_COLUMNS).headerIndex;
 }
 
 /** Excel setirlerini barlap, her setir üçin müşderi garalamasyny döredýär. */
-export function parseCustomerRows(data: SheetData): ParsedCustomerRow[] {
-  const headerIndex = findCustomerHeaderRowIndex(data);
-  if (data.length < headerIndex + 2) return [];
-
-  const headerRow = data[headerIndex];
-  const indexOf: Record<string, number> = {};
-  for (const column of CUSTOMER_EXCEL_COLUMNS) {
-    const index = headerRow.findIndex(
-      (cell) => cellText(cell).toLowerCase() === column.header.toLowerCase()
-    );
-    if (index >= 0) indexOf[column.key] = index;
-  }
+export function parseCustomerRows(data: SheetData, selection?: ExcelColumnSelection<keyof CustomerDraft>): ParsedCustomerRow[] {
+  if (data.length < 2) return [];
+  const { headerIndex, mapping: indexOf } = requireExcelSelection(data, CUSTOMER_EXCEL_COLUMNS, selection);
 
   // Faýlyň içinde gaýtalanýan at/telefon barlagy
   const seenNames = new Map<string, number>();
@@ -151,6 +121,7 @@ export function parseCustomerRows(data: SheetData): ParsedCustomerRow[] {
 
   for (let rowIndex = headerIndex + 1; rowIndex < data.length; rowIndex += 1) {
     const row = data[rowIndex];
+    if (row.every((cell) => !cellText(cell))) continue;
     // Stilli eksportyň aşakyndaky «Jemi» setiri importda geçilýär.
     if (isTotalRowLabel(cellText(row[0]))) continue;
     // Excel-de görnýän hakyky setir belgisi (0-based index + 1).
@@ -208,43 +179,6 @@ export function parseCustomerRows(data: SheetData): ParsedCustomerRow[] {
   }
 
   return parsed;
-}
-
-// ── Excel ýazmak ────────────────────────────────────────────────────────────
-
-export function buildCustomerExportRows(customers: readonly Customer[]): (string | number)[][] {
-  const header = CUSTOMER_EXCEL_COLUMNS.map((column) => column.header);
-  const rows = customers.map((customer) => {
-    const algy = customer.balance > 0 ? customer.balance : '';
-    const bergi = customer.balance < 0 ? Math.abs(customer.balance) : '';
-    return [
-      customer.name,
-      customer.phone ?? '',
-      customerTypeText(customer.type),
-      customer.addressNote ?? '',
-      algy,
-      bergi,
-      customer.dueDateDays ? customer.dueDateDays : '',
-    ];
-  });
-  return [header, ...rows];
-}
-
-export function buildCustomerTemplateRows(): (string | number)[][] {
-  const header = CUSTOMER_EXCEL_COLUMNS.map((column) => column.header);
-  const sample = ['Nusga müşderi', '+993 65 000000', 'Müşderi', 'Aşgabat', 500, '', 30];
-  return [header, sample];
-}
-
-export async function writeCustomerExcel(
-  rows: (string | number)[][],
-  fileName: string
-): Promise<void> {
-  await writeExcelFile(rows).toFile(fileName);
-}
-
-export async function downloadCustomerTemplate(): Promise<void> {
-  await writeExcelFile(buildCustomerTemplateRows()).toFile('musderi-sablon.xlsx');
 }
 
 // ── Gabat gelme (conflict) barlagy ──────────────────────────────────────────

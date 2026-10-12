@@ -920,6 +920,23 @@ export const translations: Record<LanguageCode, {
     searchCustomers: string;
     includeBalance: string;
     customerNotFound: string;
+    fileTooLarge: string;
+    tooManyRows: string;
+    xlsNotSupported: string;
+    xlsxOnly: string;
+    invalidFile: string;
+    readFailed: string;
+    mapColumns: string;
+    mappingHint: string;
+    headerRow: string;
+    requiredColumn: string;
+    unmappedColumn: string;
+    sourceColumn: string;
+    emptyHeader: string;
+    sampleCell: string;
+    mappingRequired: string;
+    applyMapping: string;
+    mappingAmbiguous: string;
   };
   /** Haryt (ürün) modülü: ProductWorkspace ve yardımcı bileşenleri. */
   products: {
@@ -1189,6 +1206,8 @@ export const translations: Record<LanguageCode, {
   };
   /** Genel hata mesajları. */
   errors: {
+    documentValidation: string;
+    invalidBatchSize: string;
     generic: string;
     network: string;
     boundaryTitle: string;
@@ -2599,6 +2618,23 @@ export const translations: Record<LanguageCode, {
       searchCustomers: "Müşteri ara...",
       includeBalance: "Borç / alacak bakiyeleri yazılsın mı?",
       customerNotFound: "Müşteri bulunamadı",
+      fileTooLarge: "Dosya çok büyük — en fazla {maxMB} MB kabul edilir.",
+      tooManyRows: "Dosyada çok fazla satır var — en fazla {maxRows} satır kabul edilir.",
+      xlsNotSupported: "Eski .xls formatı desteklenmiyor. Dosyayı .xlsx olarak kaydedin.",
+      xlsxOnly: "Yalnızca .xlsx dosyaları kabul edilir.",
+      invalidFile: "Dosya bozuk veya boş.",
+      readFailed: "Dosya okunamadı.",
+      mapColumns: "Kolonları eşleştir",
+      mappingHint: "Excel kolonlarını hedef alanlarla eşleştirin. Başlık satırını değiştirebilir ve kullanılmayacak kolonları atlayabilirsiniz.",
+      headerRow: "Başlık satırı",
+      requiredColumn: "(zorunlu)",
+      unmappedColumn: "Eşleme / bu alanı atla",
+      sourceColumn: "{column}. kolon — {header}",
+      emptyHeader: "Başlıksız",
+      sampleCell: "Örnek: {value}",
+      mappingRequired: "Zorunlu alanları farklı kaynak kolonlarına eşleştirin ve belirsiz seçimleri netleştirin.",
+      applyMapping: "Eşlemeyi uygula ve önizle",
+      mappingAmbiguous: "Birden fazla eşleşme — kaynak seçin",
     },
     products: {
       searchPlaceholder: "Ürün adı veya barkod ile ara...",
@@ -2864,6 +2900,8 @@ export const translations: Record<LanguageCode, {
       ledgerPerms: "Kasa Defteri İzinleri",
     },
     errors: {
+      documentValidation: "Kayıt doğrulanamadı. Hatalı veya eksik alanlar: {fields}",
+      invalidBatchSize: "Toplu yazım boyutu pozitif bir tam sayı olmalıdır.",
       generic: "Beklenmeyen bir hata oluştu.",
       network: "Ağ hatası — bağlantınızı kontrol edin.",
       boundaryTitle: "Bir şeyler ters gitti",
@@ -4189,6 +4227,23 @@ export const translations: Record<LanguageCode, {
       searchCustomers: "Müşderi gözle...",
       includeBalance: "Borç / alýak bakiýeleri ýazylsynmy?",
       customerNotFound: "Müşderi tapylmady",
+      fileTooLarge: "Faýl gaty uly — iň köp {maxMB} MB kabul edilýär.",
+      tooManyRows: "Faýlda gaty köp setir bar — iň köp {maxRows} setir kabul edilýär.",
+      xlsNotSupported: "Köne .xls formaty goldanylmaýar. Faýly .xlsx görnüşinde ýazdyryň.",
+      xlsxOnly: "Diňe .xlsx faýllary kabul edilýär.",
+      invalidFile: "Faýl zaýalanan ýa-da boş.",
+      readFailed: "Faýl okalyp bilinmedi.",
+      mapColumns: "Sütünleri gabat getiriň",
+      mappingHint: "Excel sütünlerini degişli meýdanlara gabat getiriň. Başlyk setirini üýtgedip, ulanylmajak sütünleri geçirip bilersiňiz.",
+      headerRow: "Başlyk setiri",
+      requiredColumn: "(hökmany)",
+      unmappedColumn: "Gabat getirme / bu meýdany geçir",
+      sourceColumn: "{column}. sütün — {header}",
+      emptyHeader: "Başlyksyz",
+      sampleCell: "Nusga: {value}",
+      mappingRequired: "Hökmany meýdanlary aýratyn çeşme sütünlerine gabat getiriň we näbellilikleri aýyryň.",
+      applyMapping: "Gabat getirmäni ulanyp, öňünden görüň",
+      mappingAmbiguous: "Birnäçe gabat gelme — çeşmäni saýlaň",
     },
     products: {
       searchPlaceholder: "Haryt ady ýa-da barkod boýunça gözle...",
@@ -4454,6 +4509,8 @@ export const translations: Record<LanguageCode, {
       ledgerPerms: "Depder rugsatlary",
     },
     errors: {
+      documentValidation: "Ýazgy barlanmady. Nädogry ýa-da ýetmeýän meýdanlar: {fields}",
+      invalidBatchSize: "Toplu ýazuwyň ölçegi položitel bitin san bolmalydyr.",
       generic: "Garaşylmadyk ýalňyşlyk ýüze çykdy.",
       network: "Tor ýalňyşlygy — baglanyşygyňyzy barlaň.",
       boundaryTitle: "Bir zat ýalňyş boldy",
@@ -5778,6 +5835,23 @@ export const translations: Record<LanguageCode, {
       searchCustomers: "Search customers...",
       includeBalance: "Include debt/credit balances?",
       customerNotFound: "No customers found",
+      fileTooLarge: "File too large — the limit is {maxMB} MB.",
+      tooManyRows: "Too many rows — the limit is {maxRows} rows.",
+      xlsNotSupported: "Legacy .xls files are not supported. Save the file as .xlsx.",
+      xlsxOnly: "Only .xlsx files are accepted.",
+      invalidFile: "The file is corrupt or empty.",
+      readFailed: "The file could not be read.",
+      mapColumns: "Map columns",
+      mappingHint: "Match Excel columns to target fields. You can change the header row and skip fields you do not need.",
+      headerRow: "Header row",
+      requiredColumn: "(required)",
+      unmappedColumn: "Do not map / skip this field",
+      sourceColumn: "Column {column} — {header}",
+      emptyHeader: "No header",
+      sampleCell: "Sample: {value}",
+      mappingRequired: "Map required fields to distinct source columns and resolve ambiguous matches.",
+      applyMapping: "Apply mapping and preview",
+      mappingAmbiguous: "Multiple matches — choose a source",
     },
     products: {
       searchPlaceholder: "Search by product name or barcode...",
@@ -6043,6 +6117,8 @@ export const translations: Record<LanguageCode, {
       ledgerPerms: "Ledger Permissions",
     },
     errors: {
+      documentValidation: "Record validation failed. Invalid or missing fields: {fields}",
+      invalidBatchSize: "Batch size must be a positive integer.",
       generic: "An unexpected error occurred.",
       network: "Network error — check your connection.",
       boundaryTitle: "Something went wrong",
@@ -7367,6 +7443,23 @@ export const translations: Record<LanguageCode, {
       searchCustomers: "Поиск клиентов...",
       includeBalance: "Включить балансы долга/оплат?",
       customerNotFound: "Клиенты не найдены",
+      fileTooLarge: "Файл слишком большой — максимум {maxMB} МБ.",
+      tooManyRows: "Слишком много строк — максимум {maxRows} строк.",
+      xlsNotSupported: "Старый формат .xls не поддерживается. Сохраните файл в формате .xlsx.",
+      xlsxOnly: "Допускаются только файлы .xlsx.",
+      invalidFile: "Файл повреждён или пуст.",
+      readFailed: "Не удалось прочитать файл.",
+      mapColumns: "Сопоставить столбцы",
+      mappingHint: "Сопоставьте столбцы Excel с полями. Можно изменить строку заголовков и пропустить ненужные поля.",
+      headerRow: "Строка заголовков",
+      requiredColumn: "(обязательно)",
+      unmappedColumn: "Не сопоставлять / пропустить поле",
+      sourceColumn: "Столбец {column} — {header}",
+      emptyHeader: "Без заголовка",
+      sampleCell: "Пример: {value}",
+      mappingRequired: "Сопоставьте обязательные поля с разными столбцами и разрешите неоднозначные совпадения.",
+      applyMapping: "Применить и показать предпросмотр",
+      mappingAmbiguous: "Несколько совпадений — выберите источник",
     },
     products: {
       searchPlaceholder: "Поиск по названию или штрихкоду...",
@@ -7632,6 +7725,8 @@ export const translations: Record<LanguageCode, {
       ledgerPerms: "Права на журналы",
     },
     errors: {
+      documentValidation: "Запись не прошла проверку. Неверные или отсутствующие поля: {fields}",
+      invalidBatchSize: "Размер пакета должен быть положительным целым числом.",
       generic: "Произошла непредвиденная ошибка.",
       network: "Ошибка сети — проверьте подключение.",
       boundaryTitle: "Что-то пошло не так",

@@ -1,15 +1,24 @@
-import {
-  readSheet as readSheetRaw,
-  InvalidInputError,
-  type SheetData,
-} from 'read-excel-file/browser';
-import writeExcelFile from 'write-excel-file/browser';
+import ExcelJS from 'exceljs';
+import type { LanguageCode } from '../types';
+import { translate } from '../locales/i18n';
+import { getActiveLanguage } from './locale';
 
 /**
- * Excel okamak/ýazmak üçin umumy ýöriteleşdirilen gatlak.
+ * Excel okamak üçin umumy ýöriteleşdirilen gatlak (ExcelJS).
  * Haryt we Müşderi modullary şu bir ýeri ulanýar (DRY).
  */
-export { writeExcelFile, InvalidInputError, type SheetData };
+export type SheetCell = string | number | boolean | Date | null;
+export type SheetData = SheetCell[][];
+
+type ReadErrorCode = 'FILE_TOO_LARGE' | 'TOO_MANY_ROWS' | 'XLS_NOT_SUPPORTED'
+  | 'XLSX_ONLY' | 'INVALID_FILE' | 'READ_FAILED' | 'MAPPING_REQUIRED';
+
+export class ExcelReadError extends Error {
+  constructor(readonly code: ReadErrorCode) {
+    super(code);
+    this.name = 'ExcelReadError';
+  }
+}
 
 /** Import çäkleri — uly faýl WebView-i dondurdyryp bilýär. */
 export const EXCEL_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -21,9 +30,9 @@ const MAX_CELL_TEXT = 500;
 const MAX_CELL_NUMBER = 1e12;
 
 /** Faýl çäkleri bozulanda atylýan ýalňyşlyk (describeReadError terjime edýär). */
-export class ExcelLimitError extends Error {
-  constructor(message: string) {
-    super(message);
+export class ExcelLimitError extends ExcelReadError {
+  constructor(code: 'FILE_TOO_LARGE' | 'TOO_MANY_ROWS') {
+    super(code);
     this.name = 'ExcelLimitError';
   }
 }
@@ -31,13 +40,65 @@ export class ExcelLimitError extends Error {
 /** Faýly okap, setirleri san görnüşinde gaýtarýar; çäkler bozulsa ExcelLimitError atýar. */
 export async function readSheet(file: File): Promise<SheetData> {
   if (file.size > EXCEL_MAX_FILE_BYTES) {
-    throw new ExcelLimitError('Faýl gaty uly — 10 MB-dan kiçi bolmaly.');
+    throw new ExcelLimitError('FILE_TOO_LARGE');
   }
-  const data = await readSheetRaw(file);
-  if (data.length > EXCEL_MAX_ROWS) {
-    throw new ExcelLimitError(`Faýlda gaty köp setir bar — iň köp ${EXCEL_MAX_ROWS} kabul edilýär.`);
+  if (/\.xls$/i.test(file.name)) throw new ExcelReadError('XLS_NOT_SUPPORTED');
+  if (!/\.xlsx$/i.test(file.name)) throw new ExcelReadError('XLSX_ONLY');
+
+  const workbook = new ExcelJS.Workbook();
+  try {
+    await workbook.xlsx.load(await file.arrayBuffer());
+  } catch {
+    // XML/ZIP ayrıntıları veya dosya içeriği UI'a sızdırılmaz.
+    throw new ExcelReadError('INVALID_FILE');
+  }
+  // Önceki okuyucu gibi ilk worksheet okunur. Kendi çıktılarımızda _meta ikincidir.
+  const sheet = workbook.worksheets[0];
+  if (!sheet) throw new ExcelReadError('INVALID_FILE');
+
+  const data: SheetData = [];
+  let lastRow = 0;
+  let lastColumn = 0;
+  sheet.eachRow((row, rowNumber) => {
+    const values: SheetCell[] = [];
+    let hasValue = false;
+    row.eachCell((cell, columnNumber) => {
+      // Birleştirilmiş hücrelerde yalnızca asıl değer alınır, kopyalanmaz.
+      if (cell.type === ExcelJS.ValueType.Merge) return;
+      const value = readCellValue(cell.value);
+      if (value === null) return;
+      if (rowNumber > EXCEL_MAX_ROWS) throw new ExcelLimitError('TOO_MANY_ROWS');
+      values[columnNumber - 1] = value;
+      lastColumn = Math.max(lastColumn, columnNumber);
+      hasValue = true;
+    });
+    if (hasValue) {
+      data[rowNumber - 1] = values;
+      lastRow = rowNumber;
+    }
+  });
+  if (lastRow === 0) throw new ExcelReadError('INVALID_FILE');
+
+  // Boş ara satırlar/hücreler korunur: hata raporundaki gerçek satır no değişmez.
+  for (let r = 0; r < lastRow; r += 1) {
+    const row = data[r] ?? [];
+    for (let c = 0; c < lastColumn; c += 1) row[c] ??= null;
+    data[r] = row;
   }
   return data;
+}
+
+/** Formüller çalıştırılmaz; yalnızca dosyada kayıtlı sonuçları okunur. */
+function readCellValue(value: ExcelJS.CellValue | undefined): SheetCell {
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if ('formula' in value || 'sharedFormula' in value) return readCellValue(value.result);
+  if ('richText' in value) return value.richText.map((part) => part.text).join('');
+  if ('text' in value) return value.text;
+  // Excel hata hücreleri geçerli veriye veya "[object Object]" metnine dönüşmez.
+  return null;
 }
 
 /** Excel öýjügini tekste öwürýär (boş bahalar hem); zyýanly içerigi arassaýar. */
@@ -72,21 +133,16 @@ export function isTotalRowLabel(text: string): boolean {
 }
 
 /** Faýl okalanda ýüze çykan ýalňyşlygy ulanyja düşnükli Türkmençe aýdýar. */
-export function describeReadError(error: unknown): string {
-  if (error instanceof ExcelLimitError) {
-    return error.message;
-  }
-  if (error instanceof InvalidInputError) {
-    if (error.code === 'XLS_FILE_NOT_SUPPORTED') {
-      return 'Köne .xls formaty goldanylmaýar. Faýly .xlsx görnüşinde ýazdyryň.';
-    }
-    if (error.code === 'FILE_NOT_SUPPORTED') {
-      return 'Faýl .xlsx däl. Diňe .xlsx kabul edilýär.';
-    }
-    if (error.code === 'INVALID_ZIP' || error.code === 'NO_DATA') {
-      return 'Faýl zaýalanan ýa-da boş.';
-    }
-    return 'Faýl okalyp bilinmedi.';
-  }
-  return 'Faýl okalyp bilinmedi.';
+export function describeReadError(error: unknown, language: LanguageCode = getActiveLanguage()): string {
+  const keys: Record<ReadErrorCode, string> = {
+    FILE_TOO_LARGE: 'excel.fileTooLarge',
+    TOO_MANY_ROWS: 'excel.tooManyRows',
+    XLS_NOT_SUPPORTED: 'excel.xlsNotSupported',
+    XLSX_ONLY: 'excel.xlsxOnly',
+    INVALID_FILE: 'excel.invalidFile',
+    READ_FAILED: 'excel.readFailed',
+    MAPPING_REQUIRED: 'excel.mappingRequired',
+  };
+  const code = error instanceof ExcelReadError ? error.code : 'READ_FAILED';
+  return translate(language, keys[code], { maxRows: EXCEL_MAX_ROWS, maxMB: 10 });
 }

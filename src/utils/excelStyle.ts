@@ -73,8 +73,10 @@ export interface ExcelColumn<Row> {
   readonly width?: number;
   /** Görnüşi — numara formatyny kesgitleýär. */
   readonly kind?: CellKind;
+  /** Özel hassasiyet (örn. kesirli kilogram miktarı). */
+  readonly numFmt?: string;
   /** Aşaky jem setirinde toplam alnyp biler mi? */
-  readonly total?: 'sum' | 'none';
+  readonly total?: 'sum' | 'none' | number;
   /** Bu satyry nämä görä vurgulamaly (düşük stok, borçly müşteri). */
   readonly tone?: (row: Row) => RowTone;
 }

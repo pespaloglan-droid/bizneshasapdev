@@ -1,0 +1,105 @@
+name: Windows imzalı build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-build:
+    runs-on: windows-latest
+    env:
+      CERT_FILE: ${{ runner.temp }}/bizneshasap-signing/bizneshasap.pfx
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Bağımlılıkları kur
+        run: npm ci
+
+      - name: Native lisans bağımlılıklarını kur
+        working-directory: license-native
+        run: npm ci
+
+      - name: Native lisans modülünü derle
+        working-directory: license-native
+        run: npm run build-native
+
+      - name: Native modülün yüklenmesini doğrula
+        run: node -e "const n=require('./license-native/native.js'); console.log('native version:', n.getVersion());"
+
+      - name: Birim testleri
+        run: npm test -- --run
+
+      - name: Lisans testleri
+        working-directory: license-native
+        run: npm test
+
+      - name: Lisans release kontrolü
+        working-directory: license-native
+        run: npm run release-check
+
+      - name: TypeScript ve renderer build
+        run: npm run build
+
+      - name: Sertifikayı geçici dizine yaz
+        shell: pwsh
+        env:
+          CERT_PFX_BASE64: ${{ secrets.CERT_PFX_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:CERT_PFX_BASE64) -or
+              [string]::IsNullOrEmpty($env:CERT_PASSWORD)) {
+            throw "CERT_PFX_BASE64 ve CERT_PASSWORD secrets zorunludur."
+          }
+          $directory = Split-Path -Parent $env:CERT_FILE
+          New-Item -ItemType Directory -Force -Path $directory | Out-Null
+          [IO.File]::WriteAllBytes(
+            $env:CERT_FILE,
+            [Convert]::FromBase64String($env:CERT_PFX_BASE64)
+          )
+
+      - name: Windows imzalı installer ve portable üret
+        run: npm run electron:build:signed
+        env:
+          CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
+
+      - name: Authenticode imzalarını doğrula
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem -Path dist-electron -Filter *.exe -File)
+          if ($files.Count -eq 0) {
+            throw "Doğrulanacak Windows çıktısı bulunamadı."
+          }
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $file.FullName
+            if ($signature.Status -ne 'Valid') {
+              throw "Geçersiz imza: $($file.Name) ($($signature.Status))"
+            }
+            if ($null -eq $signature.TimeStamperCertificate) {
+              throw "Zaman damgası bulunamadı: $($file.Name)"
+            }
+            Write-Host "İmza ve zaman damgası doğrulandı: $($file.Name)"
+          }
+
+      - name: Sertifikayı sil
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path -LiteralPath $env:CERT_FILE) {
+            Remove-Item -LiteralPath $env:CERT_FILE -Force
+          }
+
+      - name: Doğrulanmış Windows çıktılarını yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-signed
+          path: dist-electron/*.exe
+          if-no-files-found: error
+          retention-days: 30

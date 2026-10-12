@@ -2,6 +2,7 @@ import { Product, ProductCategory } from '../types';
 import { listDocsByPrefix, removeDoc, upsertDoc, upsertDocsBatch, type BatchWriteResult } from './pouch';
 import { sanitizeProduct } from './sanitize';
 import { mirrorToPc } from './schemaBridge';
+import { DocumentValidationError } from './validation';
 
 function productDocId(productId: string): string {
   return `product_${productId}`;
@@ -58,6 +59,7 @@ export async function saveProductToDb(product: Product, dbName: string = 'defaul
     await mirrorToPc(dbName, 'product', product);
   } catch (error) {
     console.error('Failed to save product to PouchDB', error);
+    if (error instanceof DocumentValidationError) throw error;
   }
   return product;
 }

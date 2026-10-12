@@ -54,7 +54,7 @@ export const ProfitLossTab: React.FC<ProfitLossTabProps> = ({
             })
           }
           csvName="peyda-zyyan"
-          headers={[t('hasaplama.colCategory'), t('hasaplama.colCount'), t('hasaplama.colAmountTmt')]}
+          exportKind="pl"
           rows={tableRows}
         />
       </div>

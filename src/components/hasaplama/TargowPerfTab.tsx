@@ -60,7 +60,7 @@ export const TargowPerfTab: React.FC<TargowPerfTabProps> = ({
               })
             }
             csvName="targowcy-netijeleri"
-            headers={[t('hasaplama.colTargow'), t('hasaplama.colOrderCount'), t('hasaplama.colTotalAmount'), t('hasaplama.colNewCustomer')]}
+            exportKind="targow"
             rows={csvRows}
             disabled={rows.length === 0}
           />
