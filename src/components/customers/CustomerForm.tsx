@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Customer, CustomerType, LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface CustomerFormProps {
   /** 'create' — täze müşderi/işgär goşmak; 'edit' — bar bolany üýtgetmek. */
@@ -31,7 +32,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
   onSave,
   onCancel,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
 
   const [name, setName] = useState(initial?.name ?? '');
   const [phone, setPhone] = useState(initial?.phone ?? '');
@@ -85,15 +86,15 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
     >
       <div className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2">
         {mode === 'edit'
-          ? (isTm ? `Redaktirle — ${name}` : `Düzenle — ${name}`)
-          : (isTm ? 'Täze Müşderi / Işgär Karty' : 'Yeni Cari Kartı')}
+          ? t('customers.editTitle', { name })
+          : t('customers.newCardTitle')}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
         {/* 1. Ad Soyad / Firma Adı */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
-            {isTm ? 'Ady Familiýasy / Firma Ady *' : 'Ad Soyad / Firma Adı *'}
+            {t('customers.nameLabel')}
           </label>
           <input
             type="text"
@@ -103,9 +104,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
             enterKeyHint="next"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={isTm ? 'Örn: Ahmet Ýylmaz' : 'Örn: Ahmet Yılmaz'}
+            placeholder={t('customers.namePlaceholder')}
             title={nameReadOnly
-              ? (isTm ? 'Umumy Müşderi — sistem ýazgysy, ady üýtgedilmeýär' : 'Genel Müşteri — sistem kaydı, adı değiştirilemez')
+              ? t('customers.nameReadOnlyTitle')
               : undefined}
             className={`w-full h-9 px-3 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 outline-none transition-all ${
               nameReadOnly
@@ -118,7 +119,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         {/* 2. Telefon Numarası */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
-            {isTm ? 'Telefon Belgisi' : 'Telefon Numarası'}
+            {t('customers.phoneLabelForm')}
           </label>
           <input
             type="tel"
@@ -134,22 +135,22 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         {/* 3. Cari Tipi */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
-            {isTm ? 'Görnüşi (Tipi)' : 'Cari Tipi'}
+            {t('customers.typeLabel')}
           </label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value as CustomerType)}
             className="w-full h-9 px-3 bg-gray-50/70 border border-gray-200 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs font-medium text-gray-800 outline-none transition-all cursor-pointer"
           >
-            <option value="customer">{isTm ? 'Müşderi (Alyjy)' : 'Müşteri (Alıcı)'}</option>
-            <option value="employee">{isTm ? 'Işgär (Işçi)' : 'İşgören / Işgär'}</option>
+            <option value="customer">{t('customers.typeCustomerOption')}</option>
+            <option value="employee">{t('customers.typeEmployeeOption')}</option>
           </select>
         </div>
 
         {/* 4. Vade Günü (Ödeme Süresi) */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
-            {isTm ? 'Möhlet Güni (Töleg Möhleti)' : 'Vade Günü (Ödeme Süresi)'}
+            {t('customers.dueDateLabelForm')}
           </label>
           <input
             type="number"
@@ -163,7 +164,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         {/* 5. Borç Limiti (Maksimum) */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
-            {isTm ? 'Bergi Limiti (Maksimum)' : 'Borç Limiti (Maksimum)'}
+            {t('customers.creditLimitLabelForm')}
           </label>
           <input
             type="number"
@@ -178,13 +179,13 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         {/* 6. Adres / Notlar */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
-            {isTm ? 'Salgy / Bellikler' : 'Adres / Notlar'}
+            {t('customers.addressLabelForm')}
           </label>
           <input
             type="text"
             value={addressNote}
             onChange={(e) => setAddressNote(e.target.value)}
-            placeholder={isTm ? 'Salgy ýa-da düşündiriş...' : 'Adres veya açıklama...'}
+            placeholder={t('customers.addressPlaceholder')}
             className="w-full h-9 px-3 bg-gray-50/70 border border-gray-200 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 outline-none transition-all"
           />
         </div>
@@ -193,21 +194,17 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         {mode === 'edit' && initial && (
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1.5">
-              {isTm ? 'Galyndy (Bakiýe)' : 'Hesap Bakiyesi'}
+              {t('customers.balanceLabel')}
             </label>
             <input
               type="text"
               disabled
               value={`${initial.balance.toFixed(2)} TMT`}
-              title={isTm
-                ? 'Faktura/Kassa hereketlerinden awtomatik hasaplanýar — el bilen üýtgedilmeýär'
-                : 'Fatura/Kasa hareketlerinden otomatik hesaplanır — elle değiştirilemez'}
+              title={t('customers.balanceAutoTitle')}
               className="w-full h-9 px-3 bg-gray-100 border border-gray-200 rounded-xl text-xs font-mono font-bold text-gray-700 cursor-not-allowed outline-none"
             />
             <p className="text-[9px] text-gray-400 mt-1 leading-tight">
-              {isTm
-                ? 'Faktura/Kassa hereketlerinden awtomatik hasaplanýar — el bilen üýtgedilmeýär.'
-                : 'Fatura/Kasa hareketlerinden otomatik hesaplanır — elle değiştirilemez.'}
+              {t('customers.balanceAutoNote')}
             </p>
           </div>
         )}
@@ -222,7 +219,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
             onChange={(e) => setIsActive(e.target.checked)}
             className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
           />
-          {isTm ? 'Aktiw (işledilýär)' : 'Aktif (kullanılıyor)'}
+          {t('customers.activeLabel')}
         </label>
         <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
           <input
@@ -231,12 +228,10 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
             onChange={(e) => setCashSalesBlocked(e.target.checked)}
             className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
           />
-          {isTm ? 'Nagt satuw gadagan' : 'Nakit satış yasak'}
+          {t('customers.cashBlockedLabel')}
         </label>
         <p className="text-[9px] text-gray-400 leading-tight">
-          {isTm
-            ? 'Nagt satuw gadagan — bu müşderä diňe kart/nesiýe bilen satuw edilýär.'
-            : 'Nakit satış yasak — bu müşteriye yalnız kart/veresiye ile satış yapılır.'}
+          {t('customers.cashBlockedHint')}
         </p>
       </div>
 
@@ -247,15 +242,13 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
           onClick={onCancel}
           className="flex-1 sm:flex-none px-5 h-12 rounded-xl border border-gray-300 hover:bg-gray-50 text-sm font-bold text-gray-700 transition-all active:scale-95"
         >
-          {isTm ? 'Ýatyr' : 'İptal'}
+          {t('cancel')}
         </button>
         <button
           type="submit"
           className="flex-1 sm:flex-none px-6 h-12 rounded-xl bg-[#10b981] hover:bg-[#059669] text-sm font-bold text-white shadow-sm transition-all active:scale-95"
         >
-          {mode === 'edit'
-            ? (isTm ? 'Ýatda sakla' : 'Kaydet')
-            : (isTm ? 'Ýazdyr' : 'Kaydet')}
+          {mode === 'edit' ? t('save') : t('customers.saveCreateBtn')}
         </button>
       </div>
     </form>

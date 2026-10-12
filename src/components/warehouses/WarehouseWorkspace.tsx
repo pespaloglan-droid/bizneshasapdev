@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { LanguageCode, Warehouse, Product } from '../../types';
 import { PageScroll } from '../common/PageScroll';
+import { useT } from '../../locales/LanguageContext';
 
 interface WarehouseWorkspaceProps {
   warehouses: Warehouse[];
@@ -33,13 +34,6 @@ const emptyForm = () => ({
   isActive: true,
 });
 
-function label(language: LanguageCode, tm: string, tr: string, en: string, ru: string): string {
-  if (language === 'tm') return tm;
-  if (language === 'en') return en;
-  if (language === 'ru') return ru;
-  return tr;
-}
-
 export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
   warehouses,
   products,
@@ -48,6 +42,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
   onUpdateWarehouse,
   onDeleteWarehouse,
 }) => {
+  const t = useT();
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
@@ -146,13 +141,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
               type="text"
-              placeholder={label(
-                language,
-                'Ammar ady, kody ýa-da salgysy boýunça gözle...',
-                'Ambar adı, kodu veya adresi ile ara...',
-                'Search by warehouse name, code or address...',
-                'Поиск по названию, коду или адресу склада...'
-              )}
+              placeholder={t('warehouses.searchPh')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 h-10 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
@@ -164,7 +153,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
             className="h-10 px-5 bg-[#10b981] hover:bg-[#059669] text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-colors shadow-sm flex-shrink-0"
           >
             <Plus className="w-4 h-4" />
-            {label(language, 'Täze ammar', 'Yeni ambar', 'New warehouse', 'Новый склад')}
+            {t('warehouses.newWarehouse')}
           </button>
         </div>
       </div>
@@ -174,11 +163,11 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 select-none">
-                <th className="py-3 px-4">{label(language, 'Ammar', 'Ambar', 'Warehouse', 'Склад')}</th>
-                <th className="py-3 px-4">{label(language, 'Kod', 'Kod', 'Code', 'Код')}</th>
-                <th className="py-3 px-4">{label(language, 'Salgy / Tel', 'Adres / Tel', 'Address / Phone', 'Адрес / Тел.')}</th>
-                <th className="py-3 px-4 text-center">{label(language, 'Ýagdaý', 'Durum', 'Status', 'Статус')}</th>
-                <th className="py-3 px-4 text-center">{label(language, 'Amallar', 'İşlemler', 'Actions', 'Действия')}</th>
+                <th className="py-3 px-4">{t('warehouses.colWarehouse')}</th>
+                <th className="py-3 px-4">{t('warehouses.colCode')}</th>
+                <th className="py-3 px-4">{t('warehouses.colAddressTel')}</th>
+                <th className="py-3 px-4 text-center">{t('warehouses.colStatus')}</th>
+                <th className="py-3 px-4 text-center">{t('warehouses.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -189,14 +178,8 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                       <WarehouseIcon className="w-10 h-10 text-gray-200" />
                       <span className="font-semibold text-gray-400 text-xs">
                         {warehouses.length === 0
-                          ? label(
-                              language,
-                              'Ammar ýok. Täze ammar dörediň.',
-                              'Henüz ambar yok. Yeni ambar oluşturun.',
-                              'No warehouses yet. Create a new one.',
-                              'Складов пока нет. Создайте новый.'
-                            )
-                          : label(language, 'Ammar tapylmady', 'Ambar bulunamadı', 'No warehouse found', 'Склад не найден')}
+                          ? t('warehouses.emptyNone')
+                          : t('warehouses.emptyNotFound')}
                       </span>
                     </div>
                   </td>
@@ -224,7 +207,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                               <div className="text-[11px] text-gray-400 line-clamp-1">{w.note}</div>
                             )}
                             <div className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                              {getWarehouseItemCount(w.id)} {label(language, 'haryt', 'ürün', 'item', 'товар')}
+                              {getWarehouseItemCount(w.id)} {t('warehouses.itemsUnit')}
                             </div>
                           </div>
                         </div>
@@ -256,12 +239,12 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                           }`}
                         >
                           {w.isActive === false
-                            ? label(language, 'Ýapyk', 'Pasif', 'Inactive', 'Неактивен')
-                            : label(language, 'Açyk', 'Aktif', 'Active', 'Активен')}
+                            ? t('warehouses.inactive')
+                            : t('warehouses.active')}
                         </span>
                         {w.isDefault && (
                           <span className="text-[10px] font-bold text-amber-600">
-                            {label(language, 'Esasy', 'Ana ambar', 'Default', 'Основной')}
+                            {t('warehouses.defaultBadge')}
                           </span>
                         )}
                       </div>
@@ -272,7 +255,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                           type="button"
                           onClick={() => handleOpenEdit(w)}
                           className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-[#0B1F3A] hover:text-white text-gray-500 transition-colors"
-                          title={label(language, 'Üýtget', 'Düzenle', 'Edit', 'Изменить')}
+                          title={t('warehouses.editTitle')}
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
@@ -280,7 +263,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                           type="button"
                           onClick={() => setDeleteConfirmId(w.id)}
                           className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-rose-500 hover:text-white text-gray-500 transition-colors"
-                          title={label(language, 'Poz', 'Sil', 'Delete', 'Удалить')}
+                          title={t('delete')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -302,13 +285,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
               <Trash2 className="w-5 h-5 text-rose-500" />
             </div>
             <p className="font-bold text-gray-800 text-sm">
-              {label(
-                language,
-                'Bu ammary pozmak isleýärsiňizmi?',
-                'Bu ambarı silmek istiyor musunuz?',
-                'Delete this warehouse?',
-                'Удалить этот склад?'
-              )}
+              {t('warehouses.deleteConfirm')}
             </p>
             <div className="flex gap-3 justify-center">
               <button
@@ -316,7 +293,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                 onClick={() => setDeleteConfirmId(null)}
                 className="px-6 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-colors"
               >
-                {label(language, 'Ýok', 'İptal', 'Cancel', 'Отмена')}
+                {t('warehouses.cancelNo')}
               </button>
               <button
                 type="button"
@@ -326,7 +303,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                 }}
                 className="px-6 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs transition-colors"
               >
-                {label(language, 'Poz', 'Sil', 'Delete', 'Удалить')}
+                {t('delete')}
               </button>
             </div>
           </div>
@@ -339,8 +316,8 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
             <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
               <span className="font-bold text-sm tracking-wide">
                 {editingWarehouse
-                  ? label(language, 'Ammary üýtget', 'Ambarı düzenle', 'Edit warehouse', 'Изменить склад')
-                  : label(language, 'Täze ammar', 'Yeni ambar', 'New warehouse', 'Новый склад')}
+                  ? t('warehouses.formEditTitle')
+                  : t('warehouses.newWarehouse')}
               </span>
               <button
                 type="button"
@@ -354,7 +331,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
             <form onSubmit={handleSave} className="overflow-y-auto flex-1 p-5 space-y-4">
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                  {label(language, 'Ammar ady', 'Ambar adı', 'Warehouse name', 'Название склада')} *
+                  {t('warehouses.formName')} *
                 </label>
                 <input
                   type="text"
@@ -368,7 +345,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                    {label(language, 'Kod', 'Kod', 'Code', 'Код')}
+                    {t('warehouses.colCode')}
                   </label>
                   <input
                     type="text"
@@ -380,7 +357,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                    {label(language, 'Telefon', 'Telefon', 'Phone', 'Телефон')}
+                    {t('warehouses.formPhone')}
                   </label>
                   <input
                     type="text"
@@ -393,7 +370,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
 
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                  {label(language, 'Salgy', 'Adres', 'Address', 'Адрес')}
+                  {t('warehouses.formAddress')}
                 </label>
                 <input
                   type="text"
@@ -405,7 +382,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
 
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                  {label(language, 'Bellik', 'Not', 'Note', 'Заметка')}
+                  {t('warehouses.formNote')}
                 </label>
                 <textarea
                   value={form.note}
@@ -426,7 +403,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                   }`}
                 >
                   <Star className={`w-3.5 h-3.5 ${form.isDefault ? 'fill-white' : ''}`} />
-                  {label(language, 'Esasy ammar', 'Ana ambar', 'Default warehouse', 'Основной склад')}
+                  {t('warehouses.defaultWarehouse')}
                 </button>
                 <button
                   type="button"
@@ -438,8 +415,8 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                   }`}
                 >
                   {form.isActive
-                    ? label(language, 'Açyk', 'Aktif', 'Active', 'Активен')
-                    : label(language, 'Ýapyk', 'Pasif', 'Inactive', 'Неактивен')}
+                    ? t('warehouses.active')
+                    : t('warehouses.inactive')}
                 </button>
               </div>
 
@@ -449,13 +426,13 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                   onClick={handleCloseForm}
                   className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
                 >
-                  {label(language, 'Ýatyr', 'İptal', 'Cancel', 'Отмена')}
+                  {t('cancel')}
                 </button>
                 <button
                   type="submit"
                   className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
                 >
-                  {label(language, 'Ýatda sakla', 'Kaydet', 'Save', 'Сохранить')}
+                  {t('save')}
                 </button>
               </div>
             </form>
@@ -471,10 +448,10 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
               <div className="flex items-center gap-3">
                 <WarehouseIcon className="w-5 h-5" />
                 <span className="font-bold text-sm tracking-wide">
-                  {selectedWarehouseForDetail.name} - {label(language, 'Içindäki harytlar', 'İçindeki ürünler', 'Items inside', 'Товары внутри')}
+                  {selectedWarehouseForDetail.name} - {t('warehouses.itemsInside')}
                 </span>
                 <span className="text-xs bg-emerald-500 px-2 py-0.5 rounded-full">
-                  {getWarehouseItemCount(selectedWarehouseForDetail.id)} {label(language, 'haryt', 'ürün', 'item', 'товар')}
+                  {getWarehouseItemCount(selectedWarehouseForDetail.id)} {t('warehouses.itemsUnit')}
                 </span>
               </div>
               <button
@@ -490,11 +467,11 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 select-none">
-                    <th className="py-3 px-4">{label(language, 'Haryt ady', 'Ürün adı', 'Product name', 'Название')}</th>
-                    <th className="py-3 px-4">{label(language, 'Barkod', 'Barkod', 'Barcode', 'Штрих-код')}</th>
-                    <th className="py-3 px-4 text-right">{label(language, 'Sany', 'Miktar', 'Quantity', 'Количество')}</th>
-                    <th className="py-3 px-4 text-right">{label(language, 'Ölçeg birligi', 'Ölçü birimi', 'Unit', 'Ед. изм.')}</th>
-                    <th className="py-3 px-4 text-right">{label(language, 'Bahasy', 'Fiyat', 'Price', 'Цена')}</th>
+                    <th className="py-3 px-4">{t('warehouses.colProductName')}</th>
+                    <th className="py-3 px-4">{t('warehouses.colBarcode')}</th>
+                    <th className="py-3 px-4 text-right">{t('warehouses.colQty')}</th>
+                    <th className="py-3 px-4 text-right">{t('warehouses.colUnit')}</th>
+                    <th className="py-3 px-4 text-right">{t('warehouses.colPrice')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -504,7 +481,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                         <div className="flex flex-col items-center gap-2">
                           <Package className="w-10 h-10 text-gray-200" />
                           <span className="font-semibold text-gray-400 text-xs">
-                            {label(language, 'Bu ammary boş', 'Bu ambar boş', 'This warehouse is empty', 'Этот склад пустой')}
+                            {t('warehouses.emptyWarehouse')}
                           </span>
                         </div>
                       </td>
@@ -530,7 +507,7 @@ export const WarehouseWorkspace: React.FC<WarehouseWorkspaceProps> = ({
                 onClick={() => setSelectedWarehouseForDetail(null)}
                 className="h-9 px-5 rounded-xl bg-[#0B1F3A] hover:bg-[#163864] text-white font-bold text-xs"
               >
-                {label(language, 'Ýapyş', 'Kapat', 'Close', 'Закрыть')}
+                {t('warehouses.close')}
               </button>
             </div>
           </div>

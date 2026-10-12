@@ -3,6 +3,7 @@ import {
   writeExcelFile,
   cellText,
   cellNumber,
+  isTotalRowLabel,
   type SheetData,
 } from './excelIO';
 import { makeUnitCode, type MeasurementUnit } from '../db/unitService';
@@ -48,7 +49,7 @@ export interface ProductDraft {
 export type { ProductDraft as ProductDraftType };
 
 export interface ParsedRow {
-  /** Excel-de 1-den başlaýan setir belgisi (sözbaşy hasaplanmaýar). */
+  /** Excel-de görnýän hakyky setir belgisi (1-den başlaýar, sözbaşy hem hasaba alnar). */
   readonly rowNumber: number;
   readonly draft: ProductDraft | null;
   readonly errors: string[];
@@ -145,6 +146,10 @@ export function parseRows(data: SheetData, units: readonly MeasurementUnit[]): P
 
   for (let rowIndex = headerIndex + 1; rowIndex < data.length; rowIndex += 1) {
     const row = data[rowIndex];
+    // Stilli eksportyň aşakyndaky «Jemi» setiri importda geçilýär.
+    if (isTotalRowLabel(cellText(row[0]))) continue;
+    // Excel-de görnýän hakyky setir belgisi (0-based index + 1).
+    const excelRowNumber = rowIndex + 1;
     const errors: string[] = [];
     const value = (key: keyof ProductDraft): string => {
       const index = indexOf[key];
@@ -175,7 +180,7 @@ export function parseRows(data: SheetData, units: readonly MeasurementUnit[]): P
       if (firstSeen !== undefined) {
         errors.push(`Barkod faýlda gaýtalanýar (${firstSeen}-nji setirde)`);
       } else {
-        seenBarcodes.set(draft.barcode, rowIndex);
+        seenBarcodes.set(draft.barcode, excelRowNumber);
       }
     }
 
@@ -184,7 +189,7 @@ export function parseRows(data: SheetData, units: readonly MeasurementUnit[]): P
     if (isEmpty && errors.length === 0) continue;
 
     parsed.push({
-      rowNumber: rowIndex,
+      rowNumber: excelRowNumber,
       draft: errors.length === 0 ? draft : null,
       errors,
     });

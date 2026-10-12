@@ -15,15 +15,19 @@ import {
 } from '../../db/auditLog';
 import { saveFileAs } from '../../utils/electron';
 import { bytesToBase64 } from '../../utils/bhbak';
+import { localeFor } from '../../utils/locale';
+import { useLanguage, useT } from '../../locales/LanguageContext';
 
-const ACTION_LABEL: Record<string, string> = {
-  CREATE: 'Täze',
-  UPDATE: 'Üýtgedi',
-  DELETE: 'Pozdy',
-  VIEW: 'Gördü',
+const ACTION_KEYS: Record<string, string> = {
+  CREATE: 'sazlamalar.auditCreate',
+  UPDATE: 'sazlamalar.auditUpdate',
+  DELETE: 'sazlamalar.auditDelete',
+  VIEW: 'sazlamalar.auditView',
 };
 
 export const AuditLogPanel: React.FC = () => {
+  const { language } = useLanguage();
+  const t = useT();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [docTypeFilter, setDocTypeFilter] = useState('');
@@ -42,12 +46,12 @@ export const AuditLogPanel: React.FC = () => {
     } catch (error) {
       setNotice({
         tone: 'error',
-        text: `Günlük okunamadı: ${error instanceof Error ? error.message : String(error)}`,
+        text: t('sazlamalar.auditReadFailed', { error: error instanceof Error ? error.message : String(error) }),
       });
     } finally {
       setLoading(false);
     }
-  }, [docTypeFilter, userFilter]);
+  }, [docTypeFilter, userFilter, t]);
 
   useEffect(() => {
     void load();
@@ -58,20 +62,20 @@ export const AuditLogPanel: React.FC = () => {
       const json = await exportAuditLogJson();
       const bytes = new TextEncoder().encode(json);
       const saved = await saveFileAs({
-        title: 'Işlem günlügini eksport et',
+        title: t('sazlamalar.auditExportTitle'),
         defaultName: `audit-log-${new Date().toISOString().slice(0, 10)}.json`,
         data: bytesToBase64(bytes),
         filters: [{ name: 'JSON', extensions: ['json'] }],
       });
       setNotice(
         saved
-          ? { tone: 'success', text: 'Günlük .json faýla saklandy.' }
-          : { tone: 'info', text: 'Eksport ýatyryldy.' }
+          ? { tone: 'success', text: t('sazlamalar.auditSaved') }
+          : { tone: 'info', text: t('sazlamalar.exportCancelled') }
       );
     } catch (error) {
       setNotice({
         tone: 'error',
-        text: `Eksport başartmady: ${error instanceof Error ? error.message : String(error)}`,
+        text: t('sazlamalar.auditExportFailed', { error: error instanceof Error ? error.message : String(error) }),
       });
     }
   };
@@ -82,32 +86,32 @@ export const AuditLogPanel: React.FC = () => {
 
   return (
     <SettingsCard
-      title="Işlem günlügi"
-      description="Kim, haçan, haýsy ýazgyny üýtgetdi — soňky 300 ýazgy"
+      title={t('sazlamalar.secAudit')}
+      description={t('sazlamalar.auditDesc')}
     >
       <div className="space-y-3">
         {!isAuditEnabled() && (
           <Notice
             tone="info"
-            text="Günlük ýazgysy öçüriýän. Işjeňleşdirmek üçin: Ygtyýarlar → Işlem günlügi."
+            text={t('sazlamalar.auditDisabled')}
           />
         )}
         {health.errorCount > 0 && (
           <Notice
             tone="error"
-            text={`Günlük ýazgy başartmady (${health.errorCount} gezek): ${health.lastError ?? ''}`}
+            text={t('sazlamalar.auditHealthError', { count: health.errorCount, error: health.lastError ?? '' })}
           />
         )}
         {notice && <Notice tone={notice.tone} text={notice.text} />}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Field label="Ýazgy görnüşi">
+          <Field label={t('sazlamalar.auditDocType')}>
             <select
               value={docTypeFilter}
               onChange={(e) => setDocTypeFilter(e.target.value)}
               className={`${INPUT} cursor-pointer font-medium text-gray-800`}
             >
-              <option value="">Hemmesi</option>
+              <option value="">{t('sazlamalar.auditAll')}</option>
               {docTypes.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -115,13 +119,13 @@ export const AuditLogPanel: React.FC = () => {
               ))}
             </select>
           </Field>
-          <Field label="Ulanyjy">
+          <Field label={t('sazlamalar.auditUser')}>
             <select
               value={userFilter}
               onChange={(e) => setUserFilter(e.target.value)}
               className={`${INPUT} cursor-pointer font-medium text-gray-800`}
             >
-              <option value="">Hemmesi</option>
+              <option value="">{t('sazlamalar.auditAll')}</option>
               {userIds.map((u) => (
                 <option key={u} value={u}>
                   {u}
@@ -136,7 +140,7 @@ export const AuditLogPanel: React.FC = () => {
               className="h-9 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] flex items-center gap-1.5"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              Täzele
+              {t('sazlamalar.auditRefresh')}
             </button>
             <button
               type="button"
@@ -144,7 +148,7 @@ export const AuditLogPanel: React.FC = () => {
               className="h-9 px-3 rounded-xl bg-[#0B1F3A] hover:bg-[#163864] text-white font-bold text-[11px] flex items-center gap-1.5"
             >
               <Download className="w-3.5 h-3.5" />
-              Eksport (.json)
+              {t('sazlamalar.auditExport')}
             </button>
           </div>
         </div>
@@ -153,25 +157,25 @@ export const AuditLogPanel: React.FC = () => {
           <table className="w-full text-[11px]">
             <thead>
               <tr className="bg-gray-50 text-gray-500 font-bold">
-                <th className="text-left px-3 py-2">Wagt</th>
-                <th className="text-left px-3 py-2">Ulanyjy</th>
-                <th className="text-left px-3 py-2">Hereket</th>
-                <th className="text-left px-3 py-2">Görnüş</th>
-                <th className="text-left px-3 py-2">Ýazgy</th>
+                <th className="text-left px-3 py-2">{t('sazlamalar.auditColTime')}</th>
+                <th className="text-left px-3 py-2">{t('sazlamalar.auditUser')}</th>
+                <th className="text-left px-3 py-2">{t('sazlamalar.auditColAction')}</th>
+                <th className="text-left px-3 py-2">{t('sazlamalar.auditColType')}</th>
+                <th className="text-left px-3 py-2">{t('sazlamalar.auditColEntry')}</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
                   <td colSpan={5} className="px-3 py-6 text-center text-gray-400 font-semibold">
-                    Ýüklenýär...
+                    {t('sazlamalar.auditLoading')}
                   </td>
                 </tr>
               )}
               {!loading && entries.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-3 py-6 text-center text-gray-400 font-semibold">
-                    Günlük boş — entek üýtgeşme ýazylmady.
+                    {t('sazlamalar.auditEmpty')}
                   </td>
                 </tr>
               )}
@@ -185,7 +189,7 @@ export const AuditLogPanel: React.FC = () => {
                       }
                     >
                       <td className="px-3 py-2 font-mono text-gray-600">
-                        {new Date(entry.timestamp).toLocaleString('tk-TM')}
+                        {new Date(entry.timestamp).toLocaleString(localeFor(language))}
                       </td>
                       <td className="px-3 py-2 font-semibold text-gray-700">{entry.userId || '—'}</td>
                       <td className="px-3 py-2">
@@ -198,7 +202,7 @@ export const AuditLogPanel: React.FC = () => {
                                 : 'bg-sky-100 text-sky-700'
                           }`}
                         >
-                          {ACTION_LABEL[entry.action] ?? entry.action}
+                          {ACTION_KEYS[entry.action] ? t(ACTION_KEYS[entry.action]) : entry.action}
                         </span>
                       </td>
                       <td className="px-3 py-2 font-mono text-gray-600">{entry.docType}</td>

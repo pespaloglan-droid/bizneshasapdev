@@ -6,6 +6,8 @@ import { UserFormModal } from './UserFormModal';
 import { DeleteUserDialog, ResetPasswordDialog } from './UserDialogs';
 import type { MeasurementUnit } from '../../db/unitService';
 import { PageScroll } from '../common/PageScroll';
+import { localeFor } from '../../utils/locale';
+import { useT } from '../../locales/LanguageContext';
 
 interface UserWorkspaceProps {
   users: AppUser[];
@@ -30,7 +32,7 @@ const ROLE_BADGE: Record<AppUserRole, string> = {
 
 function formatLastLogin(iso: string | undefined, language: LanguageCode): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString(language === 'tm' ? 'tk-TM' : 'tr-TR', {
+  return new Date(iso).toLocaleString(localeFor(language), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -51,7 +53,7 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
   customers,
   products,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<AppUserRole | ''>('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -90,7 +92,7 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
     e.preventDefault();
     if (!resetUser) return;
     if (resetPassword !== resetConfirm) {
-      setResetError(isTm ? 'Parollar gabat gelenok.' : 'Şifreler eşleşmiyor.');
+      setResetError(t('users.errPasswordMismatch'));
       return;
     }
     onUpdateUser({ ...resetUser, password: resetPassword });
@@ -109,7 +111,7 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
               type="text"
-              placeholder={isTm ? 'Ady ýa-da rol boýunça gözle...' : 'İsim veya role göre ara...'}
+              placeholder={t('users.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 h-10 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
@@ -120,7 +122,7 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
             onChange={(e) => setRoleFilter(e.target.value as AppUserRole | '')}
             className="h-10 pl-3 pr-8 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm text-gray-700 outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
           >
-            <option value="">{isTm ? 'Ähli roller' : 'Tüm roller'}</option>
+            <option value="">{t('users.allRoles')}</option>
             {APP_USER_ROLES.map((role) => (
               <option key={role} value={role}>
                 {ROLE_LABELS[role]}
@@ -136,7 +138,7 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
             className="h-10 px-5 bg-[#10b981] hover:bg-[#059669] text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-colors shadow-sm flex-shrink-0"
           >
             <Plus className="w-4 h-4" />
-            Täze ulanyjy
+            {t('users.newUser')}
           </button>
         </div>
       </div>
@@ -146,11 +148,11 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 select-none">
-                <th className="py-3 px-4">Ulanyjy ady</th>
-                <th className="py-3 px-4">Rol</th>
-                <th className="py-3 px-4 text-center">Status</th>
-                <th className="py-3 px-4">Soňky giriş</th>
-                <th className="py-3 px-4 text-center">Amallar</th>
+                <th className="py-3 px-4">{t('users.colUsername')}</th>
+                <th className="py-3 px-4">{t('users.colRole')}</th>
+                <th className="py-3 px-4 text-center">{t('users.colStatus')}</th>
+                <th className="py-3 px-4">{t('users.colLastLogin')}</th>
+                <th className="py-3 px-4 text-center">{t('users.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -161,8 +163,8 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
                       <UserCheck className="w-10 h-10 text-gray-200" />
                       <span className="font-semibold text-gray-400 text-xs">
                         {users.length === 0
-                          ? 'Ulanyjy ýok. Täze ulanyjy dörediň.'
-                          : 'Ulanyjy tapylmady'}
+                          ? t('users.emptyNoUsers')
+                          : t('users.emptyNotFound')}
                       </span>
                     </div>
                   </td>
@@ -188,7 +190,7 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
                           user.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
                         }`}
                       >
-                        {user.isActive ? 'Aktiw' : 'Passiw'}
+                        {user.isActive ? t('users.active') : t('users.passive')}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-gray-500">{formatLastLogin(user.lastLogin, language)}</td>
@@ -197,10 +199,10 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
                         {user.role === 'Administrator' ? (
                           <span
                             className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-gray-100 text-gray-400 text-[10px] font-bold"
-                            title={isTm ? 'Administrator düzedilip/silinip bilinmeýär' : 'Administrator düzenlenemez/silinemez'}
+                            title={t('users.protectedTip')}
                           >
                             <Lock className="w-3 h-3" />
-                            {isTm ? 'Goragly' : 'Korumalı'}
+                            {t('users.protectedBadge')}
                           </span>
                         ) : (
                           <>
@@ -211,7 +213,7 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
                                 setIsFormOpen(true);
                               }}
                               className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-[#0B1F3A] hover:text-white text-gray-500 transition-colors"
-                              title="Redaktirle"
+                              title={t('users.editTip')}
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
@@ -224,7 +226,7 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
                                 setResetError('');
                               }}
                               className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-amber-500 hover:text-white text-gray-500 transition-colors"
-                              title="Paroly täzele"
+                              title={t('users.resetPasswordTip')}
                             >
                               <KeyRound className="w-3.5 h-3.5" />
                             </button>
@@ -232,7 +234,7 @@ export const UserWorkspace: React.FC<UserWorkspaceProps> = ({
                               type="button"
                               onClick={() => setDeleteConfirmId(user.id)}
                               className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-rose-500 hover:text-white text-gray-500 transition-colors"
-                              title="Pozmak"
+                              title={t('users.deleteTip')}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>

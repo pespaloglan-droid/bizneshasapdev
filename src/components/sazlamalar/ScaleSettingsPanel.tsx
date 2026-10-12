@@ -4,6 +4,7 @@ import { SCALE_MODELS, SCALE_PORTS } from '../../db/settingsService';
 import { electronBridge } from '../../utils/electron';
 import { isNative } from '../../utils/platform';
 import { Field, INPUT, Notice, SaveBar, SettingsCard, StatusDot, Toggle } from './settingsUi';
+import { useT } from '../../locales/LanguageContext';
 
 interface ScaleSettingsPanelProps {
   value: ScaleSettings;
@@ -20,6 +21,7 @@ export const ScaleSettingsPanel: React.FC<ScaleSettingsPanelProps> = ({
   onSave,
   onReset,
 }) => {
+  const t = useT();
   const [connected, setConnected] = useState(false);
   const [testing, setTesting] = useState(false);
   const [notice, setNotice] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(
@@ -32,7 +34,7 @@ export const ScaleSettingsPanel: React.FC<ScaleSettingsPanelProps> = ({
     const bridge = electronBridge();
     if (!bridge.getScaleStatus) {
       setConnected(false);
-      setNotice({ tone: 'info', text: 'Terezi barlagy diňe masaüstü programmada elýeterli.' });
+      setNotice({ tone: 'info', text: t('sazlamalar.scDesktopOnly') });
       return;
     }
     setTesting(true);
@@ -51,13 +53,13 @@ export const ScaleSettingsPanel: React.FC<ScaleSettingsPanelProps> = ({
       {isNative() && (
         <Notice
           tone="info"
-          text="Telefonda seri port (COM) yok. Bluetooth teraziler bir sonraki sürümde eklenecek — şimdilik kiloyu el ile gir."
+          text={t('sazlamalar.scMobileNote')}
         />
       )}
       <SettingsCard
-        title="Terezi ýagdaýy"
-        description="Enjam bilen aragatnaşygy barlaň"
-        aside={<StatusDot connected={connected} connectedText="Birikdi" disconnectedText="Birikmedi" />}
+        title={t('sazlamalar.scStatusTitle')}
+        description={t('sazlamalar.scStatusDesc')}
+        aside={<StatusDot connected={connected} connectedText={t('sazlamalar.statusConnected')} disconnectedText={t('sazlamalar.statusDisconnected')} />}
       >
         <div className="flex items-center gap-2">
           <button
@@ -66,19 +68,19 @@ export const ScaleSettingsPanel: React.FC<ScaleSettingsPanelProps> = ({
             disabled={testing}
             className="h-9 px-4 rounded-xl bg-[#0B1F3A] hover:bg-[#163864] disabled:opacity-50 text-white font-bold text-xs"
           >
-            {testing ? 'Barlanýar...' : 'Synag'}
+            {testing ? t('sazlamalar.scTesting') : t('sazlamalar.scTest')}
           </button>
           <span className="text-[11px] font-semibold text-gray-500">
-            Anluk agram okamak barlagy
+            {t('sazlamalar.scTestHint')}
           </span>
         </div>
         {notice && <Notice tone={notice.tone} text={notice.text} />}
       </SettingsCard>
 
-      <SettingsCard title="Terezi sazlamalary" description="Port, model we ölçeg birligi">
+      <SettingsCard title={t('sazlamalar.secScale')} description={t('sazlamalar.scSettingsDesc')}>
         {!isNative() && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Baglanyşyk porty">
+          <Field label={t('sazlamalar.scPort')}>
             <select
               value={value.port}
               onChange={(e) => patch({ port: e.target.value })}
@@ -92,7 +94,7 @@ export const ScaleSettingsPanel: React.FC<ScaleSettingsPanelProps> = ({
             </select>
           </Field>
 
-          <Field label="Terezi modeli / markasy">
+          <Field label={t('sazlamalar.scModel')}>
             <select
               value={value.model}
               onChange={(e) => patch({ model: e.target.value })}
@@ -111,16 +113,16 @@ export const ScaleSettingsPanel: React.FC<ScaleSettingsPanelProps> = ({
         {value.model === 'Şuni özi giriz' && (
           <Notice
             tone="info"
-            text="Ýörite protokol üçin marka adyny giriziň (meselem: KELLER, RADWAG)."
+            text={t('sazlamalar.scCustomModelNote')}
           />
         )}
 
-        <Field label="Ölçeg birligi">
+        <Field label={t('sazlamalar.scUnit')}>
           <div className="flex items-center gap-2">
             {(
               [
-                { id: 'kg', label: 'kilogram (kg)' },
-                { id: 'g', label: 'gram (g)' },
+                { id: 'kg', label: t('sazlamalar.scKg') },
+                { id: 'g', label: t('sazlamalar.scG') },
               ] as const
             ).map((option) => (
               <button
@@ -142,8 +144,8 @@ export const ScaleSettingsPanel: React.FC<ScaleSettingsPanelProps> = ({
         <Toggle
           checked={value.autoRead}
           onChange={(next) => patch({ autoRead: next })}
-          label="Awtomatik agram alma"
-          description="Haryt / Faktura ekranlarynda ölçenen agram awtomatik çekilsin"
+          label={t('sazlamalar.scAutoRead')}
+          description={t('sazlamalar.scAutoReadDesc')}
         />
       </SettingsCard>
 

@@ -4,6 +4,7 @@ import type { AppUser, CurrencyRate, LanguageCode, Ledger, LedgerPermission } fr
 import { BASE_CURRENCY, BASE_CURRENCY_CODE } from '../../db/currencyService';
 import { generateLedgerId, isLedgerNameUnique } from '../../db/ledgerService';
 import { LedgerPermissionMatrix } from './LedgerPermissionMatrix';
+import { useT } from '../../locales/LanguageContext';
 
 interface LedgerFormModalProps {
   language: LanguageCode;
@@ -59,6 +60,7 @@ export const LedgerFormModal: React.FC<LedgerFormModalProps> = ({
   onSave,
   onClose,
 }) => {
+  const t = useT();
   const [form, setForm] = useState<LedgerFormState>(() =>
     editingLedger ? stateFromLedger(editingLedger) : emptyState()
   );
@@ -72,17 +74,17 @@ export const LedgerFormModal: React.FC<LedgerFormModalProps> = ({
     const name = form.name.trim();
 
     if (!name) {
-      setError(language === 'tm' ? 'Depder ady hökmanydyr.' : 'Defter adı zorunludur.');
+      setError(t('depder.nameRequired'));
       return;
     }
     if (!isLedgerNameUnique(name, ledgers, editingLedger?.id)) {
-      setError(language === 'tm' ? 'Bu depder ady eýýäm bar.' : 'Bu defter adı zaten var.');
+      setError(t('depder.nameExists'));
       return;
     }
 
     const openingBalance = Number(form.openingBalance);
     if (!Number.isFinite(openingBalance)) {
-      setError(language === 'tm' ? 'Başlangyç galyndy san bolmaly.' : 'Açılış bakiyesi sayı olmalı.');
+      setError(t('depder.openingBalanceNaN'));
       return;
     }
 
@@ -103,7 +105,7 @@ export const LedgerFormModal: React.FC<LedgerFormModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
         <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
           <span className="font-bold text-sm tracking-wide">
-            {editingLedger ? 'Depderi redaktirle' : 'Täze depder'}
+            {editingLedger ? t('depder.editTitle') : t('depder.newTitle')}
           </span>
           <button
             type="button"
@@ -117,19 +119,19 @@ export const LedgerFormModal: React.FC<LedgerFormModalProps> = ({
         <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className={LABEL}>Ady *</label>
+              <label className={LABEL}>{t('depder.nameLabel')}</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => patch({ name: e.target.value })}
                 autoFocus
-                placeholder={language === 'tm' ? 'Meselem: Merkezi kassa' : 'Örn: Merkezi kasa'}
+                placeholder={t('depder.namePh')}
                 className={`${INPUT} font-medium text-gray-800`}
               />
             </div>
 
             <div>
-              <label className={LABEL}>Walýuta</label>
+              <label className={LABEL}>{t('depder.currencyLabel')}</label>
               <select
                 value={form.currency}
                 onChange={(e) => patch({ currency: e.target.value })}
@@ -148,7 +150,7 @@ export const LedgerFormModal: React.FC<LedgerFormModalProps> = ({
 
             <div>
               <label className={LABEL}>
-                Başlangyç galyndy ({form.currency})
+                {t('depder.openingLabel')} ({form.currency})
               </label>
               <input
                 type="number"
@@ -160,12 +162,12 @@ export const LedgerFormModal: React.FC<LedgerFormModalProps> = ({
             </div>
 
             <div>
-              <label className={LABEL}>Beýany</label>
+              <label className={LABEL}>{t('depder.descFieldLabel')}</label>
               <input
                 type="text"
                 value={form.description}
                 onChange={(e) => patch({ description: e.target.value })}
-                placeholder={language === 'tm' ? 'Gysga düşündiriş...' : 'Kısa açıklama...'}
+                placeholder={t('depder.descPh')}
                 className={`${INPUT} font-medium text-gray-800`}
               />
             </div>
@@ -180,12 +182,12 @@ export const LedgerFormModal: React.FC<LedgerFormModalProps> = ({
                 : 'bg-white text-gray-500 border-gray-200'
             }`}
           >
-            {form.isActive ? 'Aktiw' : 'Passiw'}
+            {form.isActive ? t('depder.activeLabel') : t('depder.inactiveLabel')}
           </button>
 
           <div>
             <div className="text-[11px] font-bold text-gray-500 mb-1.5">
-              Ruhsatlar — bu depdere kimler girip biler
+              {t('depder.permsTitle')}
             </div>
             <LedgerPermissionMatrix
               appUsers={appUsers}
@@ -206,13 +208,13 @@ export const LedgerFormModal: React.FC<LedgerFormModalProps> = ({
               onClick={onClose}
               className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
             >
-              Ýatyr
+              {t('depder.cancelBtn')}
             </button>
             <button
               type="submit"
               className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
             >
-              Ýatda sakla
+              {t('depder.saveBtn')}
             </button>
           </div>
         </form>

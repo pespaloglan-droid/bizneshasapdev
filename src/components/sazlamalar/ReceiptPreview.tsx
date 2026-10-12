@@ -1,6 +1,8 @@
 import React from 'react';
 import type { PaperWidth, ReceiptSettings } from '../../types';
 import { formatMoney } from '../../utils/money';
+import { localeFor } from '../../utils/locale';
+import { useLanguage, useT } from '../../locales/LanguageContext';
 
 interface ReceiptPreviewProps {
   settings: ReceiptSettings;
@@ -39,6 +41,8 @@ function QrPlaceholder() {
 }
 
 export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ settings, paperWidth }) => {
+  const { language } = useLanguage();
+  const t = useT();
   const total = SAMPLE_ITEMS.reduce((sum, item) => sum + item.qty * item.price, 0);
   const width = paperWidth === '58mm' ? 210 : 290;
   const zoom = settings.fontScale === 'sm' ? 0.85 : settings.fontScale === 'lg' ? 1.2 : 1;
@@ -78,22 +82,22 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ settings, paperW
 
         <div className="text-[9px] leading-snug space-y-0.5">
           <div className="flex justify-between">
-            <span>Çek №:</span>
+            <span>{t('receipt.noShort')}</span>
             <span>SAT.09/26-343</span>
           </div>
           <div className="flex justify-between">
-            <span>Sene:</span>
-            <span>{new Date().toLocaleString('tr-TR')}</span>
+            <span>{t('receipt.invDate')}</span>
+            <span>{new Date().toLocaleString(localeFor(language))}</span>
           </div>
           {settings.fields.cashier && (
             <div className="flex justify-between">
-              <span>Kassir:</span>
+              <span>{t('receipt.invCashier')}</span>
               <span>Administrator</span>
             </div>
           )}
           {settings.fields.customer && (
             <div className="flex justify-between">
-              <span>Müşderi:</span>
+              <span>{t('receipt.invCustomer')}</span>
               <span>Umumy Müşderi</span>
             </div>
           )}
@@ -118,13 +122,13 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ settings, paperW
         <div className="border-t border-dashed border-black my-2" />
 
         <div className="flex justify-between text-[11px] font-bold">
-          <span>JEMI</span>
+          <span>{t('receipt.totalCaps')}</span>
           <span>{formatMoney(total)} TMT</span>
         </div>
 
         <div className="flex justify-between text-[9px] mt-1">
-          <span>Töleg:</span>
-          <span>Nagt</span>
+          <span>{t('receipt.paymentShort')}</span>
+          <span>{t('invoices.payCash')}</span>
         </div>
 
         {(settings.fields.qr || settings.fields.barcode) && (

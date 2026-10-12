@@ -1,6 +1,8 @@
 import React from 'react';
 import { CalendarDays } from 'lucide-react';
-import { CALC_PERIODS, type CalcPeriod, type DateWindow } from '../../utils/calcPeriods';
+import { CALC_PERIODS, CALC_PERIOD_KEYS, type CalcPeriod, type DateWindow } from '../../utils/calcPeriods';
+import { localeFor } from '../../utils/locale';
+import { useLanguage, useT } from '../../locales/LanguageContext';
 
 interface PeriodBarProps {
   period: CalcPeriod;
@@ -12,8 +14,8 @@ interface PeriodBarProps {
   onCustomToChange: (value: string) => void;
 }
 
-function formatDay(date: Date): string {
-  return date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+function formatDay(date: Date, locale: string): string {
+  return date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 export const PeriodBar: React.FC<PeriodBarProps> = ({
@@ -25,13 +27,16 @@ export const PeriodBar: React.FC<PeriodBarProps> = ({
   onCustomFromChange,
   onCustomToChange,
 }) => {
+  const { language } = useLanguage();
+  const t = useT();
+  const locale = localeFor(language);
   const toInclusive = new Date(resolved.to.getTime() - 86400000);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex items-center gap-2 flex-wrap">
       <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
         <CalendarDays className="w-3.5 h-3.5" />
-        Döwür
+        {t('hasaplama.period')}
       </span>
 
       {CALC_PERIODS.map((item) => (
@@ -45,7 +50,7 @@ export const PeriodBar: React.FC<PeriodBarProps> = ({
               : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
           }`}
         >
-          {item.label}
+          {t(CALC_PERIOD_KEYS[item.id])}
         </button>
       ))}
 
@@ -68,7 +73,7 @@ export const PeriodBar: React.FC<PeriodBarProps> = ({
       )}
 
       <span className="ml-auto text-[11px] font-bold text-gray-400 font-mono">
-        {formatDay(resolved.from)} — {formatDay(toInclusive)}
+        {formatDay(resolved.from, locale)} — {formatDay(toInclusive, locale)}
       </span>
     </div>
   );

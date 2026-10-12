@@ -3,6 +3,8 @@ import { Pencil, Trash2, Wallet } from 'lucide-react';
 import type { AppUser, Customer, LanguageCode, MoneyTransaction } from '../../types';
 import { PAYMENT_METHOD_LABELS, SUB_CATEGORY_LABELS, categoryLabel } from '../../db/moneyService';
 import { formatDate, formatMoneyTmt } from '../../utils/money';
+import { localeFor } from '../../utils/locale';
+import { useT } from '../../locales/LanguageContext';
 
 interface KassaTableProps {
   transactions: readonly MoneyTransaction[];
@@ -34,10 +36,10 @@ function counterparty(
   return null;
 }
 
-function transactionTime(createdAt: string): string {
+function transactionTime(createdAt: string, language: LanguageCode): string {
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString(localeFor(language), { hour: '2-digit', minute: '2-digit' });
 }
 
 export const KassaTable: React.FC<KassaTableProps> = ({
@@ -50,19 +52,20 @@ export const KassaTable: React.FC<KassaTableProps> = ({
   canEdit = true,
   canDelete = true,
 }) => {
+  const t = useT();
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <table className="w-full text-left text-xs">
         <thead>
           <tr className={HEAD}>
-            <th className="py-3 px-4">Sene / Wagt</th>
-            <th className="py-3 px-4 text-center">Görnüşi</th>
-            <th className="py-3 px-4">Kategoriýa</th>
-            <th className="py-3 px-4">Müşderi / Üpjün ediji</th>
-            <th className="py-3 px-4">Töleg görnüşi</th>
-            <th className="py-3 px-4 text-right">Mukdar</th>
-            <th className="py-3 px-4">Düşündiriş</th>
-            <th className="py-3 px-4 text-center">Amal</th>
+            <th className="py-3 px-4">{t('kassa.colDate')}</th>
+            <th className="py-3 px-4 text-center">{t('kassa.colType')}</th>
+            <th className="py-3 px-4">{t('kassa.colCategory')}</th>
+            <th className="py-3 px-4">{t('kassa.colCustomer')}</th>
+            <th className="py-3 px-4">{t('kassa.colPayment')}</th>
+            <th className="py-3 px-4 text-right">{t('kassa.colAmount')}</th>
+            <th className="py-3 px-4">{t('kassa.colDesc')}</th>
+            <th className="py-3 px-4 text-center">{t('kassa.colAction')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
@@ -72,7 +75,7 @@ export const KassaTable: React.FC<KassaTableProps> = ({
                 <div className="flex flex-col items-center gap-2">
                   <Wallet className="w-10 h-10 text-gray-200" />
                   <span className="font-semibold text-gray-400 text-xs">
-                    {language === 'tm' ? 'Hereket tapylmady' : 'Hareket bulunamadı'}
+                    {t('kassa.empty')}
                   </span>
                 </div>
               </td>
@@ -86,7 +89,7 @@ export const KassaTable: React.FC<KassaTableProps> = ({
                   <td className="py-3 px-4 whitespace-nowrap">
                     <div className="font-semibold text-gray-800">{formatDate(transaction.date)}</div>
                     <div className="text-[10px] text-gray-400 font-mono">
-                      {transactionTime(transaction.createdAt)}
+                      {transactionTime(transaction.createdAt, language)}
                     </div>
                   </td>
 
@@ -96,7 +99,7 @@ export const KassaTable: React.FC<KassaTableProps> = ({
                         isIncome ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
                       }`}
                     >
-                      {isIncome ? '↑ Girdeji' : '↓ Çykdajy'}
+                      {isIncome ? t('kassa.incomeBadge') : t('kassa.expenseBadge')}
                     </span>
                   </td>
 
@@ -149,7 +152,7 @@ export const KassaTable: React.FC<KassaTableProps> = ({
                           type="button"
                           onClick={() => onEdit(transaction)}
                           className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-[#0B1F3A] hover:text-white text-gray-500 transition-colors"
-                          title="Redaktirle"
+                          title={t('kassa.editTip')}
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
@@ -159,7 +162,7 @@ export const KassaTable: React.FC<KassaTableProps> = ({
                           type="button"
                           onClick={() => onDelete(transaction)}
                           className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-rose-500 hover:text-white text-gray-500 transition-colors"
-                          title="Pozmak"
+                          title={t('kassa.deleteTip')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

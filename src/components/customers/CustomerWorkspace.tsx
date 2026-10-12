@@ -14,14 +14,18 @@ import {
 import { Customer, InvoiceRecord, LanguageCode } from '../../types';
 import { ReceiptModal } from '../pos/ReceiptModal';
 import { CustomerExcelImportModal } from './CustomerExcelImportModal';
+import type { CustomerImportEntry, ImportSummary } from './CustomerExcelImportModal';
 import { CustomerExcelExportModal } from './CustomerExcelExportModal';
 import { CustomerBulkEditModal } from './CustomerBulkEditModal';
 import { CustomerForm } from './CustomerForm';
-import type { CustomerDraft } from '../../utils/customerExcel';
+import type { BatchWriteResult } from '../../db/pouch';
+import type { ImportErrorRow } from '../../utils/importErrorReport';
 import { GENERAL_CUSTOMER_ID } from '../../db/customerService';
 import { onMobileAdd } from '../../utils/mobileEvents';
 import { PageScroll } from '../common/PageScroll';
 import { isNative } from '../../utils/platform';
+import { localeFor } from '../../utils/locale';
+import { useT } from '../../locales/LanguageContext';
 import { Search } from 'lucide-react';
 
 export interface CustomerLedgerEntry {
@@ -43,6 +47,14 @@ interface CustomerWorkspaceProps {
   onAddCustomer: (customer: Customer) => void;
   onUpdateCustomer: (customer: Customer) => void;
   onDeleteCustomer: (id: string) => void;
+  /**
+   * Excel importynyň toplu ýazgy prosesi: çykyşy tassyklanan müşderileriň
+   * hemmesini BIR batch-de ýazýar we şowsuzlary aýratynlykda hasaba alýar.
+   * Berlen bolsa tekil onAddCustomer/onUpdateCustomer ýerine şu ulanylýar.
+   */
+  onImportCustomers?: (
+    items: ReadonlyArray<{ customer: Customer; rowNumber: number }>
+  ) => Promise<BatchWriteResult>;
   /** Duýduryş panelinden gelýän fokus — degişli müşderini açýar. */
   focusCustomerId?: string | null;
   /** Firma/hesap ady — Excel çyktysynda header görkezilýär. */
@@ -57,9 +69,11 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
   onAddCustomer,
   onUpdateCustomer,
   onDeleteCustomer,
+  onImportCustomers,
   focusCustomerId = null,
   accountName = 'Biznes Hasap'
 }) => {
+  const t = useT();
   const [activeFilter, setActiveFilter] = useState<'all' | 'customer' | 'employee'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -104,13 +118,13 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
       .filter(inv => inv.customerId === customerId)
       .map(inv => ({
         id: inv.id,
-        date: new Date(inv.createdAt).toLocaleString(language === 'tm' ? 'tk-TM' : 'tr-TR', {
+        date: new Date(inv.createdAt).toLocaleString(localeFor(language), {
           day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
         }),
         invoiceCode: inv.invoiceNo,
         reason: inv.invoiceType === 'sales'
-          ? (language === 'tm' ? `Söwda Fakturasy (${inv.itemCount} haryt)` : `Satış Faturası (${inv.itemCount} kalem)`)
-          : (language === 'tm' ? 'Faktura Hasaby' : 'Fatura İşlemi'),
+          ? t('customers.reasonSalesInvoice', { count: inv.itemCount })
+          : t('customers.reasonInvoiceOp'),
         debit: inv.paymentMethod === 'credit' ? inv.amountDue : 0,
         credit: inv.paymentMethod !== 'credit' ? inv.amountDue : 0,
         balance: baseBalance
@@ -123,7 +137,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
           id: 'tx-1',
           date: '20.08.2026 11:20',
           invoiceCode: 'SAT.08/26-088',
-          reason: language === 'tm' ? 'Nesiýe Söwda Fakturasy (Haryt Alyş)' : 'Vadeli Satış Faturası (Ürün Alımı)',
+          reason: t('customers.reasonCreditSale'),
           debit: 200.00,
           credit: 0,
           balance: 200.00
@@ -132,7 +146,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
           id: 'tx-2',
           date: '22.08.2026 16:45',
           invoiceCode: 'TÖL.08/26-014',
-          reason: language === 'tm' ? 'Nagt Bergi Tölegi (Kassa)' : 'Nakit Borç Ödemesi (Kasa)',
+          reason: t('customers.reasonCashPayment'),
           debit: 0,
           credit: 50.00,
           balance: 150.00
@@ -147,7 +161,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
           id: 'tx-3',
           date: '15.08.2026 10:15',
           invoiceCode: 'SAT.08/26-042',
-          reason: language === 'tm' ? 'Toptan Söwda Fakturasy (Nesiýe)' : 'Toptan Satış Faturası (Vadeli)',
+          reason: t('customers.reasonWholesale'),
           debit: 2500.00,
           credit: 0,
           balance: 2500.00
@@ -156,7 +170,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
           id: 'tx-4',
           date: '18.08.2026 14:30',
           invoiceCode: 'TÖL.08/26-009',
-          reason: language === 'tm' ? 'Bank Karty / Geçirim Tölegi' : 'Banka Kartı / Havale Ödemesi',
+          reason: t('customers.reasonBankTransfer'),
           debit: 0,
           credit: 1249.50,
           balance: 1250.50
@@ -175,7 +189,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
           id: 'tx-init',
           date: '01.08.2026 09:00',
           invoiceCode: 'FAK.08/26-001',
-          reason: language === 'tm' ? 'Ilkinji Hasap Galyndysy (Açylyş)' : 'Açılış Hesap Bakiyesi',
+          reason: t('customers.reasonOpening'),
           debit: baseBalance > 0 ? baseBalance : 0,
           credit: baseBalance < 0 ? Math.abs(baseBalance) : 0,
           balance: baseBalance
@@ -186,11 +200,18 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
     return [];
   };
 
-  /** Excel import: bar bolanlary täzeläp ýa-da geçip, täzelerini goşýar. */
-  const handleExcelImport = (
-    drafts: readonly CustomerDraft[],
+  /**
+   * Excel import: bar bolanlary täzeläp ýa-da geçip, täzelerini goşýar.
+   *
+   * Çykyşy tassyklanan müşderiler ýeke-ýeke däl-de mümkin bolsa BIR batch-de
+   * ýazylýar (onImportCustomers); ýazylmadyklar `failed` sanawyna setir belgisi
+   * we sebäbi bilen düşýär. onImportCustomers berlen bolmasa öňki tekil akym
+   * ulanylýar (onAddCustomer/onUpdateCustomer).
+   */
+  const handleExcelImport = async (
+    entries: readonly CustomerImportEntry[],
     mode: 'overwrite' | 'skip'
-  ): { added: number; updated: number; skipped: number } => {
+  ): Promise<ImportSummary> => {
     const byName = new Map(customers.map((c) => [c.name.trim().toLowerCase(), c]));
     const byPhone = new Map(
       customers
@@ -201,8 +222,13 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
     let added = 0;
     let updated = 0;
     let skipped = 0;
+    const planned: Array<{
+      customer: Customer;
+      rowNumber: number;
+      action: 'add' | 'update';
+    }> = [];
 
-    for (const draft of drafts) {
+    for (const { draft, rowNumber } of entries) {
       const nameKey = draft.name.trim().toLowerCase();
       const phoneKey = draft.phone.trim().toLowerCase();
       if (handled.has(nameKey) || (phoneKey && handled.has(`p:${phoneKey}`))) {
@@ -221,32 +247,67 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
           skipped += 1;
           continue;
         }
-        onUpdateCustomer({
-          ...existing,
-          name: draft.name,
-          phone: draft.phone || undefined,
-          type: draft.type,
-          dueDateDays: draft.dueDateDays,
-          addressNote: draft.addressNote || undefined,
-          balance,
+        planned.push({
+          customer: {
+            ...existing,
+            name: draft.name,
+            phone: draft.phone || undefined,
+            type: draft.type,
+            dueDateDays: draft.dueDateDays,
+            addressNote: draft.addressNote || undefined,
+            balance,
+          },
+          rowNumber,
+          action: 'update',
         });
         updated += 1;
       } else {
-        onAddCustomer({
-          id: `cust-${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-          name: draft.name,
-          phone: draft.phone || undefined,
-          type: draft.type,
-          dueDateDays: draft.dueDateDays,
-          creditLimit: 0,
-          addressNote: draft.addressNote || undefined,
-          balance,
+        planned.push({
+          customer: {
+            id: `cust-${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            name: draft.name,
+            phone: draft.phone || undefined,
+            type: draft.type,
+            dueDateDays: draft.dueDateDays,
+            creditLimit: 0,
+            addressNote: draft.addressNote || undefined,
+            balance,
+          },
+          rowNumber,
+          action: 'add',
         });
         added += 1;
       }
     }
 
-    return { added, updated, skipped };
+    const failed: ImportErrorRow[] = [];
+    if (onImportCustomers) {
+      if (planned.length > 0) {
+        const result = await onImportCustomers(
+          planned.map((item) => ({ customer: item.customer, rowNumber: item.rowNumber }))
+        );
+        const failureById = new Map(result.failed.map((f) => [f.id, f.error]));
+        for (const item of planned) {
+          const reason = failureById.get(item.customer.id);
+          if (reason === undefined) continue;
+          failed.push({
+            row: item.rowNumber,
+            name: item.customer.name,
+            detail: item.customer.phone ?? '',
+            reason,
+          });
+          if (item.action === 'add') added -= 1;
+          else updated -= 1;
+        }
+      }
+    } else {
+      for (const item of planned) {
+        if (item.action === 'add') onAddCustomer(item.customer);
+        else onUpdateCustomer(item.customer);
+      }
+    }
+
+    return { added, updated, skipped, failed };
   };
 
   /** Birbada üýtgedilen müşderileriň hemmesini ýazýar. */
@@ -273,7 +334,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                 : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
             }`}
           >
-            {language === 'tm' ? `Ählisi (${totalCount})` : `Tümü (${totalCount})`}
+            {t('customers.filterAllCount', { count: totalCount })}
           </button>
 
           {/* Müşteriler */}
@@ -286,7 +347,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                 : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <span>{language === 'tm' ? `Müşderiler (${customerCount})` : `Müşteriler (${customerCount})`}</span>
+            <span>{t('customers.filterCustomersCount', { count: customerCount })}</span>
           </button>
 
           {/* Işgärler */}
@@ -299,7 +360,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                 : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
             }`}
           >
-<span>{language === 'tm' ? `Işgärler (${employeeCount})` : `İşgörenler / Işgärler (${employeeCount})`}</span>
+<span>{t('customers.filterEmployeesCount', { count: employeeCount })}</span>
           </button>
 
           {/* Arama Inputu — diğer modüllarla aynı: solda büyüteç, sağda temizle */}
@@ -310,7 +371,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
               id="bh-customer-search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'tm' ? 'At ýa-da telefon bilen gözle...' : 'İsim veya telefon ile ara...'}
+              placeholder={t('customers.searchPlaceholder')}
               className="w-full h-10 pl-9 pr-8 bg-[#F8FAFC] border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent rounded-xl text-sm text-gray-700 placeholder-gray-400 outline-none transition"
             />
             {searchQuery && (
@@ -332,28 +393,28 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
             type="button"
             onClick={() => setIsBulkOpen(true)}
             className="h-10 px-3 bg-white border border-gray-200 hover:border-violet-400 hover:bg-violet-50/60 text-gray-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors flex-shrink-0"
-            title={language === 'tm' ? 'Birbada köp müşderini üýtget' : 'Toplu düzenleme'}
+            title={t('customers.bulkEditTitle')}
           >
             <ListChecks className="w-4 h-4 text-violet-600" />
-            {language === 'tm' ? 'Birbada Uýtgetmek' : 'Toplu Düzenle'}
+            {t('customers.bulkEdit')}
           </button>
           <button
             type="button"
             onClick={() => setIsImportOpen(true)}
             className="h-10 px-3 bg-white border border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/60 text-gray-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors flex-shrink-0"
-            title={language === 'tm' ? 'Excel-den getir' : "Excel'den içe aktar"}
+            title={t('customers.importExcelTitle')}
           >
             <Upload className="w-4 h-4 text-emerald-600" />
-            {language === 'tm' ? 'Excelden getir' : "Excel'den getir"}
+            {t('customers.importExcel')}
           </button>
           <button
             type="button"
             onClick={() => setIsExportOpen(true)}
             className="h-10 px-3 bg-white border border-gray-200 hover:border-sky-400 hover:bg-sky-50/60 text-gray-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors flex-shrink-0"
-            title={language === 'tm' ? 'Excel-e çykar' : "Excel'e aktar"}
+            title={t('customers.exportExcelTitle')}
           >
             <Download className="w-4 h-4 text-sky-600" />
-            {language === 'tm' ? 'Excel-e çykar' : "Excel'e çykar"}
+            {t('customers.exportExcel')}
           </button>
           {/* Telefonda ekleme işlemi yüzen "+" butonu ile yapılır (tek ikon, tek yer).
             Bu düğme yalnızca PC'de görünür — telefonda tekrar etmez. */}
@@ -363,7 +424,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
               onClick={() => setIsFormOpen(!isFormOpen)}
               className="h-10 px-4 bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs rounded-xl flex items-center justify-center transition-all shadow-sm active:scale-95 flex-shrink-0"
             >
-              <span>{language === 'tm' ? 'Müşderi / Işgär Goş' : 'Müşteri / Cari Ekle'}</span>
+              <span>{t('customers.addCustomer')}</span>
             </button>
           )}
         </div>
@@ -375,7 +436,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
           <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-3xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150">
             <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
               <span className="font-bold text-sm tracking-wide">
-                {language === 'tm' ? 'Täze Müşderi / Işgär Karty' : 'Yeni Cari Kartı'}
+                {t('customers.newCardTitle')}
               </span>
               <button
                 type="button"
@@ -427,18 +488,18 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50/50 text-xs font-bold text-gray-600 select-none">
-                <th className="py-3 px-4">{language === 'tm' ? 'Müşderi / Işgär Ady / Telefon' : 'Cari Adı / Telefon'}</th>
-                <th className="py-3 px-4">{language === 'tm' ? 'Görnüşi' : 'Tip'}</th>
-                <th className="py-3 px-4">{language === 'tm' ? 'Möhlet' : 'Vade'}</th>
-                <th className="py-3 px-4 text-right">{language === 'tm' ? 'Galyndy' : 'Bakiye'}</th>
-                <th className="py-3 px-4 text-center">{language === 'tm' ? 'Amallar' : 'İşlemler'}</th>
+                <th className="py-3 px-4">{t('customers.colNamePhone')}</th>
+                <th className="py-3 px-4">{t('customers.colType')}</th>
+                <th className="py-3 px-4">{t('customers.colDueDate')}</th>
+                <th className="py-3 px-4 text-right">{t('customers.colBalance')}</th>
+                <th className="py-3 px-4 text-center">{t('customers.colActions')}</th>
               </tr>
             </thead>
             <tbody>
               {filteredCustomers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-20 text-center text-xs text-gray-400 font-medium">
-                    {language === 'tm' ? 'Ýazga alnan müşderi/işgär tapylmady.' : 'Kayıtlı cari bulunamadı.'}
+                    {t('customers.notFound')}
                   </td>
                 </tr>
               ) : (
@@ -447,7 +508,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                     key={cust.id}
                     onDoubleClick={() => setSelectedDetailCustomer(cust)}
                     className="border-b border-gray-100 hover:bg-emerald-50/40 transition-colors text-xs cursor-pointer select-none"
-                    title={language === 'tm' ? 'Giňişleýin maglumat üçin iki gezek basyň' : 'Detayları görmek için çift tıklayın'}
+                    title={t('customers.doubleClickHint')}
                   >
                     <td className="py-3 px-4">
                       <div className="font-bold text-gray-900">{cust.name}</div>
@@ -459,7 +520,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                           ? 'bg-purple-50 text-purple-700 border border-purple-200'
                           : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       }`}>
-                        {cust.type === 'employee' ? (language === 'tm' ? 'Işgär' : 'İşgören') : (language === 'tm' ? 'Müşderi' : 'Müşteri')}
+                        {cust.type === 'employee' ? t('customers.typeEmployee') : t('customers.typeCustomer')}
                       </span>
                     </td>
                     <td className="py-3 px-4 font-mono text-gray-600">
@@ -482,7 +543,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                               setEditingCustomer(cust);
                             }}
                             className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                            title={language === 'tm' ? 'Redaktirle (Üýtget)' : 'Düzenle'}
+                            title={t('customers.editAction')}
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -492,11 +553,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                           !canEditCustomer && (
                             <span
                               className="text-[10px] font-bold text-gray-300"
-                              title={
-                                language === 'tm'
-                                  ? 'Umumy Müşderi — sistem ýazgysy, pozup bolmaýar'
-                                  : 'Genel Müşteri — sistem kaydı, silinemez'
-                              }
+                              title={t('customers.generalCustomerNoDelete')}
                             >
                               —
                             </span>
@@ -509,7 +566,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                               onDeleteCustomer(cust.id);
                             }}
                             className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                            title="Sil"
+                            title={t('delete')}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -546,8 +603,8 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                     <h3 className="text-sm font-bold tracking-wide">{selectedDetailCustomer.name}</h3>
                     <span className="text-[11px] text-emerald-300 font-semibold">
                       {selectedDetailCustomer.type === 'employee'
-                        ? (language === 'tm' ? 'Işgär / Işçi' : 'İşgören / Personel')
-                        : (language === 'tm' ? 'Müşderi / Alyjy' : 'Müşteri / Alıcı')}
+                        ? t('customers.roleEmployee')
+                        : t('customers.roleCustomer')}
                     </span>
                   </div>
                 </div>
@@ -567,7 +624,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                   {/* Telefon */}
                   <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
                     <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-                      {language === 'tm' ? 'Telefon Belgisi' : 'Telefon'}
+                      {t('customers.phoneLabel')}
                     </div>
                     <div className="font-bold text-gray-800 font-mono text-xs truncate">
                       {selectedDetailCustomer.phone || '-'}
@@ -577,7 +634,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                   {/* Hasap Galyndysy (Bakiye) */}
                   <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
                     <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-                      {language === 'tm' ? 'Galyndy (Bakiýe)' : 'Hesap Bakiyesi'}
+                      {t('customers.balanceLabel')}
                     </div>
                     <div className={`font-black font-mono text-xs truncate ${
                       selectedDetailCustomer.balance > 0
@@ -593,7 +650,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                   {/* Möhlet Güni */}
                   <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
                     <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-                      {language === 'tm' ? 'Möhlet (Vade)' : 'Vade Süresi'}
+                      {t('customers.dueDateLabel')}
                     </div>
                     <div className="font-bold text-gray-800 font-mono text-xs truncate">
                       {selectedDetailCustomer.dueDateDays ? `${selectedDetailCustomer.dueDateDays} gün` : '-'}
@@ -603,10 +660,10 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                   {/* Borç Limiti */}
                   <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
                     <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-                      {language === 'tm' ? 'Bergi Limiti' : 'Borç Limiti'}
+                      {t('customers.creditLimitLabel')}
                     </div>
                     <div className="font-bold text-gray-800 font-mono text-xs truncate">
-                      {selectedDetailCustomer.creditLimit ? `${selectedDetailCustomer.creditLimit.toFixed(2)} TMT` : 'Çäksiz'}
+                      {selectedDetailCustomer.creditLimit ? `${selectedDetailCustomer.creditLimit.toFixed(2)} TMT` : t('customers.unlimited')}
                     </div>
                   </div>
                 </div>
@@ -615,7 +672,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                 {selectedDetailCustomer.addressNote && (
                   <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
                     <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-                      {language === 'tm' ? 'Salgy / Bellikler (Adres)' : 'Adres / Notlar'}
+                      {t('customers.addressLabel')}
                     </div>
                     <div className="text-gray-700 font-medium whitespace-pre-wrap text-xs">
                       {selectedDetailCustomer.addressNote}
@@ -629,29 +686,29 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                     <div className="flex items-center space-x-2">
                       <FileText className="w-4 h-4 text-emerald-600" />
                       <span className="font-bold text-gray-800 text-xs">
-                        {language === 'tm' ? 'Fakturalar & Bergi / Algy Taryhy' : 'Fatura & Borç/Alacak Geçmişi'}
+                        {t('customers.ledgerTitle')}
                       </span>
                     </div>
                     <span className="text-[10px] text-gray-500 font-mono font-bold bg-white px-2 py-0.5 rounded border border-gray-200">
-                      {transactions.length} {language === 'tm' ? 'faktura / hereket' : 'işlem'}
+                      {transactions.length} {t('customers.txCountSuffix')}
                     </span>
                   </div>
 
                   <div className="max-h-[220px] overflow-y-auto">
                     {transactions.length === 0 ? (
                       <div className="py-8 text-center text-xs text-gray-400 font-medium">
-                        {language === 'tm' ? 'Bu müşderi üçin faktura ýa-da bergi/algy hereketi tapylmady.' : 'Kayıtlı fatura veya borç/alacak hareketi bulunamadı.'}
+                        {t('customers.noTransactions')}
                       </div>
                     ) : (
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-gray-50/50 border-b border-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-wider select-none sticky top-0 bg-gray-50">
-                            <th className="py-2 px-3">{language === 'tm' ? 'Sene (Haçan)' : 'Tarih'}</th>
-                            <th className="py-2 px-3">{language === 'tm' ? 'Faktura Kody' : 'Fatura Kodu'}</th>
-                            <th className="py-2 px-3">{language === 'tm' ? 'Näme Üçin (Sebäbi)' : 'İşlem / Sebep'}</th>
-                            <th className="py-2 px-3 text-right">{language === 'tm' ? 'Bergi (+)' : 'Borç (+)'}</th>
-                            <th className="py-2 px-3 text-right">{language === 'tm' ? 'Töleg / Algy (-)' : 'Ödeme (-)'}</th>
-                            <th className="py-2 px-3 text-right">{language === 'tm' ? 'Galyndy' : 'Bakiye'}</th>
+                            <th className="py-2 px-3">{t('customers.colDate')}</th>
+                            <th className="py-2 px-3">{t('customers.colInvoiceCode')}</th>
+                            <th className="py-2 px-3">{t('customers.colReason')}</th>
+                            <th className="py-2 px-3 text-right">{t('customers.colDebit')}</th>
+                            <th className="py-2 px-3 text-right">{t('customers.colCredit')}</th>
+                            <th className="py-2 px-3 text-right">{t('customers.colBalance')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 text-xs">
@@ -708,7 +765,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                                       type="button"
                                       onClick={() => setActiveReceiptInvoice(invoiceToShow)}
                                       className="font-mono font-bold text-[11px] text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200/80 px-2 py-0.5 rounded-md whitespace-nowrap transition-all active:scale-95 flex items-center space-x-1 group"
-                                      title="Fakturanyň çek sanawyny görmek üçin basyň"
+                                      title={t('customers.receiptTooltip')}
                                     >
                                       <Receipt className="w-3 h-3 text-emerald-500 group-hover:text-white transition-colors" />
                                       <span>{tx.invoiceCode}</span>
@@ -744,7 +801,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
                   onClick={() => setSelectedDetailCustomer(null)}
                   className="px-6 py-2 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs transition-colors shadow-xs"
                 >
-                  {language === 'tm' ? 'Ýap' : 'Kapat'}
+                  {t('customers.closeBtn')}
                 </button>
               </div>
             </div>

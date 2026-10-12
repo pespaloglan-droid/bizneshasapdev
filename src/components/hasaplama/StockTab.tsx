@@ -5,6 +5,7 @@ import type { DateWindow } from '../../utils/calcPeriods';
 import { productSales, stockValuation } from '../../utils/calcAssets';
 import { formatMoney } from '../../utils/money';
 import { updatedStamp, useReport } from '../../utils/report';
+import { useT } from '../../locales/LanguageContext';
 import { EmptyState, ReportActions } from './charts';
 
 interface StockTabProps {
@@ -29,6 +30,7 @@ export const StockTab: React.FC<StockTabProps> = ({
   onAddToCart,
   onGoToCheckout,
 }) => {
+  const t = useT();
   const valuation = stockValuation(products);
   const best = productSales(invoices, window, 8, 'top');
   const worst = productSales(invoices, window, 8, 'bottom');
@@ -57,21 +59,21 @@ export const StockTab: React.FC<StockTabProps> = ({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-          Ambar hasabaty · {rangeLabel}
+          {t('hasaplama.tabStock')} · {rangeLabel}
         </span>
         <ReportActions
           isPrinting={report.isPrinting}
           onPrint={() =>
             void report.print({
-              title: 'Ambar hasabaty',
+              title: t('hasaplama.tabStock'),
               subtitle: rangeLabel,
-              columns: ['Haryt', 'SKU', 'Sany', 'Alış', 'Alış degeri', 'Satyş degeri'],
+              columns: [t('hasaplama.colProduct'), 'SKU', t('hasaplama.colQty'), t('hasaplama.colPurchase'), t('hasaplama.colPurchaseValue'), t('hasaplama.colSaleValue')],
               rows: csvRows,
-              footer: `Jemi alış degeri: ${formatMoney(valuation.purchaseValue)} TMT`,
+              footer: t('hasaplama.purchaseValueFooter', { amount: formatMoney(valuation.purchaseValue) }),
             })
           }
           csvName="ambar-hasabaty"
-          headers={['Haryt', 'SKU', 'Sany', 'Alış', 'Alış degeri', 'Satyş degeri']}
+          headers={[t('hasaplama.colProduct'), 'SKU', t('hasaplama.colQty'), t('hasaplama.colPurchase'), t('hasaplama.colPurchaseValue'), t('hasaplama.colSaleValue')]}
           rows={csvRows}
           disabled={products.length === 0}
         />
@@ -85,17 +87,17 @@ export const StockTab: React.FC<StockTabProps> = ({
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { key: 'sku', label: 'Haryt görnüşi', value: String(valuation.skuCount), cls: 'text-gray-900' },
-          { key: 'qty', label: 'Jemi sany', value: String(valuation.totalQty), cls: 'text-gray-900' },
+          { key: 'sku', label: t('hasaplama.skuCount'), value: String(valuation.skuCount), cls: 'text-gray-900' },
+          { key: 'qty', label: t('hasaplama.totalQty'), value: String(valuation.totalQty), cls: 'text-gray-900' },
           {
             key: 'buy',
-            label: 'Alış bahasy boýunça',
+            label: t('hasaplama.byPurchasePrice'),
             value: `${formatMoney(valuation.purchaseValue)} TMT`,
             cls: 'text-sky-600',
           },
           {
             key: 'sell',
-            label: 'Satyş bahasy boýunça',
+            label: t('hasaplama.bySalePrice'),
             value: `${formatMoney(valuation.saleValue)} TMT`,
             cls: 'text-emerald-600',
           },
@@ -112,12 +114,12 @@ export const StockTab: React.FC<StockTabProps> = ({
       {/* ── Haryt ostatogy (stok galyndy) — +/- filtreli ─────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-          <span className="text-xs font-bold text-gray-700">Haryt ostatogy</span>
+          <span className="text-xs font-bold text-gray-700">{t('hasaplama.stockState')}</span>
           <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
             {[
-              { id: 'all', label: 'Ählisi' },
-              { id: 'positive', label: '+ (plyus)' },
-              { id: 'negative', label: '− (minus)' },
+              { id: 'all', label: t('hasaplama.filterAll') },
+              { id: 'positive', label: t('hasaplama.filterPositive') },
+              { id: 'negative', label: t('hasaplama.filterNegative') },
             ].map((opt) => (
               <button
                 key={opt.id}
@@ -134,22 +136,22 @@ export const StockTab: React.FC<StockTabProps> = ({
             ))}
           </div>
           <span className="text-[10px] text-gray-400">
-            {filteredStock.length} / {products.length} haryt
+            {t('hasaplama.stockCountLabel', { shown: filteredStock.length, total: products.length })}
           </span>
         </div>
 
         {filteredStock.length === 0 ? (
-          <EmptyState text="Bu görnüşde haryt ýok" />
+          <EmptyState text={t('hasaplama.noStockKind')} />
         ) : (
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                <th className="py-2 px-3">Haryt</th>
-                <th className="py-2 px-3 text-right">Stok</th>
-                <th className="py-2 px-3 text-right">Alş</th>
-                <th className="py-2 px-3 text-right">Satyş</th>
-                <th className="py-2 px-3 text-right">Stok bahasy (satyş)</th>
-                <th className="py-2 px-3 text-center">Amal</th>
+                <th className="py-2 px-3">{t('hasaplama.colProduct')}</th>
+                <th className="py-2 px-3 text-right">{t('hasaplama.colStock')}</th>
+                <th className="py-2 px-3 text-right">{t('hasaplama.colPurchase')}</th>
+                <th className="py-2 px-3 text-right">{t('hasaplama.colSale')}</th>
+                <th className="py-2 px-3 text-right">{t('hasaplama.colStockValue')}</th>
+                <th className="py-2 px-3 text-center">{t('hasaplama.colAction')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -180,7 +182,7 @@ export const StockTab: React.FC<StockTabProps> = ({
                           type="button"
                           onClick={() => setPreviewId(previewId === product.id ? null : product.id)}
                           className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-[#0B1F3A] hover:text-white text-gray-500 transition-colors"
-                          title={rangeLabel === '' ? 'Görkez' : 'Görkez'}
+                          title={t('hasaplama.showTip')}
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
@@ -192,7 +194,7 @@ export const StockTab: React.FC<StockTabProps> = ({
                               onGoToCheckout();
                             }}
                             className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-[#10b981] hover:text-white text-emerald-700 transition-colors"
-                            title="Faktura döret"
+                            title={t('hasaplama.createInvoiceTip')}
                           >
                             <FilePlus2 className="w-3.5 h-3.5" />
                           </button>
@@ -205,19 +207,19 @@ export const StockTab: React.FC<StockTabProps> = ({
                       <td colSpan={6} className="py-2 px-3 bg-emerald-50/40">
                         <div className="flex flex-wrap gap-2 text-[10.5px]">
                           <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                            Kritik stok: {product.criticalStock ?? '—'}
+                            {t('hasaplama.criticalStockLabel')} {product.criticalStock ?? '—'}
                           </span>
                           <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                            Golkaýer: {product.expiryDate || '—'}
+                            {t('hasaplama.expiryLabel')} {product.expiryDate || '—'}
                           </span>
                           <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                            Alş bahasy: {(product.purchasePrice ?? 0).toFixed(2)} TMT
+                            {t('hasaplama.purchasePriceLabel')} {(product.purchasePrice ?? 0).toFixed(2)} TMT
                           </span>
                           <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                            Lomoy bahasy: {(product.wholesalePrice ?? product.price).toFixed(2)} TMT
+                            {t('hasaplama.wholesaleLabel')} {(product.wholesalePrice ?? product.price).toFixed(2)} TMT
                           </span>
                           <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                            Barkod: {product.barcode || '—'}
+                            {t('hasaplama.barcodeLabel')} {product.barcode || '—'}
                           </span>
                         </div>
                       </td>
@@ -234,7 +236,7 @@ export const StockTab: React.FC<StockTabProps> = ({
         <div className="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-amber-100 text-xs font-bold text-amber-700 flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5" />
-            Kritik stok derejesinden aşak ( {valuation.critical.length} )
+            {t('hasaplama.belowCritical', { count: valuation.critical.length })}
           </div>
           <div className="flex flex-wrap gap-2 p-3">
             {valuation.critical.map((product) => (
@@ -251,8 +253,8 @@ export const StockTab: React.FC<StockTabProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {[
-          { key: 'best', title: 'Iň köp satylan harytlar', rows: best },
-          { key: 'worst', title: 'Iň az satylan harytlar', rows: worst },
+          { key: 'best', title: t('hasaplama.bestSellers'), rows: best },
+          { key: 'worst', title: t('hasaplama.worstSellers'), rows: worst },
         ].map((block) => (
           <div
             key={block.key}
@@ -262,7 +264,7 @@ export const StockTab: React.FC<StockTabProps> = ({
               {block.title}
             </div>
             {block.rows.length === 0 ? (
-              <EmptyState text="Döwür üçin satyş maglumaty ýok" />
+              <EmptyState text={t('hasaplama.noSalesPeriod')} />
             ) : (
               <table className="w-full text-left text-xs">
                 <tbody className="divide-y divide-gray-50">
@@ -285,7 +287,7 @@ export const StockTab: React.FC<StockTabProps> = ({
       </div>
 
       <div className="text-[10px] text-gray-400 font-semibold text-right">
-        Taýýarlanyldy: {updatedStamp()}
+        {t('hasaplama.preparedAt')} {updatedStamp()}
       </div>
     </div>
   );

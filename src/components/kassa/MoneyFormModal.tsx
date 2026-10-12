@@ -26,6 +26,7 @@ import {
   switchMoneyType,
   validateMoneyForm,
 } from './moneyFormModel';
+import { useT } from '../../locales/LanguageContext';
 
 interface MoneyFormModalProps {
   language: LanguageCode;
@@ -62,6 +63,7 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
     editingTransaction ? moneyFormFromTransaction(editingTransaction) : emptyMoneyForm(initialType)
   );
   const [error, setError] = useState('');
+  const t = useT();
 
   const extra = categoryMeta(form.category).extra;
   // Girdeji kategoriýalary: rugsat berilenler (undefined = ählisi açyk).
@@ -89,10 +91,10 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
       allowedIncomeCategories !== undefined &&
       !allowedIncomeCategories.includes(form.category)
     ) {
-      setError(language === 'tm' ? 'Bu kategoriýa üçin rugsat ýok.' : 'Bu kategori için yetkiniz yok.');
+      setError(t('kassa.noCategoryPerm'));
       return;
     }
-    const nextError = validateMoneyForm(form);
+    const nextError = validateMoneyForm(form, language);
     if (nextError) {
       setError(nextError);
       return;
@@ -101,10 +103,10 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
   };
 
   const title = editingTransaction
-    ? 'Hereketi redaktirle'
+    ? t('kassa.editTitle')
     : form.type === 'income'
-    ? 'Girdeji goş'
-    : 'Çykdajy goş';
+    ? t('kassa.addIncomeTitle')
+    : t('kassa.addExpenseTitle');
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
@@ -131,7 +133,7 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
                   : 'bg-white text-gray-500 border border-gray-200'
               }`}
             >
-              Girdeji
+              {t('kassa.income')}
             </button>
             {canAddExpense && (
             <button
@@ -143,14 +145,14 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
                   : 'bg-white text-gray-500 border border-gray-200'
               }`}
             >
-              Çykdajy
+              {t('kassa.expense')}
             </button>
             )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className={LABEL}>Sene *</label>
+              <label className={LABEL}>{t('kassa.dateLabel')} *</label>
               <input
                 type="date"
                 value={form.date}
@@ -161,7 +163,7 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
 
             <div>
               <label className={LABEL}>
-                Mukdar * {form.amount ? `(${formatMoney(Number(form.amount) || 0)})` : ''}
+                {t('kassa.colAmount')} * {form.amount ? `(${formatMoney(Number(form.amount) || 0)})` : ''}
               </label>
               <input
                 type="number"
@@ -175,7 +177,7 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
             </div>
 
             <div>
-              <label className={LABEL}>Töleg görnüşi</label>
+              <label className={LABEL}>{t('kassa.colPayment')}</label>
               <select
                 value={form.paymentMethod}
                 onChange={(e) => patch({ paymentMethod: e.target.value as MoneyPaymentMethod })}
@@ -190,7 +192,7 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
             </div>
 
             <div>
-              <label className={LABEL}>Kategoriýa *</label>
+              <label className={LABEL}>{t('kassa.colCategory')} *</label>
               <select
                 value={form.category}
                 onChange={(e) =>
@@ -226,7 +228,7 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
           />
 
           <div>
-            <label className={LABEL}>Düşündiriş</label>
+            <label className={LABEL}>{t('kassa.colDesc')}</label>
             <input
               type="text"
               value={form.description}
@@ -247,13 +249,13 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
               onClick={onClose}
               className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
             >
-              Ýatyr
+              {t('cancel')}
             </button>
             <button
               type="submit"
               className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
             >
-              Ýatda sakla
+              {t('save')}
             </button>
           </div>
         </form>

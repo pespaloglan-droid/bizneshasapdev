@@ -17,6 +17,7 @@ import { RegionManager } from './RegionManager';
 import { Leaderboard } from './Leaderboard';
 import { onMobileAdd } from '../../utils/mobileEvents';
 import { PageScroll } from '../common/PageScroll';
+import { useT } from '../../locales/LanguageContext';
 
 type TargowTab = 'targows' | 'regions' | 'rating';
 
@@ -44,6 +45,7 @@ export const TargowWorkspace: React.FC<TargowWorkspaceProps> = ({
   onDeleteRegion,
 }) => {
   const [tab, setTab] = useState<TargowTab>('targows');
+  const t = useT();
   const [regionFilter, setRegionFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<TargowStatusFilter>('all');
   const [selectedTargowId, setSelectedTargowId] = useState<string | null>(null);
@@ -90,9 +92,9 @@ export const TargowWorkspace: React.FC<TargowWorkspaceProps> = ({
   }
 
   const tabs: { id: TargowTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'targows', label: language === 'tm' ? 'Targowçylar' : 'Targowçılar', icon: <Users className="w-4 h-4" /> },
-    { id: 'regions', label: language === 'tm' ? 'Etraplar' : 'Etraplar', icon: <MapPin className="w-4 h-4" /> },
-    { id: 'rating', label: language === 'tm' ? 'Reýting' : 'Sıralama', icon: <Trophy className="w-4 h-4" /> },
+    { id: 'targows', label: t('targowy.targows'), icon: <Users className="w-4 h-4" /> },
+    { id: 'regions', label: t('targowy.tabRegions'), icon: <MapPin className="w-4 h-4" /> },
+    { id: 'rating', label: t('targowy.tabRating'), icon: <Trophy className="w-4 h-4" /> },
   ];
 
   return (

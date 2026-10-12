@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Trash2 } from 'lucide-react';
 import type { CartItem, LanguageCode, Product } from '../../types';
 import { formatMoney } from '../../utils/money';
+import { useT } from '../../locales/LanguageContext';
 
 interface DraftLinesEditorProps {
   language: LanguageCode;
@@ -30,6 +31,7 @@ export const DraftLinesEditor: React.FC<DraftLinesEditorProps> = ({
   onAdd,
   onQtyChange,
 }) => {
+  const t = useT();
   const [query, setQuery] = useState('');
 
   const filtered = products
@@ -47,14 +49,14 @@ export const DraftLinesEditor: React.FC<DraftLinesEditorProps> = ({
   return (
     <>
       <div className="relative">
-        <label className={LABEL}>Haryt goş</label>
+        <label className={LABEL}>{t('faktura.addProductLabel')}</label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={language === 'tm' ? 'Haryt ady ýa-da barkod...' : 'Ürün adı veya barkod...'}
+            placeholder={t('faktura.productSearchPh')}
             className={`${INPUT} pl-9`}
           />
         </div>
@@ -84,10 +86,10 @@ export const DraftLinesEditor: React.FC<DraftLinesEditorProps> = ({
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="bg-gray-50/80 text-[11px] font-bold text-gray-500 border-b border-gray-100">
-              <th className="py-2 px-3">Haryt</th>
-              <th className="py-2 px-3 text-right">Bahasy</th>
-              <th className="py-2 px-3 text-center">Sany</th>
-              <th className="py-2 px-3 text-right">Jemi</th>
+              <th className="py-2 px-3">{t('faktura.colProduct')}</th>
+              <th className="py-2 px-3 text-right">{t('faktura.colPrice')}</th>
+              <th className="py-2 px-3 text-center">{t('faktura.colQty')}</th>
+              <th className="py-2 px-3 text-right">{t('faktura.colTotal')}</th>
               <th className="py-2 px-2 w-8" />
             </tr>
           </thead>
@@ -95,7 +97,7 @@ export const DraftLinesEditor: React.FC<DraftLinesEditorProps> = ({
             {lines.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-6 text-center text-gray-400 font-semibold">
-                  {language === 'tm' ? 'Haryt goşulmady' : 'Ürün eklenmedi'}
+                  {t('faktura.noProductsAdded')}
                 </td>
               </tr>
             ) : (
@@ -145,7 +147,7 @@ export const DraftLinesEditor: React.FC<DraftLinesEditorProps> = ({
 
       <div className="flex items-center justify-between bg-[#F8FAFC] border border-gray-200 rounded-xl px-4 py-2.5">
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-          {language === 'tm' ? 'Jemi' : 'Toplam'}
+          {t('totalCol')}
         </span>
         <div className="text-right">
           <span className="font-mono font-bold text-lg text-emerald-600">

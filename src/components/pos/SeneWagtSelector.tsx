@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CalendarClock, RotateCcw } from 'lucide-react';
 import type { LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface SeneWagtSelectorProps {
   language: LanguageCode;
@@ -25,7 +26,8 @@ function inputValue(date: Date): string {
  * - Sagdaky kalendar ikony → takwimi el bilen saýlamak.
  * - Aşaky öwrülişik ikony → üýtgedilen wagty häzirki wagta dolandyrýar.
  */
-export const SeneWagtSelector: React.FC<SeneWagtSelectorProps> = ({ language, value, onChange }) => {
+export const SeneWagtSelector: React.FC<SeneWagtSelectorProps> = ({ value, onChange }) => {
+  const t = useT();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export const SeneWagtSelector: React.FC<SeneWagtSelectorProps> = ({ language, va
     >
       <div className="flex-1 min-w-0">
         <div className="text-[8px] font-bold text-gray-400 uppercase tracking-wide leading-none">
-          {language === 'tm' ? 'Sene / Wagt' : 'Tarih / Saat'}
+          {t('pos.swLabel')}
         </div>
         <div className="flex items-center gap-1 mt-0.5">
           <span className="font-mono text-[10px] font-bold text-gray-800 leading-none">{dateText}</span>
@@ -60,7 +62,7 @@ export const SeneWagtSelector: React.FC<SeneWagtSelectorProps> = ({ language, va
                 const next = new Date(e.target.value);
                 if (!Number.isNaN(next.getTime())) onChange(next);
               }}
-              title={language === 'tm' ? 'Senäni we wagty el bilen saýla' : 'Tarih ve saati elle seç'}
+              title={t('pos.swPickTip')}
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
           </span>
@@ -71,7 +73,7 @@ export const SeneWagtSelector: React.FC<SeneWagtSelectorProps> = ({ language, va
             type="button"
             onClick={() => onChange(null)}
             disabled={!isManual}
-            title={language === 'tm' ? 'Häzirki wagta dolan' : 'Şimdiki ana dön'}
+            title={t('pos.swNowTip')}
             className={`w-4 h-4 inline-flex items-center justify-center rounded transition-colors ${
               isManual
                 ? 'text-amber-600 hover:bg-amber-100'
@@ -84,7 +86,7 @@ export const SeneWagtSelector: React.FC<SeneWagtSelectorProps> = ({ language, va
       </div>
       <span
         className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isManual ? 'bg-amber-400' : 'bg-emerald-400'}`}
-        title={isManual ? 'El bilen saýlanan wagt' : 'Häzirki wagt'}
+        title={isManual ? t('pos.swManualTip') : t('pos.swLiveTip')}
       />
     </div>
   );

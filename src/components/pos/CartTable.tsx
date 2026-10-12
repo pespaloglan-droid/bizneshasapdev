@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Minus, Plus, Trash2, ShoppingCart, FileEdit, GripVertical, CheckCircle2 } from 'lucide-react';
 import { CartItem, LanguageCode, UnitType } from '../../types';
-import { translations } from '../../locales/i18n';
+import { translations, translate } from '../../locales/i18n';
 import { ProductImage } from './ProductImage';
 import { CurrencyLabel } from './CurrencyLabel';
 import { unitLabel, type MeasurementUnit } from '../../db/unitService';
@@ -225,7 +225,7 @@ export const CartTable: React.FC<CartTableProps> = ({
 
   const getHeaderLabel = (col: ColumnDef) => {
     if (col.key === 'index') return '#';
-    if (col.key === 'unit') return 'Ölçü';
+    if (col.key === 'unit') return translate(language, 'pos.unitCol');
     if (col.labelKey && (t as any)[col.labelKey]) return (t as any)[col.labelKey];
     return '';
   };

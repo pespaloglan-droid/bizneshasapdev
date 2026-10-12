@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Printer, CheckCircle, X, Download } from 'lucide-react';
 import { InvoiceRecord, LanguageCode, PrinterMode, ReceiptSettings } from '../../types';
-import { translations } from '../../locales/i18n';
+import { useT } from '../../locales/LanguageContext';
 import { playPrinterMotorSound } from '../../utils/audio';
 import { formatIsoDate, invoicePaymentLabel } from '../../utils/paymentLabels';
 import { printInvoice } from '../../utils/receiptHtml';
+import { localeFor } from '../../utils/locale';
 import { StandardInvoicePreview } from '../sazlamalar/StandardInvoicePreview';
 
 interface ReceiptModalProps {
@@ -31,7 +32,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   printerMode = 'receipt',
   ledgerName
 }) => {
-  const t = translations[language] || translations.en;
+  const t = useT();
   const receiptRef = useRef<HTMLDivElement>(null);
   const [printNotice, setPrintNotice] = useState<string | null>(null);
   const autoPrintedRef = useRef(false);
@@ -57,7 +58,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     setPrintNotice(null);
     const result = await printInvoice(invoice, settings, printerMode, storeName, language, authCode, ledgerName);
     if (!result.success) {
-      setPrintNotice(`Çap başartmady: ${result.failureReason || 'näbelli säwlik'}`);
+      setPrintNotice(t('pos.printFailed', { reason: result.failureReason || t('pos.unknownError') }));
     }
   };
 
@@ -70,7 +71,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   }, []);
 
   const formattedDate = new Date(invoice.createdAt).toLocaleString(
-    language === 'tr' ? 'tr-TR' : language === 'ru' ? 'ru-RU' : 'en-GB',
+    localeFor(language),
     {
       year: 'numeric',
       month: '2-digit',
@@ -90,7 +91,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             <div className="p-1 rounded-md bg-emerald-500/20 text-emerald-400">
               <CheckCircle className="w-4 h-4" />
             </div>
-            <span className="font-bold text-xs">{t.receiptTitle}</span>
+            <span className="font-bold text-xs">{t('receiptTitle')}</span>
           </div>
           <button
             type="button"
@@ -122,19 +123,19 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             {/* Fiş Detayları */}
             <div className="py-2 text-[10px] border-b border-dashed border-gray-400 space-y-0.5">
               <div className="flex justify-between">
-                <span className="text-gray-500">ÇEK NO:</span>
+                <span className="text-gray-500">{t('receipt.colNo')}</span>
                 <span className="font-bold">{invoice.invoiceNo}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">SENESİ:</span>
+                <span className="text-gray-500">{t('receipt.colDate')}</span>
                 <span>{formattedDate}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">KASSIR:</span>
+                <span className="text-gray-500">{t('receipt.colCashier')}</span>
                 <span>{invoice.cashierName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">MÜŞDERİ:</span>
+                <span className="text-gray-500">{t('receipt.colCustomer')}</span>
                 <span className="truncate max-w-[150px]">{invoice.customerName}</span>
               </div>
             </div>
@@ -142,8 +143,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             {/* Kalemler / Ürün Tablosu */}
             <div className="py-2 border-b border-dashed border-gray-400">
               <div className="flex justify-between text-[10px] font-bold text-gray-600 mb-1">
-                <span>HARYT / SANY</span>
-                <span>JEMI</span>
+                <span>{t('receipt.colItemsQty')}</span>
+                <span>{t('receipt.colTotal')}</span>
               </div>
               <div className="space-y-1.5">
                 {invoice.items.map((item) => {
@@ -172,32 +173,32 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             {/* Toplamlar */}
             <div className="py-2 border-b border-dashed border-gray-400 space-y-1">
               <div className="flex justify-between text-[10px] text-gray-600">
-                <span>ARALYK JEMI:</span>
+                <span>{t('receipt.subtotal')}</span>
                 <span>{invoice.subtotal.toFixed(2)} TMT</span>
               </div>
               {invoice.discountTotal > 0 && (
                 <div className="flex justify-between text-[10px] text-red-600">
-                  <span>ÝEŇILLIK:</span>
+                  <span>{t('receipt.discount')}</span>
                   <span>-{invoice.discountTotal.toFixed(2)} TMT</span>
                 </div>
               )}
               <div className="flex justify-between text-xs font-black pt-1 border-t border-dotted border-gray-300">
-                <span>{isCredit ? 'TÖLENDI:' : 'JEMI TÖLENDI:'}</span>
+                <span>{isCredit ? t('receipt.paid') : t('receipt.paidTotal')}</span>
                 <span className="text-sm font-black">{paidNow.toFixed(2)} TMT</span>
               </div>
 
               {isCredit && (
                 <>
                   <div className="flex justify-between text-[11px] font-black text-rose-700 pt-1">
-                    <span>GALAN BERGI:</span>
+                    <span>{t('receipt.remainingDebt')}</span>
                     <span>{remaining.toFixed(2)} TMT</span>
                   </div>
                   <div className="flex justify-between text-[10px] text-gray-700 pt-1 border-t border-dotted border-gray-300">
-                    <span>NESIÝE MÖHLETI:</span>
-                    <span className="font-bold">{invoice.creditTermDays ?? 0} gün</span>
+                    <span>{t('receipt.creditTerm')}</span>
+                    <span className="font-bold">{invoice.creditTermDays ?? 0} {t('receipt.days')}</span>
                   </div>
                   <div className="flex justify-between text-[10px] text-gray-700">
-                    <span>SOŇKY TÖLEG SENESI:</span>
+                    <span>{t('receipt.dueDate')}</span>
                     <span className="font-bold">{formatIsoDate(invoice.dueDate)}</span>
                   </div>
                 </>
@@ -207,18 +208,18 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             {/* Ödeme Yöntemi ve Banka POS Terminal Bilgisi */}
             <div className="py-2 border-b border-dashed border-gray-400 text-[10px] space-y-0.5">
               <div className="flex justify-between font-bold">
-                <span>TÖLEG GÖRNÜŞI:</span>
-                <span className="text-blue-700">{invoicePaymentLabel(invoice.paymentMethod)}</span>
+                <span>{t('receipt.paymentType')}</span>
+                <span className="text-blue-700">{invoicePaymentLabel(invoice.paymentMethod, language)}</span>
               </div>
               {invoice.paymentMethod === 'card' && (
                 <>
                   <div className="flex justify-between text-gray-600">
-                    <span>TASSYKLAMA (AUTH):</span>
+                    <span>{t('receipt.auth')}</span>
                     <span className="font-mono font-bold text-emerald-700">{authCode || 'AUTH-749214'}</span>
                   </div>
                   <div className="flex justify-between text-gray-500 text-[9px]">
-                    <span>STATUS:</span>
-                    <span className="font-bold text-emerald-600">KABUL EDILDI (APPROVED)</span>
+                    <span>{t('receipt.status')}</span>
+                    <span className="font-bold text-emerald-600">{t('receipt.approved')}</span>
                   </div>
                 </>
               )}
@@ -226,8 +227,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
             {/* Alt Mesaj ve Barkod Görseli */}
             <div className="text-center pt-3 text-[10px] text-gray-600">
-              <div className="font-bold">{t.thanksMsg}</div>
-              <div className="text-[9px] text-gray-400 mt-0.5">Ýene-de garaşýarys!</div>
+              <div className="font-bold">{t('thanksMsg')}</div>
+              <div className="text-[9px] text-gray-400 mt-0.5">{t('receipt.waitingAgain')}</div>
 
               {/* Simüle Edilmiş Çek Barkodu */}
               <div className="mt-3 flex flex-col items-center justify-center opacity-80">
@@ -265,7 +266,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             className="flex-1 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white text-xs font-bold transition-all flex items-center justify-center space-x-1.5 shadow-sm"
           >
             <Printer className="w-4 h-4" />
-            <span>{t.printBtn}</span>
+            <span>{t('printBtn')}</span>
           </button>
 
           <button
@@ -273,7 +274,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             onClick={onClose}
             className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs font-bold transition-all flex items-center justify-center space-x-1 shadow-sm"
           >
-            <span>{t.closeBtn}</span>
+            <span>{t('closeBtn')}</span>
           </button>
         </div>
       </div>

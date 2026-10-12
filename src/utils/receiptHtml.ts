@@ -9,6 +9,8 @@ import { escapeHtml } from './csv';
 import { electronBridge } from './electron';
 import { printInvoiceSmart } from '../services/mobilePrintService';
 import { formatIsoDate, invoicePaymentLabel } from './paymentLabels';
+import { formatDateTime } from './locale';
+import { translate } from '../locales/i18n';
 
 export interface PrintOutcome {
   readonly success: boolean;
@@ -37,14 +39,15 @@ export function buildThermalReceiptHtml(
   invoice: InvoiceRecord,
   settings: ReceiptSettings,
   storeName: string,
-  authCode?: string
+  authCode?: string,
+  language?: LanguageCode
 ): string {
   const f = settings.fields;
   const fs = scaleFactor(settings.fontScale);
   const isCredit = invoice.paymentMethod === 'credit';
   const paidNow = isCredit ? invoice.paidAmount ?? 0 : invoice.amountDue;
   const remaining = isCredit ? invoice.remainingDebt ?? invoice.amountDue : 0;
-  const date = new Date(invoice.createdAt).toLocaleString('tr-TR');
+  const date = formatDateTime(new Date(invoice.createdAt), language);
 
   const itemsHtml = invoice.items
     .map((item) => {
@@ -56,9 +59,9 @@ export function buildThermalReceiptHtml(
     .join('');
 
   const creditHtml = isCredit
-    ? `<div class="row bold rose"><span>GALAN BERGI:</span><span>${money(remaining)} TMT</span></div>
-       <div class="row"><span>NESIÝE MÖHLETI:</span><span>${invoice.creditTermDays ?? 0} gün</span></div>
-       <div class="row"><span>SOŇKY TÖLEG SENESI:</span><span>${escapeHtml(formatIsoDate(invoice.dueDate))}</span></div>`
+    ? `<div class="row bold rose"><span>${translate(language ?? 'tm', 'receipt.remainingDebt')}</span><span>${money(remaining)} TMT</span></div>
+       <div class="row"><span>${translate(language ?? 'tm', 'receipt.creditTerm')}</span><span>${invoice.creditTermDays ?? 0} ${translate(language ?? 'tm', 'receipt.days')}</span></div>
+       <div class="row"><span>${translate(language ?? 'tm', 'receipt.dueDate')}</span><span>${escapeHtml(formatIsoDate(invoice.dueDate))}</span></div>`
     : '';
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>
@@ -81,20 +84,20 @@ export function buildThermalReceiptHtml(
       ${f.taxId && settings.taxId ? `<div class="dim">STIR: ${escapeHtml(settings.taxId)}</div>` : ''}
     </div>
     <div class="hr"></div>
-    <div class="row"><span>ÇEK NO:</span><span class="b">${escapeHtml(invoice.invoiceNo)}</span></div>
-    <div class="row"><span>SENE:</span><span>${escapeHtml(date)}</span></div>
-    ${f.cashier ? `<div class="row"><span>KASSIR:</span><span>${escapeHtml(invoice.cashierName)}</span></div>` : ''}
-    ${f.customer ? `<div class="row"><span>MÜŞDERİ:</span><span>${escapeHtml(invoice.customerName)}</span></div>` : ''}
+    <div class="row"><span>${translate(language ?? 'tm', 'receipt.colNo')}</span><span class="b">${escapeHtml(invoice.invoiceNo)}</span></div>
+    <div class="row"><span>${translate(language ?? 'tm', 'receipt.thermalDate')}</span><span>${escapeHtml(date)}</span></div>
+    ${f.cashier ? `<div class="row"><span>${translate(language ?? 'tm', 'receipt.colCashier')}</span><span>${escapeHtml(invoice.cashierName)}</span></div>` : ''}
+    ${f.customer ? `<div class="row"><span>${translate(language ?? 'tm', 'receipt.colCustomer')}</span><span>${escapeHtml(invoice.customerName)}</span></div>` : ''}
     <div class="hr"></div>
     ${itemsHtml}
     <div class="hr"></div>
-    <div class="row"><span>ARALYK JEMI:</span><span>${money(invoice.subtotal)} TMT</span></div>
-    ${invoice.discountTotal > 0 ? `<div class="row rose"><span>ÝEŇILLIK:</span><span>-${money(invoice.discountTotal)} TMT</span></div>` : ''}
-    <div class="row tot"><span>${isCredit ? 'TÖLENDI' : 'JEMI TÖLENDI'}:</span><span>${money(paidNow)} TMT</span></div>
+    <div class="row"><span>${translate(language ?? 'tm', 'receipt.subtotal')}</span><span>${money(invoice.subtotal)} TMT</span></div>
+    ${invoice.discountTotal > 0 ? `<div class="row rose"><span>${translate(language ?? 'tm', 'receipt.discount')}</span><span>-${money(invoice.discountTotal)} TMT</span></div>` : ''}
+    <div class="row tot"><span>${isCredit ? translate(language ?? 'tm', 'receipt.paid') : translate(language ?? 'tm', 'receipt.paidTotal')}</span><span>${money(paidNow)} TMT</span></div>
     ${creditHtml}
     <div class="hr"></div>
-    <div class="row b"><span>TÖLEG GÖRNÜŞI:</span><span>${escapeHtml(invoicePaymentLabel(invoice.paymentMethod))}</span></div>
-    ${invoice.paymentMethod === 'card' ? `<div class="row"><span>AUTH:</span><span>${escapeHtml(authCode || '-')}</span></div>` : ''}
+    <div class="row b"><span>${translate(language ?? 'tm', 'receipt.paymentType')}</span><span>${escapeHtml(invoicePaymentLabel(invoice.paymentMethod, language))}</span></div>
+    ${invoice.paymentMethod === 'card' ? `<div class="row"><span>${translate(language ?? 'tm', 'receipt.authShort')}</span><span>${escapeHtml(authCode || '-')}</span></div>` : ''}
     ${f.qr ? `<div class="hr"></div><div class="c b">[ QR: ${escapeHtml(qrPayload(invoice, settings))} ]</div>` : ''}
     ${f.barcode ? `<div class="hr"></div><div class="c" style="letter-spacing:2px">*${escapeHtml(invoice.invoiceNo)}*</div>` : ''}
     ${settings.footerNote ? `<div class="hr"></div><div class="c b">${escapeHtml(settings.footerNote)}</div>` : ''}
@@ -113,7 +116,8 @@ export function buildStandardInvoiceHtml(
   invoice: InvoiceRecord,
   settings: ReceiptSettings,
   storeName: string,
-  ledgerName?: string
+  ledgerName?: string,
+  language?: LanguageCode
 ): string {
   const std = settings.standard;
   const f = settings.fields;
@@ -124,13 +128,13 @@ export function buildStandardInvoiceHtml(
   const cur = info.currency ? ' TMT' : '';
   const landscape = std.orientation === 'landscape';
 
-  const headCells: string[] = ['<th>#</th>', '<th>Haryt</th>'];
-  if (cols.barcode) headCells.push('<th>Barkod</th>');
-  headCells.push('<th class="r">Sany</th>');
-  if (cols.unit) headCells.push('<th>Birlik</th>');
-  if (cols.unitPrice) headCells.push('<th class="r">Birlik baha</th>');
-  if (cols.discount) headCells.push('<th class="r">Ýeňillik</th>');
-  headCells.push('<th class="r">Jemi</th>');
+  const headCells: string[] = ['<th>#</th>', `<th>${translate(language ?? 'tm', 'receipt.colProduct')}</th>`];
+  if (cols.barcode) headCells.push(`<th>${translate(language ?? 'tm', 'receipt.colBarcode')}</th>`);
+  headCells.push(`<th class="r">${translate(language ?? 'tm', 'receipt.colQty')}</th>`);
+  if (cols.unit) headCells.push(`<th>${translate(language ?? 'tm', 'receipt.colUnit')}</th>`);
+  if (cols.unitPrice) headCells.push(`<th class="r">${translate(language ?? 'tm', 'receipt.colUnitPrice')}</th>`);
+  if (cols.discount) headCells.push(`<th class="r">${translate(language ?? 'tm', 'receipt.colDiscount')}</th>`);
+  headCells.push(`<th class="r">${translate(language ?? 'tm', 'receipt.colLineTotal')}</th>`);
 
   const bodyRows = invoice.items
     .map((item, index) => {
@@ -153,7 +157,7 @@ export function buildStandardInvoiceHtml(
     .join('');
 
   const taxRow = cols.tax
-    ? `<div class="row"><span>Salgyt (KDV):</span><span class="mono">${money(invoice.taxTotal)}${cur}</span></div>`
+    ? `<div class="row"><span>${translate(language ?? 'tm', 'receipt.taxLabel')}</span><span class="mono">${money(invoice.taxTotal)}${cur}</span></div>`
     : '';
 
   const headerBlock = std.header
@@ -169,15 +173,15 @@ export function buildStandardInvoiceHtml(
     : '';
 
   const signatureBlock = std.signature
-    ? `<div class="sign"><div class="box"><span>Satyjy</span></div><div class="box"><span>Alyjy</span></div></div>`
+    ? `<div class="sign"><div class="box"><span>${translate(language ?? 'tm', 'receipt.seller')}</span></div><div class="box"><span>${translate(language ?? 'tm', 'receipt.buyer')}</span></div></div>`
     : '';
 
   const notesBlock = std.notes
-    ? `<div class="notes"><b>Bellikler / Şertler:</b><br/>${escapeHtml(std.notes).replace(/\n/g, '<br/>')}</div>`
+    ? `<div class="notes"><b>${translate(language ?? 'tm', 'receipt.notesTerms')}</b><br/>${escapeHtml(std.notes).replace(/\n/g, '<br/>')}</div>`
     : '';
 
   const footer = std.pageNumbers
-    ? `<div class="pfoot">${escapeHtml(settings.companyName || storeName)} · Sahypa 1</div>`
+    ? `<div class="pfoot">${escapeHtml(settings.companyName || storeName)} · ${translate(language ?? 'tm', 'receipt.pageOne')}</div>`
     : '';
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>
@@ -206,22 +210,22 @@ export function buildStandardInvoiceHtml(
     .pfoot{margin-top:24px;text-align:center;font-size:${9 * fs}px;color:#9ca3af}
   </style></head><body>
     ${headerBlock}
-    <div class="title">FAKTURA</div>
+    <div class="title">${translate(language ?? 'tm', 'receipt.invTitle')}</div>
     <div class="meta">
-      <div><b>Faktura kody:</b> ${escapeHtml(invoice.invoiceNo)}<br/>
-        <b>Sene:</b> ${escapeHtml(new Date(invoice.createdAt).toLocaleString('tr-TR'))}</div>
-      <div class="r">${info.customer ? `<b>Müşderi:</b> ${escapeHtml(invoice.customerName)}<br/>` : ''}${f.cashier ? `<b>Kassir:</b> ${escapeHtml(invoice.cashierName)}` : ''}</div>
+      <div><b>${translate(language ?? 'tm', 'receipt.invCode')}</b> ${escapeHtml(invoice.invoiceNo)}<br/>
+        <b>${translate(language ?? 'tm', 'receipt.invDate')}</b> ${escapeHtml(formatDateTime(new Date(invoice.createdAt), language))}</div>
+      <div class="r">${info.customer ? `<b>${translate(language ?? 'tm', 'receipt.invCustomer')}</b> ${escapeHtml(invoice.customerName)}<br/>` : ''}${f.cashier ? `<b>${translate(language ?? 'tm', 'receipt.invCashier')}</b> ${escapeHtml(invoice.cashierName)}` : ''}</div>
     </div>
     <table><thead><tr>${headCells.join('')}</tr></thead><tbody>${bodyRows}</tbody></table>
     <div class="sum">
-      ${cols.subtotal ? `<div class="row"><span>Aralyk jemi:</span><span class="mono">${money(invoice.subtotal)}${cur}</span></div>` : ''}
-      ${invoice.discountTotal > 0 ? `<div class="row"><span>Ýeňillik:</span><span class="mono">-${money(invoice.discountTotal)}${cur}</span></div>` : ''}
+      ${cols.subtotal ? `<div class="row"><span>${translate(language ?? 'tm', 'receipt.subtotalLabel')}</span><span class="mono">${money(invoice.subtotal)}${cur}</span></div>` : ''}
+      ${invoice.discountTotal > 0 ? `<div class="row"><span>${translate(language ?? 'tm', 'receipt.discountLabel')}</span><span class="mono">-${money(invoice.discountTotal)}${cur}</span></div>` : ''}
       ${taxRow}
-      ${info.ledger && ledgerName ? `<div class="row"><span>Depder:</span><span>${escapeHtml(ledgerName)}</span></div>` : ''}
-      <div class="row grand"><span>Jemi:</span><span class="mono">${money(invoice.amountDue)}${cur}</span></div>
-      ${isCredit ? `<div class="row"><span>Tölendi:</span><span class="mono">${money(invoice.paidAmount ?? 0)}${cur}</span></div>
-        <div class="row"><span>Galan bergi:</span><span class="mono">${money(invoice.remainingDebt ?? invoice.amountDue)}${cur}</span></div>` : ''}
-      ${info.payment ? `<div class="row"><span>Töleg görnüşi:</span><span>${escapeHtml(invoicePaymentLabel(invoice.paymentMethod))}</span></div>` : ''}
+      ${info.ledger && ledgerName ? `<div class="row"><span>${translate(language ?? 'tm', 'receipt.ledgerLabel')}</span><span>${escapeHtml(ledgerName)}</span></div>` : ''}
+      <div class="row grand"><span>${translate(language ?? 'tm', 'receipt.grandTotal')}</span><span class="mono">${money(invoice.amountDue)}${cur}</span></div>
+      ${isCredit ? `<div class="row"><span>${translate(language ?? 'tm', 'receipt.paidLabel')}</span><span class="mono">${money(invoice.paidAmount ?? 0)}${cur}</span></div>
+        <div class="row"><span>${translate(language ?? 'tm', 'receipt.remainingLabel')}</span><span class="mono">${money(invoice.remainingDebt ?? invoice.amountDue)}${cur}</span></div>` : ''}
+      ${info.payment ? `<div class="row"><span>${translate(language ?? 'tm', 'receipt.paymentLabel')}</span><span>${escapeHtml(invoicePaymentLabel(invoice.paymentMethod, language))}</span></div>` : ''}
     </div>
     ${signatureBlock}
     ${notesBlock}
@@ -239,11 +243,10 @@ export async function printInvoice(
   authCode?: string,
   ledgerName?: string
 ): Promise<PrintOutcome> {
-  void language;
   const isStandard = printerMode === 'standard';
   const html = isStandard
-    ? buildStandardInvoiceHtml(invoice, settings, storeName, ledgerName)
-    : buildThermalReceiptHtml(invoice, settings, storeName, authCode);
+    ? buildStandardInvoiceHtml(invoice, settings, storeName, ledgerName, language)
+    : buildThermalReceiptHtml(invoice, settings, storeName, authCode, language);
   const copies = Math.max(1, isStandard ? settings.standard.copies : settings.copies);
 
   // Mobil öncelik: Bluetooth bağlıysa oraya, yoksa Electron sessiz çap / window.print.

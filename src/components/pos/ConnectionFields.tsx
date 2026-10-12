@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GitMerge } from 'lucide-react';
 import type { LanguageCode } from '../../types';
-import { translations } from '../../locales/i18n';
+import { translations, interpolate } from '../../locales/i18n';
 import { ConnectionRow } from './ConnectionRow';
 import {
   loadConnection,
@@ -242,7 +242,7 @@ const TransferProgressBar: React.FC<{
           {done ? t.progressDone : t.progressTransferring}
         </span>
         <span className="font-mono text-gray-500">
-          {done ? `${received} ${t.docsReceived}` : `${received} / ~${remoteTotal}`}
+          {done ? interpolate(t.docsReceived, { count: received }) : `${received} / ~${remoteTotal}`}
         </span>
       </div>
       <div className="w-full bg-gray-200/70 rounded-full h-2 overflow-hidden">
@@ -254,7 +254,7 @@ const TransferProgressBar: React.FC<{
         />
       </div>
       <div className="text-[10px] text-gray-500">
-        {sent > 0 ? `${sent} ${t.docsSent} · ` : ''}
+        {sent > 0 ? `${interpolate(t.docsSent, { count: sent })} · ` : ''}
         {done ? t.liveContinues : t.liveAfterTransfer}
       </div>
     </div>

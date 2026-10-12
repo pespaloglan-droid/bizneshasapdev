@@ -1,5 +1,5 @@
 import { Customer } from '../types';
-import { listDocsByPrefix, removeDoc, upsertDoc, upsertDocsBatch } from './pouch';
+import { listDocsByPrefix, removeDoc, upsertDoc, upsertDocsBatch, type BatchWriteResult } from './pouch';
 import { sanitizeCustomer } from './sanitize';
 import { mirrorToPc } from './schemaBridge';
 
@@ -7,7 +7,18 @@ function customerDocId(customerId: string): string {
   return `customer_${customerId}`;
 }
 
-export async function saveCustomersBatchDb(customers: readonly Customer[], dbName: string = 'default_store'): Promise<void> {
+/**
+ * Müşderileri BIR toplu ýazmada saklaýar (Excel importy üçin).
+ *
+ * Ýalňyşlyklar ýutulmaýar — şowsuzlar aýratynlykda dolandyrylýar.
+ * PC aynasyna diňe hakykatdan ýazylan müşderiler aýnalýar.
+ *
+ * @returns ýazylan sany we şowsuzlar (müşderi ID-leri bilen).
+ */
+export async function saveCustomersBatchDb(
+  customers: readonly Customer[],
+  dbName: string = 'default_store'
+): Promise<BatchWriteResult> {
   const syncedAt = new Date().toISOString();
   const entries = customers.map((c) => ({
     id: customerDocId(c.id),
@@ -17,10 +28,21 @@ export async function saveCustomersBatchDb(customers: readonly Customer[], dbNam
       syncedAt,
     },
   }));
-  await upsertDocsBatch(dbName, entries);
+  const result = await upsertDocsBatch(dbName, entries);
 
-  const mirrorPromises = customers.map((c) => mirrorToPc(dbName, 'customer', c));
-  await Promise.allSettled(mirrorPromises);
+  // PC'nin okuyabilmesi için ayna kayıt (kagent:<id>) — diňe ýazylanlar üçin.
+  const failedIds = new Set(result.failed.map((f) => f.id));
+  const mirrored = customers.filter((c) => !failedIds.has(customerDocId(c.id)));
+  await Promise.allSettled(mirrored.map((c) => mirrorToPc(dbName, 'customer', c)));
+
+  // Ýalňyşlyk raporty müşderi ID-si bilen işlänligi üçin docId → müşderiId.
+  return {
+    written: result.written,
+    failed: result.failed.map((f) => ({
+      id: f.id.startsWith('customer_') ? f.id.slice('customer_'.length) : f.id,
+      error: f.error,
+    })),
+  };
 }
 
 export async function saveCustomerToDb(customer: Customer, dbName: string = 'default_store'): Promise<Customer> {

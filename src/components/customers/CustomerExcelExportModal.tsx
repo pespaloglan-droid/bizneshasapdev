@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { CheckSquare, Download, Loader2, Square, X } from 'lucide-react';
 import type { Customer, CustomerType, LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 import { customerTypeText } from '../../utils/customerExcel';
 import { exportCustomersStyled } from '../../utils/styledExports';
+import { isNative } from '../../utils/platform';
 
 type TypeFilter = 'all' | 'customer' | 'employee';
 
@@ -20,13 +22,14 @@ export const CustomerExcelExportModal: React.FC<CustomerExcelExportModalProps> =
   accountName,
   onClose,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(customers.map((customer) => customer.id))
   );
   const [query, setQuery] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [status, setStatus] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
   // 2) — borç/alýak bakiýe ýazylsynmy?
   const [includeBalance, setIncludeBalance] = useState(true);
 
@@ -65,22 +68,37 @@ export const CustomerExcelExportModal: React.FC<CustomerExcelExportModalProps> =
     const chosen = customers.filter((customer) => selected.has(customer.id));
     if (chosen.length === 0) return;
     setIsExporting(true);
+    setStatus(null);
     try {
       const saved = await exportCustomersStyled(
         chosen,
         { includeBalance, accountName },
         `musderiler-${new Date().toISOString().slice(0, 10)}.xlsx`
       );
-      if (saved) onClose();
+      if (saved) {
+        if (isNative()) {
+          setStatus({
+            kind: 'success',
+            text: t('excel.savedToDocuments'),
+          });
+        } else {
+          onClose();
+        }
+      } else {
+        setStatus({
+          kind: 'error',
+          text: t('excel.saveFailed'),
+        });
+      }
     } finally {
       setIsExporting(false);
     }
   };
 
   const FILTERS: { id: TypeFilter; label: string }[] = [
-    { id: 'all', label: isTm ? 'Ählisi' : 'Tümü' },
-    { id: 'customer', label: isTm ? 'Müşderiler' : 'Müşteriler' },
-    { id: 'employee', label: isTm ? 'Işgärler' : 'İşgörenler' },
+    { id: 'all', label: t('customers.filterAll') },
+    { id: 'customer', label: t('customers.filterCustomers') },
+    { id: 'employee', label: t('customers.filterEmployees') },
   ];
 
   return (
@@ -89,7 +107,7 @@ export const CustomerExcelExportModal: React.FC<CustomerExcelExportModalProps> =
         <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
           <span className="font-bold text-sm tracking-wide flex items-center gap-2">
             <Download className="w-4 h-4" />
-            {isTm ? 'Excel-e çykar (Export)' : "Excel'e aktar"}
+            {t('excel.exportModalTitleCustomers')}
           </span>
           <button
             type="button"
@@ -124,7 +142,7 @@ export const CustomerExcelExportModal: React.FC<CustomerExcelExportModalProps> =
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={isTm ? 'Müşderi gözle...' : 'Müşteri ara...'}
+              placeholder={t('excel.searchCustomers')}
               className="flex-1 min-w-[140px] h-9 px-3 border border-gray-200 rounded-xl text-sm bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 outline-none"
             />
             <button
@@ -133,7 +151,7 @@ export const CustomerExcelExportModal: React.FC<CustomerExcelExportModalProps> =
               className="h-9 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] flex items-center gap-1.5"
             >
               <CheckSquare className="w-3.5 h-3.5" />
-              {isTm ? 'Hemmesini saýla' : 'Tümünü seç'}
+              {t('excel.selectAll')}
             </button>
             <button
               type="button"
@@ -141,7 +159,7 @@ export const CustomerExcelExportModal: React.FC<CustomerExcelExportModalProps> =
               className="h-9 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] flex items-center gap-1.5"
             >
               <Square className="w-3.5 h-3.5" />
-              {isTm ? 'Saýlanany aýyr' : 'Seçimi kaldır'}
+              {t('excel.clearSelection')}
             </button>
             <span className="text-[11px] font-bold text-emerald-600 font-mono">
               {selected.size} / {customers.length}
@@ -157,9 +175,7 @@ export const CustomerExcelExportModal: React.FC<CustomerExcelExportModalProps> =
                 onChange={(e) => setIncludeBalance(e.target.checked)}
                 className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
-              {isTm
-                ? 'Borç / alýak bakiýeleri ýazylsynmy?'
-                : 'Borç / alacak bakiyeleri yazılsın mı?'}
+              {t('excel.includeBalance')}
             </label>
           </div>
 
@@ -169,7 +185,7 @@ export const CustomerExcelExportModal: React.FC<CustomerExcelExportModalProps> =
                 {visible.length === 0 ? (
                   <tr>
                     <td className="py-10 text-center text-gray-400 font-semibold">
-                      {isTm ? 'Müşderi tapylmady' : 'Müşteri bulunamadı'}
+                      {t('excel.customerNotFound')}
                     </td>
                   </tr>
                 ) : (
@@ -215,13 +231,25 @@ export const CustomerExcelExportModal: React.FC<CustomerExcelExportModalProps> =
           </div>
         </div>
 
+        {status && (
+          <div
+            className={`px-5 py-2 text-[11px] font-bold flex-shrink-0 ${
+              status.kind === 'error'
+                ? 'text-rose-600 bg-rose-50'
+                : 'text-emerald-600 bg-emerald-50'
+            }`}
+          >
+            {status.text}
+          </div>
+        )}
+
         <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
             className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
           >
-            {isTm ? 'Ýatyr' : 'İptal'}
+            {t('cancel')}
           </button>
           <button
             type="button"
@@ -234,7 +262,7 @@ export const CustomerExcelExportModal: React.FC<CustomerExcelExportModalProps> =
             ) : (
               <Download className="w-3.5 h-3.5" />
             )}
-            {isTm ? `Excel-e eksport et (${selected.size})` : `Excel'e aktar (${selected.size})`}
+            {t('excel.exportBtn', { count: selected.size })}
           </button>
         </div>
       </div>

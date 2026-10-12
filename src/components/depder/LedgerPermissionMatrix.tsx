@@ -4,8 +4,18 @@ import type { AppUser, LedgerPermission, LedgerPermissionKey } from '../../types
 import {
   EMPTY_LEDGER_PERMISSION,
   LEDGER_PERMISSION_KEYS,
-  LEDGER_PERMISSION_LABELS,
 } from '../../db/ledgerService';
+import { useT } from '../../locales/LanguageContext';
+
+/** İzin anahtarı → çeviri anahtarı (db'deki tm etiketler yerine). */
+const PERM_KEYS: Record<string, string> = {
+  canEnter: 'depder.permEnter',
+  canAddIncome: 'depder.permAddIncome',
+  canAddExpense: 'depder.permAddExpense',
+  canEdit: 'depder.permEdit',
+  canDelete: 'depder.permDelete',
+  canViewReport: 'depder.permViewReport',
+};
 
 interface LedgerPermissionMatrixProps {
   appUsers: readonly AppUser[];
@@ -18,6 +28,7 @@ export const LedgerPermissionMatrix: React.FC<LedgerPermissionMatrixProps> = ({
   permissions,
   onChange,
 }) => {
+  const t = useT();
   const [pendingUserId, setPendingUserId] = useState('');
 
   const assignedIds = Object.keys(permissions);
@@ -54,7 +65,7 @@ export const LedgerPermissionMatrix: React.FC<LedgerPermissionMatrixProps> = ({
           onChange={(e) => setPendingUserId(e.target.value)}
           className="flex-1 h-9 px-3 border border-gray-200 rounded-xl text-xs font-medium text-gray-700 bg-[#F8FAFC] outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
         >
-          <option value="">Ulanyjy saýla...</option>
+          <option value="">{t('depder.userSelectPh')}</option>
           {available.map((user) => (
             <option key={user.id} value={user.id}>
               {user.fullName} ({user.role})
@@ -67,7 +78,7 @@ export const LedgerPermissionMatrix: React.FC<LedgerPermissionMatrixProps> = ({
           disabled={!pendingUserId}
           className="h-9 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs"
         >
-          Ulanyjy goş
+          {t('depder.userAdd')}
         </button>
       </div>
 
@@ -75,10 +86,10 @@ export const LedgerPermissionMatrix: React.FC<LedgerPermissionMatrixProps> = ({
         <table className="w-full text-left text-[11px]">
           <thead>
             <tr className="bg-gray-50/80 text-gray-500 font-bold border-b border-gray-100">
-              <th className="py-2 px-3">Ulanyjy</th>
+              <th className="py-2 px-3">{t('depder.userCol')}</th>
               {LEDGER_PERMISSION_KEYS.map((key) => (
                 <th key={key} className="py-2 px-1.5 text-center">
-                  {LEDGER_PERMISSION_LABELS[key]}
+                  {t(PERM_KEYS[key] ?? key)}
                 </th>
               ))}
               <th className="py-2 px-2 w-8" />
@@ -88,7 +99,7 @@ export const LedgerPermissionMatrix: React.FC<LedgerPermissionMatrixProps> = ({
             {assigned.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-6 text-center text-gray-400 font-semibold">
-                  Ulanyjy goşulmady. Administratorler awtomatik hemme ygtyýara eýe.
+                  {t('depder.noUsersNote')}
                 </td>
               </tr>
             ) : (
@@ -106,7 +117,7 @@ export const LedgerPermissionMatrix: React.FC<LedgerPermissionMatrixProps> = ({
                       <td colSpan={6} className="py-1.5 px-2 text-center">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-[10px]">
                           <ShieldCheck className="w-3 h-3" />
-                          Hemme ygtyýar
+                          {t('depder.allPerms')}
                         </span>
                       </td>
                     ) : (
@@ -127,7 +138,7 @@ export const LedgerPermissionMatrix: React.FC<LedgerPermissionMatrixProps> = ({
                         type="button"
                         onClick={() => removeUser(user.id)}
                         className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                        title="Aýyr"
+                        title={t('depder.removeTip')}
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>

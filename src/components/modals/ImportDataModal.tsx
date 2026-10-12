@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Upload, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Account, LanguageCode } from '../../types';
 import { translations } from '../../locales/i18n';
+import { useT } from '../../locales/LanguageContext';
 import { importStoreData } from '../../db/settingsService';
 import { decodeBhbak } from '../../utils/bhbak';
 
@@ -19,7 +20,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
   onClose,
 }) => {
   const t = translations[language] || translations.en;
-  const isTm = language === 'tm';
+  const tt = useT();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -46,11 +47,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
       setIsSuccess(true);
       setTimeout(() => onClose(), 1400);
     } catch {
-      setError(
-        isTm
-          ? 'Import başartmady: diňe .bhbak (ýa-da köne .json ätiýaçlyk) kabul edilýär.'
-          : 'İçe aktarma başarısız: yalnızca .bhbak (veya eski .json yedek) kabul edilir.'
-      );
+      setError(tt('modals.importFailed'));
     } finally {
       setIsImporting(false);
     }
@@ -72,9 +69,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
         <div className="p-4 space-y-3 flex-1 overflow-y-auto">
           <p className="text-[11px] text-gray-500">
             <span className="font-semibold text-gray-700">"{account.name}"</span>
-            {isTm
-              ? ' hasabyna ätiýaçlyk .bhbak faýlyny saýlaň. Diňe Biznes Hasap açyp bilýär.'
-              : ' hesabına yedek .bhbak dosyasını seçin. Yalnızca Biznes Hasap açabilir.'}
+            {tt('modals.accountFileHint')}
           </p>
 
           <label className="border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-gray-50/50 hover:bg-emerald-50/30 transition-all">
@@ -96,9 +91,9 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
               <div className="flex flex-col items-center text-center">
                 <Upload className="w-6 h-6 text-gray-400 mb-1" />
                 <span className="text-xs font-medium text-gray-700">
-                  {isTm ? 'Faýl saýlamak üçin basyň' : 'Dosya seçmek için tıklayın'}
+                  {tt('modals.clickToPick')}
                 </span>
-                <span className="text-[10px] text-gray-400">.bhbak — Biznes Hasap ätiýaçlyk</span>
+                <span className="text-[10px] text-gray-400">{tt('modals.bhbakNote')}</span>
               </div>
             )}
           </label>
@@ -114,9 +109,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
             <div className="flex items-center space-x-2 text-emerald-700 text-xs font-semibold bg-emerald-50 p-2 rounded-lg border border-emerald-100">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
               <span>
-                {isTm
-                  ? `${imported} ýazgy import edildi.`
-                  : `${imported} kayıt içe aktarıldı.`}
+                {tt('modals.importedCount', { count: imported })}
               </span>
             </div>
           )}
@@ -136,7 +129,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
             onClick={() => void handleImport()}
             className="px-4 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg shadow-sm transition-all"
           >
-            {isImporting ? (isTm ? 'Aktarylýar...' : 'Aktarılıyor...') : t.import}
+            {isImporting ? tt('modals.importing') : t.import}
           </button>
         </div>
       </div>

@@ -14,7 +14,7 @@ import type {
 import { GENERAL_CUSTOMER_ID } from '../../db/customerService';
 import { INVOICE_TYPE_OPTIONS } from '../../utils/invoiceTypeOptions';
 import type { MeasurementUnit } from '../../db/unitService';
-import { translations } from '../../locales/i18n';
+import { useT } from '../../locales/LanguageContext';
 
 // ── Ortak kömekçiler ─────────────────────────────────────────────────────────
 
@@ -35,14 +35,14 @@ interface SegmentedProps {
   onChange: (mode: AccessControlMode) => void;
 }
 
-const MODES: { id: AccessControlMode; tm: string; tr: string }[] = [
-  { id: 'all', tm: 'Ählisine rugsat', tr: 'Hepsine izin' },
-  { id: 'whitelist', tm: 'Diňe saýlananlara', tr: 'Sadece seçilenlere' },
-  { id: 'blacklist', tm: 'Saýlanandan başga', tr: 'Seçilenler hariç' },
+const MODES: { id: AccessControlMode; key: string }[] = [
+  { id: 'all', key: 'users.modeAll' },
+  { id: 'whitelist', key: 'users.modeWhitelist' },
+  { id: 'blacklist', key: 'users.modeBlacklist' },
 ];
 
 function SegmentedControl({ language, value, onChange }: SegmentedProps) {
-  const isTm = language === 'tm';
+  const t = useT();
   return (
     <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
       {MODES.map((mode) => (
@@ -56,7 +56,7 @@ function SegmentedControl({ language, value, onChange }: SegmentedProps) {
               : 'bg-transparent text-gray-600 hover:bg-gray-200'
           }`}
         >
-          {isTm ? mode.tm : mode.tr}
+          {t(mode.key)}
         </button>
       ))}
     </div>
@@ -84,7 +84,7 @@ function SearchableMultiSelect({
   onChange,
   placeholder,
 }: SearchableMultiProps) {
-  const isTm = language === 'tm';
+  const t = useT();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -129,7 +129,7 @@ function SearchableMultiSelect({
               type="button"
               onClick={() => toggle(option!.id)}
               className="text-emerald-700 hover:text-rose-600 ml-0.5"
-              title={isTm ? 'Aýyr' : 'Kaldır'}
+              title={t('users.removeTip')}
             >
               <X className="w-3 h-3" />
             </button>
@@ -137,12 +137,12 @@ function SearchableMultiSelect({
         ))}
         {selected.length > 0 && (
           <span className="inline-flex px-1.5 py-0.5 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold">
-            {selected.length} {isTm ? 'saýlandy' : 'seçildi'}
+            {t('users.selectedCount', { count: selected.length })}
           </span>
         )}
         {selected.length === 0 && (
           <span className="text-[10px] text-gray-400 italic">
-            {isTm ? 'Entek saýlanmady' : 'Henüz seçilmedi'}
+            {t('users.noneSelected')}
           </span>
         )}
       </div>
@@ -163,7 +163,7 @@ function SearchableMultiSelect({
           <div className="absolute left-0 right-0 top-full mt-1 max-h-44 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg z-20">
             {available.length === 0 ? (
               <div className="px-3 py-2 text-[10.5px] text-gray-400">
-                {isTm ? 'Tapylmady' : 'Bulunamadı'}
+                {t('users.notFound')}
               </div>
             ) : (
               available.slice(0, 60).map((option) => (
@@ -205,7 +205,7 @@ function AccessCard({
   onListChange,
   placeholder,
 }: AccessCardProps) {
-  const isTm = language === 'tm';
+  const t = useT();
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-2.5">
       <div className="text-[10.5px] font-bold text-gray-600 mb-1">{title}</div>
@@ -221,11 +221,7 @@ function AccessCard({
             options={options}
             selected={entry.list}
             onChange={onListChange}
-            placeholder={
-              isTm
-                ? `${placeholder} — gözle...`
-                : `${placeholder} — ara...`
-            }
+            placeholder={t('users.searchIn', { label: placeholder })}
           />
         </div>
       )}
@@ -259,7 +255,7 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
   products,
 }) => {
   const isTm = language === 'tm';
-  const t = translations[language] || translations.en;
+  const t = useT();
   const [isOpen, setIsOpen] = useState(false);
 
   const customerOptions: OptionMeta[] = useMemo(() => {
@@ -299,10 +295,10 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
   );
 
   const paymentOptions: { id: PaymentMethod; label: string }[] = [
-    { id: 'cash', label: t.cashMethod },
-    { id: 'card', label: t.cardMethod },
-    { id: 'credit', label: t.creditMethod },
-    { id: 'split', label: t.splitMethod },
+    { id: 'cash', label: t('cashMethod') },
+    { id: 'card', label: t('cardMethod') },
+    { id: 'credit', label: t('creditMethod') },
+    { id: 'split', label: t('splitMethod') },
   ];
 
   const patchDefaults = (field: keyof UserDefaults, value: string) => {
@@ -359,9 +355,7 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
       >
         <span className="flex items-center gap-1.5">
           <span className="text-emerald-700">✦</span>
-          {isTm
-            ? 'Ýörite rugsatlar (Warsaýylan bahalar we elýeterlilik)'
-            : 'Gelişmiş İzinler (Varsayılan Değerler ve Erişim)'}
+          {t('users.advTitle')}
         </span>
         <ChevronDown
           className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -372,11 +366,11 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
         <div className="px-3 py-3 space-y-3">
           {/* ── A) Warsaýylan bahalar ─────────────────────────────────────────── */}
           <div className="text-[10.5px] font-bold text-gray-500 uppercase tracking-wider">
-            {isTm ? 'Warsaýylan bahalar' : 'Varsayılan Değerler'}
+            {t('users.defaultsSection')}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             <label className="block text-[10px] font-bold text-gray-500">
-              {isTm ? 'Başdaky faktura görnüşi' : 'Varsayılan fatura türü'}
+              {t('users.defInvoiceType')}
               <select
                 value={defaults.invoiceType ?? ''}
                 onChange={(e) => patchDefaults('invoiceType', e.target.value)}
@@ -392,7 +386,7 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
             </label>
 
             <label className="block text-[10px] font-bold text-gray-500">
-              {isTm ? 'Başdaky töleg görnüşi' : 'Varsayılan ödeme türü'}
+              {t('users.defPaymentType')}
               <select
                 value={defaults.paymentType ?? ''}
                 onChange={(e) => patchDefaults('paymentType', e.target.value)}
@@ -408,7 +402,7 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
             </label>
 
             <label className="block text-[10px] font-bold text-gray-500">
-              {isTm ? 'Başdaky ölçeg (esas)' : 'Varsayılan ölçü birimi (ana)'}
+              {t('users.defUnit')}
               <select
                 value={defaults.unit ?? ''}
                 onChange={(e) => patchDefaults('unit', e.target.value)}
@@ -424,7 +418,7 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
             </label>
 
             <label className="block text-[10px] font-bold text-gray-500">
-              {isTm ? 'Başdaky ikinji ölçeg (paket/koli)' : 'Varsayılan ikinci ölçü birimi (paket/koli)'}
+              {t('users.defUnit2')}
               <select
                 value={defaults.unit2 ?? ''}
                 onChange={(e) => patchDefaults('unit2', e.target.value)}
@@ -440,14 +434,14 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
             </label>
 
             <label className="block text-[10px] font-bold text-gray-500">
-              {isTm ? 'Başdaky müşderi' : 'Varsayılan müşteri'}
+              {t('users.defCustomer')}
               <select
                 value={defaults.customerId ?? ''}
                 onChange={(e) => patchDefaults('customerId', e.target.value)}
                 className="w-full h-8 px-2 border border-gray-200 rounded-lg text-[11px] text-gray-700 bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 outline-none mt-0.5"
               >
                 <option value="">
-                  {isTm ? 'Hiç kim (Umumy Müşderi)' : 'Hiç kim (Genel Müşteri)'}
+                  {t('users.noOneGeneral')}
                 </option>
                 {customerOptions.map((option) => (
                   <option key={option.id} value={option.id}>
@@ -458,7 +452,7 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
             </label>
 
             <label className="block text-[10px] font-bold text-gray-500">
-              {isTm ? 'Başdaky ambar' : 'Varsayılan ambar'}
+              {t('users.defWarehouse')}
               <select
                 value={defaults.warehouseId ?? ''}
                 onChange={(e) => patchDefaults('warehouseId', e.target.value)}
@@ -474,7 +468,7 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
             </label>
 
             <label className="block text-[10px] font-bold text-gray-500">
-              {isTm ? 'Başdaky depder' : 'Varsayılan kasa defteri'}
+              {t('users.defLedger')}
               <select
                 value={defaults.depderId ?? ''}
                 onChange={(e) => patchDefaults('depderId', e.target.value)}
@@ -492,51 +486,47 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
 
           {/* ── B) Elýeterlilik kontroli ─────────────────────────────────────── */}
           <div className="text-[10.5px] font-bold text-gray-500 uppercase tracking-wider mt-1">
-            {isTm ? 'Elýeterlilik (Erişim) kontroli' : 'Erişim Kontrolü'}
+            {t('users.accessSection')}
           </div>
           <div className="grid grid-cols-1 gap-2.5">
             <AccessCard
               language={language}
-              title={
-                isTm
-                  ? 'Tölegleriň haýsy görnüşlerini emele getirip bilýär?'
-                  : 'Hangi ödeme türlerini oluşturabilir?'
-              }
+              title={t('users.payTypesTitle')}
               entry={accessControl.paymentTypes}
               options={paymentOptions}
               onModeChange={(mode) => patchEntry('paymentTypes', { mode })}
               onListChange={(list) => patchEntry('paymentTypes', { list })}
-              placeholder={isTm ? 'Töleg görnüşi' : 'Ödeme türü'}
+              placeholder={t('users.phPayment')}
             />
 
             <AccessCard
               language={language}
-              title={isTm ? 'Müşderi rugsatlary' : 'Müşteri İzinleri'}
+              title={t('users.customerPerms')}
               entry={accessControl.customers}
               options={customerOptions}
               onModeChange={(mode) => patchEntry('customers', { mode })}
               onListChange={(list) => patchEntry('customers', { list })}
-              placeholder={isTm ? 'Müşderi' : 'Müşteri'}
+              placeholder={t('users.phCustomer')}
             />
 
             <AccessCard
               language={language}
-              title={isTm ? 'Haryt rugsatlary' : 'Ürün İzinleri'}
+              title={t('users.productPerms')}
               entry={accessControl.products}
               options={productOptions}
               onModeChange={(mode) => patchEntry('products', { mode })}
               onListChange={(list) => patchEntry('products', { list })}
-              placeholder={isTm ? 'Haryt' : 'Ürün'}
+              placeholder={t('users.phProduct')}
             />
 
             <AccessCard
               language={language}
-              title={isTm ? 'Ambar rugsatlary' : 'Ambar İzinleri'}
+              title={t('users.warehousePerms')}
               entry={accessControl.warehouses}
               options={warehouseOptions}
               onModeChange={(mode) => patchEntry('warehouses', { mode })}
               onListChange={(list) => patchEntry('warehouses', { list })}
-              placeholder={isTm ? 'Ambar' : 'Ambar'}
+              placeholder={t('users.phWarehouse')}
             />
 
             {/* Ambar — Faktura üçin aýratyn rugsat */}
@@ -549,9 +539,7 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
                   className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                 />
                 <span className="text-[10.5px] font-bold text-gray-600">
-                  {isTm
-                    ? 'Faktura üçin rugsatly ambarlar (umumy ambar rugsatyndan tapawutly bolsa)'
-                    : 'Fatura için izinli ambarlar (genel ambar izninden farklıysa)'}
+                  {t('users.invoiceWarehouses')}
                 </span>
               </label>
               {accessControl.warehousesForInvoice && (
@@ -568,7 +556,7 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
                         options={warehouseOptions}
                         selected={accessControl.warehousesForInvoice.list}
                         onChange={(list) => patchEntry('warehousesForInvoice', { list })}
-                        placeholder={isTm ? 'Ambar — gözle...' : 'Ambar — ara...'}
+                        placeholder={t('users.searchIn', { label: t('users.phWarehouse') })}
                       />
                     </div>
                   )}
@@ -578,12 +566,12 @@ export const UserAdvancedPermissions: React.FC<UserAdvancedPermissionsProps> = (
 
             <AccessCard
               language={language}
-              title={isTm ? 'Depder rugsatlary' : 'Kasa Defteri İzinleri'}
+              title={t('users.ledgerPerms')}
               entry={accessControl.depders}
               options={ledgerOptions}
               onModeChange={(mode) => patchEntry('depders', { mode })}
               onListChange={(list) => patchEntry('depders', { list })}
-              placeholder={isTm ? 'Depder' : 'Kasa defteri'}
+              placeholder={t('users.phLedger')}
             />
           </div>
         </div>

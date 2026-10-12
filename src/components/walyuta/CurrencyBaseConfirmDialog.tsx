@@ -1,5 +1,6 @@
 import React from 'react';
 import type { CurrencyRate, LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface CurrencyBaseConfirmDialogProps {
   currency: CurrencyRate;
@@ -16,23 +17,21 @@ export const CurrencyBaseConfirmDialog: React.FC<CurrencyBaseConfirmDialogProps>
   language,
   onCancel,
   onConfirm,
-}) => (
+}) => {
+  const t = useT();
+  return (
   <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center space-y-4">
       <p className="font-bold text-gray-800 text-sm">
-        {language === 'tm'
-          ? `${currency.code} esas walýuta edilsinmi?`
-          : `${currency.code} esas para birimi yapılsın mı?`}
+        {t('walyuta.confirmBaseTitle', { code: currency.code })}
       </p>
 
       <p className="text-xs text-gray-500 font-medium leading-relaxed">
-        {language === 'tm'
-          ? `Bu düzeltme bahalaryň, faturalaryň we hasabatlaryň birimini ${currency.code} eder. Ähli görkezilen ýazgylar üçtgesiz görkezilýär, hasaplar we möçberler üýtgemýär.`
-          : `Bu değişiklik fiyat, fatura ve raporlardaki birimi ${currency.code} yapar. Kayıtlı tutarlar değişmez, hesaplar korunur.`}
+        {t('walyuta.confirmBaseMsg', { code: currency.code })}
       </p>
 
       <p className="text-[11px] text-gray-400 font-medium">
-        {language === 'tm' ? 'Öňki esas walýuta' : 'Önceki esas para birimi'}: {currentBaseCode}
+        {t('walyuta.prevBase')}: {currentBaseCode}
       </p>
 
       <div className="flex gap-3 justify-center">
@@ -48,9 +47,10 @@ export const CurrencyBaseConfirmDialog: React.FC<CurrencyBaseConfirmDialogProps>
           onClick={onConfirm}
           className="px-6 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-colors"
         >
-          {language === 'tm' ? 'Üýtget' : 'Değiştir'}
+          {t('walyuta.change')}
         </button>
       </div>
     </div>
   </div>
-);
+  );
+};

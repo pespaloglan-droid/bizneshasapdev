@@ -16,6 +16,7 @@ import { BASE_CURRENCY_CODE, convertToTmt, rateForCode } from '../../db/currency
 import { DraftLinesEditor } from './DraftLinesEditor';
 import { DraftMetaFields } from './DraftMetaFields';
 import { buildDraftInvoice, detectDevice, orderSubtotal } from './draftModel';
+import { useT } from '../../locales/LanguageContext';
 
 interface DraftFormModalProps {
   language: LanguageCode;
@@ -52,6 +53,7 @@ export const DraftFormModal: React.FC<DraftFormModalProps> = ({
   onCreate,
   onClose,
 }) => {
+  const t = useT();
   const initialTargow =
     targows.find((item) => item.id === preselectTargowId) ??
     targows.find((item) => item.isActive) ??
@@ -113,19 +115,19 @@ export const DraftFormModal: React.FC<DraftFormModalProps> = ({
     e.preventDefault();
 
     if (!targow) {
-      setError(language === 'tm' ? 'Targowçyny saýlaň.' : 'Targowçı seçin.');
+      setError(t('faktura.selectTargow'));
       return;
     }
     if (!customer) {
-      setError(language === 'tm' ? 'Müşderini saýlaň.' : 'Müşderi seçin.');
+      setError(t('faktura.selectCustomer'));
       return;
     }
     if (!regionId) {
-      setError(language === 'tm' ? 'Etraby saýlaň.' : 'Etrap seçin.');
+      setError(t('faktura.selectRegion'));
       return;
     }
     if (lines.length === 0) {
-      setError(language === 'tm' ? 'Iň azyndan bir haryt goşuň.' : 'En az bir ürün ekleyin.');
+      setError(t('faktura.addOneProduct'));
       return;
     }
 
@@ -153,11 +155,9 @@ export const DraftFormModal: React.FC<DraftFormModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
         <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
           <div>
-            <span className="font-bold text-sm tracking-wide">Garalama faktura döret</span>
+            <span className="font-bold text-sm tracking-wide">{t('faktura.createTitle')}</span>
             <div className="text-[10px] text-gray-300 mt-0.5">
-              {language === 'tm'
-                ? 'Merkez kabul edýänçä hiç bir modula täsir etmeýär'
-                : 'Merkez onaylayana kadar hiçbir modülü etkilemez'}
+              {t('faktura.draftNoEffect')}
             </div>
           </div>
           <button
@@ -205,7 +205,7 @@ export const DraftFormModal: React.FC<DraftFormModalProps> = ({
           />
 
           <div>
-            <label className={LABEL}>Düşündiriş</label>
+            <label className={LABEL}>{t('faktura.noteLabel')}</label>
             <input
               type="text"
               value={note}
@@ -226,13 +226,13 @@ export const DraftFormModal: React.FC<DraftFormModalProps> = ({
               onClick={onClose}
               className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
             >
-              Ýatyr
+              {t('faktura.cancelBtn')}
             </button>
             <button
               type="submit"
               className="h-9 px-5 rounded-xl bg-[#0B1F3A] hover:bg-[#163864] text-white font-bold text-xs"
             >
-              Garalama hökmünde ýazgy et
+              {t('faktura.saveDraft')}
             </button>
           </div>
         </form>

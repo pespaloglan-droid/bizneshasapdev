@@ -4,6 +4,7 @@ import type { CurrencyRate, LanguageCode, Ledger, MoneyTransaction } from '../..
 import { rateForCode } from '../../db/currencyService';
 import { buildTransferTransactions, convertBetween } from '../../db/ledgerService';
 import { formatMoney, todayIsoDate } from '../../utils/money';
+import { useT } from '../../locales/LanguageContext';
 
 interface LedgerTransferModalProps {
   language: LanguageCode;
@@ -24,6 +25,7 @@ export const LedgerTransferModal: React.FC<LedgerTransferModalProps> = ({
   onTransfer,
   onClose,
 }) => {
+  const t = useT();
   const [fromId, setFromId] = useState(ledgers[0]?.id ?? '');
   const [toId, setToId] = useState(ledgers[1]?.id ?? '');
   const [amount, setAmount] = useState('');
@@ -45,17 +47,15 @@ export const LedgerTransferModal: React.FC<LedgerTransferModalProps> = ({
     e.preventDefault();
 
     if (!from || !to) {
-      setError(language === 'tm' ? 'Depderleri saýlaň.' : 'Defterleri seçin.');
+      setError(t('depder.selectLedgers'));
       return;
     }
     if (from.id === to.id) {
-      setError(
-        language === 'tm' ? 'Bir depderden özüne geçirip bolmaýar.' : 'Aynı deftere transfer yapılamaz.'
-      );
+      setError(t('depder.sameLedger'));
       return;
     }
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setError(language === 'tm' ? 'Mukdar 0-dan uly bolmaly.' : 'Tutar 0\'dan büyük olmalı.');
+      setError(t('depder.amountPositive'));
       return;
     }
 
@@ -76,7 +76,7 @@ export const LedgerTransferModal: React.FC<LedgerTransferModalProps> = ({
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]">
         <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
-          <span className="font-bold text-sm tracking-wide">Depderler arasynda geçirim</span>
+          <span className="font-bold text-sm tracking-wide">{t('depder.transferTitle')}</span>
           <button
             type="button"
             onClick={onClose}
@@ -89,7 +89,7 @@ export const LedgerTransferModal: React.FC<LedgerTransferModalProps> = ({
         <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className={LABEL}>Haýsy depderden</label>
+              <label className={LABEL}>{t('depder.fromLedger')}</label>
               <select
                 value={fromId}
                 onChange={(e) => setFromId(e.target.value)}
@@ -104,7 +104,7 @@ export const LedgerTransferModal: React.FC<LedgerTransferModalProps> = ({
             </div>
 
             <div>
-              <label className={LABEL}>Haýsy depdere</label>
+              <label className={LABEL}>{t('depder.toLedger')}</label>
               <select
                 value={toId}
                 onChange={(e) => setToId(e.target.value)}
@@ -120,7 +120,7 @@ export const LedgerTransferModal: React.FC<LedgerTransferModalProps> = ({
 
             <div>
               <label className={LABEL}>
-                Mukdar {from ? `(${from.currency})` : ''} *
+                {t('depder.amountLabel')} {from ? `(${from.currency})` : ''} *
               </label>
               <input
                 type="number"
@@ -134,7 +134,7 @@ export const LedgerTransferModal: React.FC<LedgerTransferModalProps> = ({
             </div>
 
             <div>
-              <label className={LABEL}>Sene</label>
+              <label className={LABEL}>{t('depder.dateLabel')}</label>
               <input
                 type="date"
                 value={date}
@@ -146,7 +146,7 @@ export const LedgerTransferModal: React.FC<LedgerTransferModalProps> = ({
 
           {crossCurrency && (
             <div className="text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-100 rounded-xl px-3 py-2">
-              {from?.currency} → {to?.currency} · kurs boýunça:
+              {from?.currency} → {to?.currency} · {t('depder.rateNote')}
               <span className="font-mono font-bold ml-1">
                 ≈ {formatMoney(received)} {to?.currency}
               </span>
@@ -154,12 +154,12 @@ export const LedgerTransferModal: React.FC<LedgerTransferModalProps> = ({
           )}
 
           <div>
-            <label className={LABEL}>Düşündiriş</label>
+            <label className={LABEL}>{t('depder.descLabel')}</label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={language === 'tm' ? 'Meselem: gün soňy geçirim' : 'Örn: gün sonu transferi'}
+              placeholder={t('depder.transferDescPh')}
               className={`${INPUT} font-medium text-gray-800`}
             />
           </div>
@@ -176,13 +176,13 @@ export const LedgerTransferModal: React.FC<LedgerTransferModalProps> = ({
               onClick={onClose}
               className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
             >
-              Ýatyr
+              {t('depder.cancelBtn')}
             </button>
             <button
               type="submit"
               className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
             >
-              Geçirimi ýerine ýetir
+              {t('depder.transferSubmit')}
             </button>
           </div>
         </form>

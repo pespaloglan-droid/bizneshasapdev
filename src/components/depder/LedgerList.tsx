@@ -5,6 +5,7 @@ import { convertToTmt, rateForCode } from '../../db/currencyService';
 import { assignedUserCount, computeLedgerBalance } from '../../db/ledgerService';
 import { formatMoney } from '../../utils/money';
 import { LedgerCard } from './LedgerCard';
+import { useT } from '../../locales/LanguageContext';
 
 interface LedgerListProps {
   ledgers: readonly Ledger[];
@@ -31,6 +32,7 @@ export const LedgerList: React.FC<LedgerListProps> = ({
   onAdd,
   onTransfer,
 }) => {
+  const t = useT();
   const grandTotalTmt = ledgers.reduce(
     (sum, ledger) =>
       sum + convertToTmt(computeLedgerBalance(ledger, transactions), rateForCode(currencies, ledger.currency)),
@@ -47,14 +49,14 @@ export const LedgerList: React.FC<LedgerListProps> = ({
             </div>
             <div className="flex-1">
               <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                {language === 'tm' ? 'Umumy galyndy (TMT)' : 'Genel toplam (TMT)'}
+                {t('depder.grandTotal')}
               </div>
               <div className="text-lg font-bold font-mono text-emerald-600">
                 {formatMoney(grandTotalTmt)}
               </div>
             </div>
             <div className="text-[11px] font-bold text-gray-400">
-              {ledgers.length} {language === 'tm' ? 'depder' : 'defter'}
+              {ledgers.length} {t('depder.ledgersUnit')}
             </div>
           </div>
 
@@ -65,7 +67,7 @@ export const LedgerList: React.FC<LedgerListProps> = ({
               disabled={ledgers.length < 2}
               className="h-10 px-4 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold text-xs transition-colors"
             >
-              {language === 'tm' ? 'Depderler arasynda geçirim' : 'Defterler arası transfer'}
+              {t('depder.transferBtn')}
             </button>
             {canManage && (
               <button
@@ -74,7 +76,7 @@ export const LedgerList: React.FC<LedgerListProps> = ({
                 className="h-10 px-5 bg-[#10b981] hover:bg-[#059669] text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-colors shadow-sm"
               >
                 <Plus className="w-4 h-4" />
-                {language === 'tm' ? 'Täze depder' : 'Yeni defter'}
+                {t('depder.newLedger')}
               </button>
             )}
           </div>
@@ -89,12 +91,10 @@ export const LedgerList: React.FC<LedgerListProps> = ({
                 <BookOpen className="w-8 h-8 text-gray-300" />
               </div>
               <p className="font-bold text-gray-500 text-sm">
-                {language === 'tm' ? 'Depder ýok' : 'Defter yok'}
+                {t('depder.noLedgers')}
               </p>
               <p className="text-xs text-gray-400">
-                {language === 'tm'
-                  ? 'Täze depder döredip, kassalaryňyzy aýratyn alyp baryň.'
-                  : 'Yeni defter oluşturup, kasalarınızı ayrı yönetin.'}
+                {t('depder.noLedgersHint')}
               </p>
             </div>
           </div>

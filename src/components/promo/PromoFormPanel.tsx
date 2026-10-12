@@ -12,6 +12,7 @@ import {
   type PromoRecord,
 } from '../../db/promoService';
 import { ProductPickerModal } from './ProductPickerModal';
+import { useT } from '../../locales/LanguageContext';
 
 interface PromoFormPanelProps {
   products: readonly Product[];
@@ -21,10 +22,10 @@ interface PromoFormPanelProps {
   onCancel: () => void;
 }
 
-const MODES: { id: PromoDiscountMode; label: string; icon: React.ReactNode }[] = [
-  { id: 'free', label: 'Mugt', icon: <Gift className="w-3.5 h-3.5" /> },
-  { id: 'percent', label: 'Göterim %', icon: <Percent className="w-3.5 h-3.5" /> },
-  { id: 'fixed', label: 'Sabit baha', icon: <Banknote className="w-3.5 h-3.5" /> },
+const MODES: { id: PromoDiscountMode; labelKey: string; icon: React.ReactNode }[] = [
+  { id: 'free', labelKey: 'promo.modeFree', icon: <Gift className="w-3.5 h-3.5" /> },
+  { id: 'percent', labelKey: 'promo.modePercent', icon: <Percent className="w-3.5 h-3.5" /> },
+  { id: 'fixed', labelKey: 'promo.modeFixed', icon: <Banknote className="w-3.5 h-3.5" /> },
 ];
 
 const inputCls =
@@ -37,10 +38,11 @@ const SelectedProductCard: React.FC<{
   tone: 'blue' | 'green';
   onClear: () => void;
 }> = ({ product, currencyCode, tone, onClear }) => {
+  const t = useT();
   if (!product) {
     return (
       <div className="rounded-xl bg-white/15 px-3 py-4 text-center text-xs font-bold opacity-80">
-        Häzir haryt saýlanmady
+        {t('promo.noSelection')}
       </div>
     );
   }
@@ -50,7 +52,7 @@ const SelectedProductCard: React.FC<{
       <button
         type="button"
         onClick={onClear}
-        title="Saýlamany aýyr"
+        title={t('promo.clearTip')}
         className="absolute top-1.5 right-1.5 w-6 h-6 rounded-lg bg-gray-100 hover:bg-rose-500 hover:text-white text-gray-500 flex items-center justify-center transition-colors"
       >
         <X className="w-3.5 h-3.5" />
@@ -67,7 +69,7 @@ const SelectedProductCard: React.FC<{
         <div className="text-[10px] text-gray-400 truncate">{product.category || '—'}</div>
         <div className="flex items-center justify-between mt-1 gap-1">
           <span className={`text-[11px] font-bold font-mono ${negative ? 'text-rose-600' : 'text-gray-600'}`}>
-            Stok: {product.stock}
+            {t('promo.stockLabel')} {product.stock}
           </span>
           <span className={`text-[12px] font-black font-mono ${tone === 'blue' ? 'text-blue-700' : 'text-emerald-700'}`}>
             {formatPromoMoney(product.price, currencyCode)}
@@ -90,6 +92,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
   onSave,
   onCancel,
 }) => {
+  const t = useT();
   const [form, setForm] = useState<PromoRecord>(() => editing ?? emptyPromo());
   const [picker, setPicker] = useState<'sale' | 'promo' | null>(null);
   const patch = (partial: Partial<PromoRecord>) => setForm((prev) => ({ ...prev, ...partial }));
@@ -116,7 +119,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
   if (products.length === 0) {
     return (
       <div className="py-12 text-center text-xs font-semibold text-gray-400">
-        Haryt modulynda haryt ýok. Ilki Haryt goşuň.
+        {t('promo.noProducts')}
       </div>
     );
   }
@@ -130,7 +133,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
             <div className="p-1.5 rounded-xl bg-white/20">
               <ShoppingCart className="w-4 h-4" />
             </div>
-            <span className="font-bold text-sm">Satyn alynjak haryt</span>
+            <span className="font-bold text-sm">{t('promo.saleProduct')}</span>
           </div>
 
           <button
@@ -139,7 +142,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
             className="w-full h-9 mb-2 rounded-xl bg-white/90 hover:bg-white text-gray-800 text-xs font-bold flex items-center justify-center gap-1.5"
           >
             <Search className="w-3.5 h-3.5" />
-            Haryt saýla
+            {t('promo.pickProduct')}
           </button>
           <SelectedProductCard
             product={saleProduct}
@@ -148,7 +151,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
             onClear={() => patch({ saleProductId: '' })}
           />
 
-          <label className="block text-[11px] font-bold text-blue-100 mt-3 mb-1">Sany</label>
+          <label className="block text-[11px] font-bold text-blue-100 mt-3 mb-1">{t('promo.qtyLabel')}</label>
           <input
             type="number"
             min={0}
@@ -161,7 +164,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
           />
 
           <div className="flex items-center justify-between bg-white/15 rounded-xl px-3 py-2">
-            <span className="text-xs font-bold">Jemi</span>
+            <span className="text-xs font-bold">{t('promo.totalLabel')}</span>
             <span className="font-mono font-black text-lg">{formatPromoMoney(calc.saleTotal, currencyCode)}</span>
           </div>
         </div>
@@ -172,7 +175,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
             <div className="p-1.5 rounded-xl bg-white/20">
               <Gift className="w-4 h-4" />
             </div>
-            <span className="font-bold text-sm">Promo haryt</span>
+            <span className="font-bold text-sm">{t('promo.promoProduct')}</span>
           </div>
 
           <button
@@ -181,7 +184,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
             className="w-full h-9 mb-2 rounded-xl bg-white/90 hover:bg-white text-gray-800 text-xs font-bold flex items-center justify-center gap-1.5"
           >
             <Search className="w-3.5 h-3.5" />
-            Promo haryt saýla
+            {t('promo.pickPromoProduct')}
           </button>
           <SelectedProductCard
             product={promoProduct}
@@ -190,7 +193,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
             onClear={() => patch({ promoProductId: '' })}
           />
 
-          <label className="block text-[11px] font-bold text-emerald-50 mt-3 mb-1">Promo sany</label>
+          <label className="block text-[11px] font-bold text-emerald-50 mt-3 mb-1">{t('promo.promoQty')}</label>
           <input
             type="number"
             min={0}
@@ -215,7 +218,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
                 }`}
               >
                 {mode.icon}
-                {mode.label}
+                {t(mode.labelKey)}
               </button>
             ))}
           </div>
@@ -243,7 +246,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
           )}
 
           <div className="flex items-center justify-between bg-white/15 rounded-xl px-3 py-2">
-            <span className="text-xs font-bold">Promo ýeňillik</span>
+            <span className="text-xs font-bold">{t('promo.discountLabel')}</span>
             <span className="font-mono font-black text-lg">−{formatPromoMoney(calc.discount, currencyCode)}</span>
           </div>
         </div>
@@ -253,26 +256,26 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
           <div className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2">
-            <div className="text-[10px] font-bold text-blue-500 uppercase">Satuw</div>
+            <div className="text-[10px] font-bold text-blue-500 uppercase">{t('promo.saleLabel')}</div>
             <div className="font-mono font-black text-blue-700 truncate">
               {form.saleQty}x {saleProduct?.name ?? '—'} = {formatPromoMoney(calc.saleTotal, currencyCode)}
             </div>
           </div>
           <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2">
-            <div className="text-[10px] font-bold text-emerald-600 uppercase">Promo</div>
+            <div className="text-[10px] font-bold text-emerald-600 uppercase">{t('promo.promoLabel')}</div>
             <div className="font-mono font-black text-emerald-700 truncate">
-              {form.promoQty}x {promoProduct?.name ?? '—'} = {formatPromoMoney(calc.discount, currencyCode)} ýeňillik
+              {form.promoQty}x {promoProduct?.name ?? '—'} = {formatPromoMoney(calc.discount, currencyCode)} {t('promo.discountWord')}
             </div>
           </div>
           <div className="rounded-xl bg-violet-50 border border-violet-100 px-3 py-2">
-            <div className="text-[10px] font-bold text-violet-600 uppercase">Kassa girdejisi</div>
+            <div className="text-[10px] font-bold text-violet-600 uppercase">{t('promo.kassaIncome')}</div>
             <div className="font-mono font-black text-violet-700">
               {formatPromoMoney(calc.kasaIncome, currencyCode)}
             </div>
           </div>
         </div>
         <div className="text-[11px] text-gray-500 mt-2 text-center">
-          Jemi {formatPromoMoney(calc.total, currencyCode)} − ýeňillik{' '}
+          {t('promo.totalLabel')} {formatPromoMoney(calc.total, currencyCode)} − {t('promo.discountWord')}{' '}
           {formatPromoMoney(calc.discount, currencyCode)} ={' '}
           <span className="font-bold text-gray-800">{formatPromoMoney(calc.kasaIncome, currencyCode)}</span>
         </div>
@@ -280,7 +283,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
 
       {insufficient && (
         <div className="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
-          Stok ýeterlik däl!
+          {t('promo.insufficientStock')}
         </div>
       )}
 
@@ -291,7 +294,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
           className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs flex items-center gap-1.5"
         >
           <X className="w-3.5 h-3.5" />
-          Ýatyr
+          {t('promo.cancel')}
         </button>
         <button
           type="button"
@@ -300,7 +303,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
           className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5"
         >
           <Save className="w-3.5 h-3.5" />
-          {editing ? 'Täzele' : 'Promo döret'}
+          {editing ? t('promo.update') : t('promo.create')}
         </button>
       </div>
 
@@ -308,7 +311,7 @@ export const PromoFormPanel: React.FC<PromoFormPanelProps> = ({
         <ProductPickerModal
           products={products}
           currencyCode={currencyCode}
-          title={picker === 'sale' ? 'Satyn alynjak harydy saýla' : 'Promo harydy saýla'}
+          title={picker === 'sale' ? t('promo.pickSaleTitle') : t('promo.pickPromoTitle')}
           accent={picker === 'sale' ? 'blue' : 'green'}
           selectedId={picker === 'sale' ? form.saleProductId : form.promoProductId}
           onSelect={(product) => {

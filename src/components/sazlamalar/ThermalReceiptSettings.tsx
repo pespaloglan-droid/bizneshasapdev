@@ -1,21 +1,22 @@
 import React from 'react';
 import type { PaperWidth, PrintFontScale, QrContent, ReceiptFieldFlags, ReceiptSettings } from '../../types';
 import { Field, INPUT, SettingsCard, Toggle } from './settingsUi';
+import { useT } from '../../locales/LanguageContext';
 
 interface ThermalReceiptSettingsProps {
   value: ReceiptSettings;
   onChange: (next: ReceiptSettings) => void;
 }
 
-const FIELD_LABELS: { key: keyof ReceiptFieldFlags; label: string }[] = [
-  { key: 'logo', label: 'Logo görkez' },
-  { key: 'address', label: 'Salgy görkez' },
-  { key: 'phone', label: 'Telefon görkez' },
-  { key: 'taxId', label: 'Salgyt belgisi görkez' },
-  { key: 'qr', label: 'QR kod görkez' },
-  { key: 'barcode', label: 'Barkod görkez' },
-  { key: 'cashier', label: 'Kassir ady görkez' },
-  { key: 'customer', label: 'Müşderi ady görkez' },
+const FIELD_LABELS: { key: keyof ReceiptFieldFlags; labelKey: string }[] = [
+  { key: 'logo', labelKey: 'sazlamalar.thShowLogo' },
+  { key: 'address', labelKey: 'sazlamalar.thShowAddress' },
+  { key: 'phone', labelKey: 'sazlamalar.thShowPhone' },
+  { key: 'taxId', labelKey: 'sazlamalar.thShowTaxId' },
+  { key: 'qr', labelKey: 'sazlamalar.thShowQr' },
+  { key: 'barcode', labelKey: 'sazlamalar.thShowBarcode' },
+  { key: 'cashier', labelKey: 'sazlamalar.thShowCashier' },
+  { key: 'customer', labelKey: 'sazlamalar.thShowCustomer' },
 ];
 
 const WIDTHS: { id: PaperWidth; label: string }[] = [
@@ -23,16 +24,16 @@ const WIDTHS: { id: PaperWidth; label: string }[] = [
   { id: '80mm', label: '80 mm' },
 ];
 
-const FONTS: { id: PrintFontScale; label: string }[] = [
-  { id: 'sm', label: 'Kiçi' },
-  { id: 'md', label: 'Orta' },
-  { id: 'lg', label: 'Uly' },
+const FONTS: { id: PrintFontScale; labelKey: string }[] = [
+  { id: 'sm', labelKey: 'sazlamalar.fontSm' },
+  { id: 'md', labelKey: 'sazlamalar.fontMd' },
+  { id: 'lg', labelKey: 'sazlamalar.fontLg' },
 ];
 
-const QR_OPTIONS: { id: QrContent; label: string }[] = [
-  { id: 'invoice', label: 'Faktura belgisi (çek №)' },
-  { id: 'website', label: 'Kärhananyň ady / saýt' },
-  { id: 'payment', label: 'Töleg maglumaty' },
+const QR_OPTIONS: { id: QrContent; labelKey: string }[] = [
+  { id: 'invoice', labelKey: 'sazlamalar.qrInvoice' },
+  { id: 'website', labelKey: 'sazlamalar.qrWebsite' },
+  { id: 'payment', labelKey: 'sazlamalar.qrPayment' },
 ];
 
 const segBtn = (active: boolean) =>
@@ -41,13 +42,14 @@ const segBtn = (active: boolean) =>
   }`;
 
 export const ThermalReceiptSettings: React.FC<ThermalReceiptSettingsProps> = ({ value, onChange }) => {
+  const t = useT();
   const patch = (partial: Partial<ReceiptSettings>) => onChange({ ...value, ...partial });
   const toggleField = (key: keyof ReceiptFieldFlags) =>
     patch({ fields: { ...value.fields, [key]: !value.fields[key] } });
 
   return (
     <>
-      <SettingsCard title="Görkezmeli meýdançalar" description="Çekde haýsy maglumatlar çap edilsin">
+      <SettingsCard title={t('sazlamalar.thFieldsTitle')} description={t('sazlamalar.thFieldsDesc')}>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           {FIELD_LABELS.map((item) => (
             <label
@@ -60,14 +62,14 @@ export const ThermalReceiptSettings: React.FC<ThermalReceiptSettingsProps> = ({ 
                 onChange={() => toggleField(item.key)}
                 className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
-              <span className="text-[11px] font-bold text-gray-700">{item.label}</span>
+              <span className="text-[11px] font-bold text-gray-700">{t(item.labelKey)}</span>
             </label>
           ))}
         </div>
       </SettingsCard>
 
-      <SettingsCard title="Kagyz we ýazy" description="Termal rulonyň ini we ýazy ölçüsi">
-        <Field label="Kagyz ini">
+      <SettingsCard title={t('sazlamalar.thPaperTitle')} description={t('sazlamalar.thPaperDesc')}>
+        <Field label={t('sazlamalar.prPaperWidth')}>
           <div className="flex items-center gap-2">
             {WIDTHS.map((w) => (
               <button key={w.id} type="button" onClick={() => patch({ paperWidth: w.id })} className={segBtn(value.paperWidth === w.id)}>
@@ -76,19 +78,19 @@ export const ThermalReceiptSettings: React.FC<ThermalReceiptSettingsProps> = ({ 
             ))}
           </div>
         </Field>
-        <Field label="Ýazy ölçüsi" hint="Göz zorlugy bolan kassirler üçin ulaldyp bolýar.">
+        <Field label={t('sazlamalar.thFontSize')} hint={t('sazlamalar.thFontHint')}>
           <div className="flex items-center gap-2">
             {FONTS.map((f) => (
               <button key={f.id} type="button" onClick={() => patch({ fontScale: f.id })} className={segBtn(value.fontScale === f.id)}>
-                {f.label}
+                {t(f.labelKey)}
               </button>
             ))}
           </div>
         </Field>
       </SettingsCard>
 
-      <SettingsCard title="QR we çap hereketi" description="QR mazmuny, awtomatik çap we nusga sany">
-        <Field label="QR kod mazmuny">
+      <SettingsCard title={t('sazlamalar.thQrTitle')} description={t('sazlamalar.thQrDesc')}>
+        <Field label={t('sazlamalar.thQrContent')}>
           <select
             value={value.qrContent}
             onChange={(e) => patch({ qrContent: e.target.value as QrContent })}
@@ -96,18 +98,18 @@ export const ThermalReceiptSettings: React.FC<ThermalReceiptSettingsProps> = ({ 
           >
             {QR_OPTIONS.map((o) => (
               <option key={o.id} value={o.id}>
-                {o.label}
+                {t(o.labelKey)}
               </option>
             ))}
           </select>
         </Field>
         <Toggle
           checked={value.autoPrint}
-          label="Awtomatik çap"
-          description="Satýyş tamamlananda çek awtomatik çap edilsin (Faktura ekranynda)."
+          label={t('sazlamalar.thAutoPrint')}
+          description={t('sazlamalar.thAutoPrintDesc')}
           onChange={(v) => patch({ autoPrint: v })}
         />
-        <Field label="Nusga sany (1–3)">
+        <Field label={t('sazlamalar.thCopies')}>
           <input
             type="number"
             min={1}
@@ -117,12 +119,12 @@ export const ThermalReceiptSettings: React.FC<ThermalReceiptSettingsProps> = ({ 
             className={`${INPUT} font-mono font-bold text-gray-800 w-24`}
           />
         </Field>
-        <Field label="Çekiň aşagyndaky ýazgy">
+        <Field label={t('sazlamalar.thFooterNote')}>
           <input
             type="text"
             value={value.footerNote}
             onChange={(e) => patch({ footerNote: e.target.value })}
-            placeholder="Sag boluň, ýene geliň!"
+            placeholder={t('sazlamalar.thFooterPh')}
             className={`${INPUT} font-medium text-gray-800`}
           />
         </Field>

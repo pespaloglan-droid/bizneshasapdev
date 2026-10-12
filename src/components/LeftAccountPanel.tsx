@@ -168,7 +168,7 @@ export const LeftAccountPanel: React.FC<LeftAccountPanelProps> = ({
           {/* Company and DB address */}
           <div className="flex-1 overflow-hidden">
             <div className="text-sm font-semibold text-gray-900 truncate">
-              {account?.name || 'Hesap Seçilmedi'}
+              {account?.name || t.conn.noAccount}
             </div>
             <div className="text-[11px] text-gray-500 font-normal truncate border-b border-gray-200 pb-0.5 inline-block min-w-[120px]">
               {account?.couchDbUrl || 'http://127.0.0.1:5984'}

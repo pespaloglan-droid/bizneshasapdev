@@ -31,6 +31,7 @@ import {
   type SettingsSection,
 } from './SettingsSidebar';
 import { isNative } from '../../utils/platform';
+import { useT } from '../../locales/LanguageContext';
 import { saveFileAs } from '../../utils/electron';
 import { bytesToBase64, decodeBhbak, encodeBhbak } from '../../utils/bhbak';
 
@@ -74,6 +75,7 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
   canEditSettings = true,
   isAdmin = true,
 }) => {
+  const t = useT();
   const [saved, setSaved] = useState<AppSettings | null>(null);
   const [draft, setDraft] = useState<AppSettings | null>(null);
   const [savedTemplates, setSavedTemplates] = useState<RoleTemplates>({});
@@ -176,7 +178,7 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
     if (!draft) return;
     // Sazlamalary diňe üýtgetme rugsady bolanlar saklap bilýär.
     if (!canEditSettings) {
-      setNotice({ tone: 'error', text: 'Sazlamalary üýtgetmäge rugsadyňyz ýok.' });
+      setNotice({ tone: 'error', text: t('sazlamalar.noEditPerm') });
       return;
     }
     if (target === 'permissions') {
@@ -189,7 +191,7 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
     setSaved(draft);
     // Günlük bayrağı değiştiyse yeniden giriş beklemeden geçerli olsun
     setAuditEnabled(draft.general.auditLogEnabled);
-    setNotice({ tone: 'success', text: 'Sazlamalar ýatda saklandy.' });
+    setNotice({ tone: 'success', text: t('sazlamalar.saved') });
   };
 
   const handleReset = (target: SettingsSection) => {
@@ -218,18 +220,18 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
       const json = await exportStoreData(storeDb);
       const bytes = await encodeBhbak(json);
       const saved = await saveFileAs({
-        title: 'Ätiýaçlyk sakla',
+        title: t('sazlamalar.backupSaveTitle'),
         defaultName: `biznes-hasap-${new Date().toISOString().slice(0, 10)}.bhbak`,
         data: bytesToBase64(bytes),
-        filters: [{ name: 'Biznes Hasap ätiýaçlyk (.bhbak)', extensions: ['bhbak'] }],
+        filters: [{ name: t('sazlamalar.backupFilterName'), extensions: ['bhbak'] }],
       });
       setNotice(
         saved
-          ? { tone: 'success', text: 'Ätiýaçlyk .bhbak faýly saklandy.' }
-          : { tone: 'error', text: 'Eksport ýatyryldy.' }
+          ? { tone: 'success', text: t('sazlamalar.backupSaved') }
+          : { tone: 'error', text: t('sazlamalar.exportCancelled') }
       );
     } catch {
-      setNotice({ tone: 'error', text: 'Eksport başartmady.' });
+      setNotice({ tone: 'error', text: t('sazlamalar.exportFailed') });
     }
   };
 
@@ -238,11 +240,11 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
       const bytes = new Uint8Array(await file.arrayBuffer());
       const json = await decodeBhbak(bytes);
       const count = await importStoreData(storeDb, json);
-      setNotice({ tone: 'success', text: `${count} ýazgy import edildi. Sahypany täzeläň.` });
+      setNotice({ tone: 'success', text: t('sazlamalar.importDone', { count }) });
     } catch {
       setNotice({
         tone: 'error',
-        text: 'Import başartmady: diňe .bhbak (ýa-da köne .json ätiýaçlyk) kabul edilýär.',
+        text: t('sazlamalar.importFailed'),
       });
     }
   };
@@ -250,7 +252,7 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
   if (!draft || !saved) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#F1F5F9]">
-        <span className="text-xs font-bold text-gray-400">Sazlamalar ýüklenýär...</span>
+        <span className="text-xs font-bold text-gray-400">{t('sazlamalar.loading')}</span>
       </div>
     );
   }
@@ -263,7 +265,7 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
       {native && !mobileDetail ? (
         <div className="flex-1 overflow-y-auto bg-white">
           <div className="px-4 py-3 border-b border-gray-100 sticky top-0 bg-white z-10">
-            <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sazlamalar</div>
+            <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{t('sazlamalar.settingsTitle')}</div>
           </div>
           <nav className="p-3 space-y-1.5 pb-8">
             {visibleSections.map((item) => (
@@ -274,7 +276,7 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
                 className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl text-sm font-bold text-gray-800 bg-gray-50 border border-gray-100 active:bg-emerald-50 active:border-emerald-200 text-left"
               >
                 <span className="text-emerald-700">{item.icon}</span>
-                <span className="flex-1">{item.label}</span>
+                <span className="flex-1">{t(item.labelKey)}</span>
                 {dirty[item.id] && <span className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0" />}
                 <span className="text-gray-300 text-lg leading-none">›</span>
               </button>
@@ -295,7 +297,7 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
                 className="mb-3 flex items-center gap-1.5 h-11 px-3 rounded-2xl bg-white border border-gray-200 text-sm font-bold text-gray-700 shadow-sm active:bg-gray-50"
               >
                 <ArrowLeft className="w-5 h-5" />
-                {activeMeta?.label ?? 'Sazlamalar'}
+                {activeMeta ? t(activeMeta.labelKey) : t('sazlamalar.settingsTitle')}
               </button>
             )}
         {notice && (

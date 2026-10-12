@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Coins, Pencil, RefreshCw, Star, Trash2, X, Check } from 'lucide-react';
 import type { CurrencyRate, LanguageCode } from '../../types';
 import { formatRate } from '../../utils/money';
+import { localeFor } from '../../utils/locale';
+import { useT } from '../../locales/LanguageContext';
 
 interface CurrencyTableProps {
   currencies: readonly CurrencyRate[];
@@ -17,10 +19,10 @@ interface CurrencyTableProps {
 const HEAD =
   'text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 select-none';
 
-function formatUpdatedAt(iso: string): string {
+function formatUpdatedAt(iso: string, language: LanguageCode): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString('tr-TR', {
+  return date.toLocaleString(localeFor(language), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -38,6 +40,7 @@ export const CurrencyTable: React.FC<CurrencyTableProps> = ({
   onDelete,
   onSetBase,
 }) => {
+  const t = useT();
   const [editingRateId, setEditingRateId] = useState<string | null>(null);
   const [rateDraft, setRateDraft] = useState('');
 
@@ -60,14 +63,14 @@ export const CurrencyTable: React.FC<CurrencyTableProps> = ({
       <table className="w-full text-left text-xs">
         <thead>
           <tr className={HEAD}>
-            <th className="py-3 px-4">{language === 'tm' ? 'Belgi' : 'Simge'}</th>
+            <th className="py-3 px-4">{t('walyuta.colSymbol')}</th>
             <th className="py-3 px-4">Kod</th>
             <th className="py-3 px-4">Ady</th>
             <th className="py-3 px-4 text-right">
-              {language === 'tm' ? `Kurs (1 birlik = ? ${baseCode})` : `Kur (1 birim = ? ${baseCode})`}
+              {t('walyuta.colRate', { code: baseCode })}
             </th>
             <th className="py-3 px-4">
-              {language === 'tm' ? 'Soňky täzelenme' : 'Son güncelleme'}
+              {t('walyuta.colUpdated')}
             </th>
             <th className="py-3 px-4 text-center">Amal</th>
           </tr>
@@ -79,9 +82,7 @@ export const CurrencyTable: React.FC<CurrencyTableProps> = ({
                 <div className="flex flex-col items-center gap-2">
                   <Coins className="w-10 h-10 text-gray-200" />
                   <span className="font-semibold text-gray-400 text-xs">
-                    {language === 'tm'
-                      ? 'Walýuta ýok. Täze walýuta goşuň.'
-                      : 'Walýuta yok. Yeni walýuta ekleyin.'}
+                    {t('walyuta.emptyCurrencies')}
                   </span>
                 </div>
               </td>
@@ -102,7 +103,7 @@ export const CurrencyTable: React.FC<CurrencyTableProps> = ({
                   {isBase && (
                     <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500 text-white text-[9px] font-bold uppercase">
                       <Star className="w-2.5 h-2.5" />
-                      {language === 'tm' ? 'Esas' : 'Esas'}
+                      {t('walyuta.baseBadge')}
                     </span>
                   )}
                 </td>
@@ -152,7 +153,7 @@ export const CurrencyTable: React.FC<CurrencyTableProps> = ({
                 <td className="py-3 px-4 text-gray-500 whitespace-nowrap">
                   {isBase
                     ? '—'
-                    : formatUpdatedAt(currency.updatedAt)}
+                    : formatUpdatedAt(currency.updatedAt, language)}
                 </td>
 
                 <td className="py-3 px-4">
@@ -162,7 +163,7 @@ export const CurrencyTable: React.FC<CurrencyTableProps> = ({
                         type="button"
                         onClick={() => startRateEdit(currency)}
                         className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-emerald-500 hover:text-white text-gray-500 transition-colors"
-                        title={language === 'tm' ? 'Kursy täzele' : 'Kuru güncelle'}
+                        title={t('walyuta.updateRate')}
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
                       </button>
@@ -172,7 +173,7 @@ export const CurrencyTable: React.FC<CurrencyTableProps> = ({
                         type="button"
                         onClick={() => onSetBase(currency)}
                         className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-amber-500 hover:text-white text-gray-500 transition-colors"
-                        title={language === 'tm' ? 'Esas walýuta ed' : 'Esas para birimi yap'}
+                        title={t('walyuta.setBase')}
                       >
                         <Star className="w-3.5 h-3.5" />
                       </button>
@@ -192,10 +193,8 @@ export const CurrencyTable: React.FC<CurrencyTableProps> = ({
                       className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 text-gray-400 transition-colors enabled:hover:bg-rose-500 enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                       title={
                         isBase
-                          ? (language === 'tm'
-                              ? 'Esas walýuta pozup bolmaýar'
-                              : 'Esas para birimi silinemez')
-                          : (language === 'tm' ? 'Pozmak' : 'Sil')
+                          ? t('walyuta.baseCannotDelete')
+                          : t('walyuta.deleteLabel')
                       }
                     >
                       <Trash2 className="w-3.5 h-3.5" />

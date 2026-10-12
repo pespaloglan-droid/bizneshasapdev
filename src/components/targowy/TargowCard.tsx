@@ -3,6 +3,7 @@ import { Eye, Pencil, Phone, Trash2 } from 'lucide-react';
 import type { LanguageCode, Targow, TargowRegion } from '../../types';
 import type { TargowStats } from '../../db/targowService';
 import { formatMoney } from '../../utils/money';
+import { useT } from '../../locales/LanguageContext';
 
 interface TargowCardProps {
   targow: Targow;
@@ -36,6 +37,7 @@ export const TargowCard: React.FC<TargowCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const t = useT();
   const assignedRegions = targow.regionIds
     .map((id) => regions.find((region) => region.id === id)?.name)
     .filter((name): name is string => Boolean(name));
@@ -64,14 +66,14 @@ export const TargowCard: React.FC<TargowCardProps> = ({
             targow.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
           }`}
         >
-          {targow.isActive ? 'Işjeň' : 'Işjeň däl'}
+          {targow.isActive ? t('targowy.activeLabel') : t('targowy.inactiveLabel')}
         </span>
       </div>
 
       <div className="flex flex-wrap gap-1">
         {assignedRegions.length === 0 ? (
           <span className="text-[10px] font-semibold text-gray-400">
-            {language === 'tm' ? 'Etrap berkidilmedik' : 'Etrap atanmadı'}
+            {t('targowy.noRegionAssigned')}
           </span>
         ) : (
           assignedRegions.map((name) => (
@@ -88,7 +90,7 @@ export const TargowCard: React.FC<TargowCardProps> = ({
       <div className="flex items-end justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-            {language === 'tm' ? 'Şu günki sargytlar' : 'Bugünkü siparişler'}
+            {t('targowy.todayOrders')}
           </div>
           <div className="text-xs font-mono font-bold text-gray-900">
             {todayStats.orderCount} · {formatMoney(todayStats.totalAmount)}
@@ -97,7 +99,7 @@ export const TargowCard: React.FC<TargowCardProps> = ({
 
         <div className="text-right">
           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-            {language === 'tm' ? 'Aýlyk netije' : 'Aylık sonuç'}
+            {t('targowy.monthResult')}
           </div>
           <div className="text-xs font-mono font-bold text-emerald-600">
             {formatMoney(monthStats.totalAmount)}
@@ -105,7 +107,7 @@ export const TargowCard: React.FC<TargowCardProps> = ({
         </div>
       </div>
 
-      <div className="flex items-end gap-0.5 h-6" title={language === 'tm' ? 'Soňky 7 gün' : 'Son 7 gün'}>
+      <div className="flex items-end gap-0.5 h-6" title={t('targowy.last7Days')}>
         {sparkline.map((value, index) => (
           <span
             key={index}
@@ -122,7 +124,7 @@ export const TargowCard: React.FC<TargowCardProps> = ({
           className="flex-1 h-8 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors"
         >
           <Eye className="w-3.5 h-3.5" />
-          {language === 'tm' ? 'Görüş' : 'Görüntüle'}
+          {t('targowy.view')}
         </button>
         <button
           type="button"

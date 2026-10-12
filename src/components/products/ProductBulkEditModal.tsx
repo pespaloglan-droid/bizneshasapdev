@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, ListChecks, Save, Search, X } from 'lucide-react';
 import type { LanguageCode, Product } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface ProductBulkEditModalProps {
   products: readonly Product[];
@@ -18,11 +19,10 @@ const textInput =
 
 export const ProductBulkEditModal: React.FC<ProductBulkEditModalProps> = ({
   products,
-  language,
   onClose,
   onSave,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
   const [drafts, setDrafts] = useState<Product[]>(() => products.map((p) => ({ ...p })));
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
@@ -85,10 +85,10 @@ export const ProductBulkEditModal: React.FC<ProductBulkEditModalProps> = ({
             <ListChecks className="w-5 h-5" />
             <div>
               <h3 className="text-sm font-bold tracking-wide">
-                {isTm ? 'Birbada Uýtgetmek — Harytlar' : 'Toplu Düzenleme — Ürünler'}
+                {t('products.bulkModalTitle')}
               </h3>
               <p className="text-[11px] text-gray-300">
-                {changed.length} {isTm ? 'üýtgeşme taýýar' : 'değişiklik hazır'}
+                {changed.length} {t('products.changesReady')}
               </p>
             </div>
           </div>
@@ -108,7 +108,7 @@ export const ProductBulkEditModal: React.FC<ProductBulkEditModalProps> = ({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={isTm ? 'Haryt ady / barkod / SKU...' : 'Ürün adı / barkod / SKU...'}
+              placeholder={t('products.bulkSearchPlaceholder')}
               className="w-full h-9 pl-9 pr-3 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:border-emerald-500"
             />
           </div>
@@ -117,7 +117,7 @@ export const ProductBulkEditModal: React.FC<ProductBulkEditModalProps> = ({
             onChange={(e) => setCategory(e.target.value)}
             className="h-9 px-3 bg-white border border-gray-200 rounded-xl text-xs outline-none cursor-pointer"
           >
-            <option value="">{isTm ? 'Ähli kategoriýalar' : 'Tüm kategoriler'}</option>
+            <option value="">{t('products.bulkAllCategories')}</option>
             {categories.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -133,12 +133,12 @@ export const ProductBulkEditModal: React.FC<ProductBulkEditModalProps> = ({
           <table className="w-full text-left text-xs">
             <thead className="sticky top-0 bg-gray-50 z-10">
               <tr className="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-200">
-                <th className="py-2 px-3 min-w-[180px]">{isTm ? 'Haryt ady' : 'Ürün adı'}</th>
-                <th className="py-2 px-3 min-w-[130px]">{isTm ? 'Kategoriýa' : 'Kategori'}</th>
-                <th className="py-2 px-3 w-[110px] text-right">{isTm ? 'Alyş' : 'Alış'}</th>
-                <th className="py-2 px-3 w-[110px] text-right">{isTm ? 'Satyş' : 'Satış'}</th>
-                <th className="py-2 px-3 w-[100px] text-right">{isTm ? 'Stok' : 'Stok'}</th>
-                <th className="py-2 px-3 w-[100px] text-right">{isTm ? 'Kritik' : 'Kritik'}</th>
+                <th className="py-2 px-3 min-w-[180px]">{t('products.colName')}</th>
+                <th className="py-2 px-3 min-w-[130px]">{t('products.categoryLabel')}</th>
+                <th className="py-2 px-3 w-[110px] text-right">{t('products.colPurchase')}</th>
+                <th className="py-2 px-3 w-[110px] text-right">{t('products.colSale')}</th>
+                <th className="py-2 px-3 w-[100px] text-right">{t('products.stockShort')}</th>
+                <th className="py-2 px-3 w-[100px] text-right">{t('products.colCritical')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -210,11 +210,11 @@ export const ProductBulkEditModal: React.FC<ProductBulkEditModalProps> = ({
             {errorCount > 0 ? (
               <span className="inline-flex items-center gap-1.5 text-rose-600">
                 <AlertTriangle className="w-3.5 h-3.5" />
-                {errorCount} {isTm ? 'hataly setir' : 'hatalı satır'} (at boş / baha minus)
+                {errorCount} {t('excel.errorRow')} {t('products.errorRowsHint')}
               </span>
             ) : (
               <span className="text-gray-400">
-                {isTm ? 'Bahalar minus bolmaly däl' : 'Fiyatlar negatif olamaz'}
+                {t('products.priceRule')}
               </span>
             )}
           </div>
@@ -224,7 +224,7 @@ export const ProductBulkEditModal: React.FC<ProductBulkEditModalProps> = ({
               onClick={onClose}
               className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
             >
-              {isTm ? 'Ýatyr' : 'İptal'}
+              {t('cancel')}
             </button>
             <button
               type="button"
@@ -233,7 +233,7 @@ export const ProductBulkEditModal: React.FC<ProductBulkEditModalProps> = ({
               className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5"
             >
               <Save className="w-3.5 h-3.5" />
-              {isTm ? `Ýatda sakla (${changed.length})` : `Kaydet (${changed.length})`}
+              {t('products.saveCount', { count: changed.length })}
             </button>
           </div>
         </div>

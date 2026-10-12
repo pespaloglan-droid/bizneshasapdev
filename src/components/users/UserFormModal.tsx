@@ -25,6 +25,7 @@ import {
   buildSavedUser,
 } from './userFormModel';
 import type { MeasurementUnit } from '../../db/unitService';
+import { useT } from '../../locales/LanguageContext';
 
 /** Rugsat berilen gelir kategoriýalary: 7 esasy + "Haryt satuw" sistem kategoriýasy. */
 const ALLOWED_INCOME_CATEGORIES = [...INCOME_CATEGORIES, LEGACY_CATEGORIES[0]];
@@ -63,6 +64,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     editingUser ? formFromUser(editingUser) : emptyUserForm()
   );
   const [error, setError] = useState('');
+  const t = useT();
 
   const handleRoleChange = (role: string) => {
     const template = ROLE_PERMISSIONS[role];
@@ -187,7 +189,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
         <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
           <span className="font-bold text-sm tracking-wide">
-            {editingUser ? 'Ulanyjyny redaktirle' : 'Täze ulanyjy'}
+            {editingUser ? t('users.editTitle') : t('users.newUser')}
           </span>
           <button
             type="button"
@@ -201,7 +203,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block text-[11px] font-bold text-gray-500">
-              Ulanyjy ady *
+              {t('users.colUsername')} *
               <input
                 type="text"
                 value={form.username}
@@ -212,7 +214,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             </label>
 
             <label className="block text-[11px] font-bold text-gray-500">
-              Rol (elle ýazyp bolýar)
+              {t('users.roleLabel')}
               <input
                 type="text"
                 list="user-role-options"
@@ -228,13 +230,13 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               </datalist>
               {!ROLE_PERMISSIONS[form.role] && form.role.trim().length > 0 && (
                 <span className="block text-[10px] font-semibold text-amber-700 mt-1">
-                  Täze rol — rugsatlary özüňiz belleýärsiňiz
+                  {t('users.customRoleHint')}
                 </span>
               )}
             </label>
 
             <label className="block text-[11px] font-bold text-gray-500">
-              {editingUser ? 'Parol (boş goýsaňyz üýtgemez)' : 'Parol (islege görä)'}
+              {editingUser ? t('users.passwordEditLabel') : t('users.passwordNewLabel')}
               <input
                 type="password"
                 value={form.password}
@@ -244,7 +246,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             </label>
 
             <label className="block text-[11px] font-bold text-gray-500">
-              Paroly tassykla
+              {t('users.confirmPassword')}
               <input
                 type="password"
                 value={form.confirmPassword}
@@ -263,11 +265,11 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 : 'bg-white text-gray-500 border-gray-200'
             }`}
           >
-            {form.isActive ? 'Aktiw' : 'Passiw'}
+            {form.isActive ? t('users.active') : t('users.passive')}
           </button>
 
           <div>
-            <div className="text-[11px] font-bold text-gray-500 mb-1.5">Rugsatlar</div>
+            <div className="text-[11px] font-bold text-gray-500 mb-1.5">{t('users.permissionsTitle')}</div>
             <PermissionMatrix
               language={language}
               permissions={form.permissions}
@@ -278,14 +280,12 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
           {/* ── Kassa / Faktura inçe rugsatlary ─────────────────────────────── */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             <div className="px-3 py-2 bg-gray-50/80 text-[11px] font-bold text-gray-600">
-              {language === 'tm'
-                ? 'Kassa we Faktura inçe rugsatlary'
-                : 'Kasa ve Fatura ince izinleri'}
+              {t('users.finePermsTitle')}
             </div>
 
             <div className="px-3 py-2.5 space-y-2.5">
               {/* Kassa */}
-              <div className="text-[10.5px] font-bold text-gray-500">Kassa</div>
+              <div className="text-[10.5px] font-bold text-gray-500">{t('users.kassaSection')}</div>
               <div className="flex flex-wrap items-center gap-2">
                 <label className="flex items-center gap-1.5 text-[10.5px] font-semibold text-gray-700 cursor-pointer">
                   <input
@@ -294,7 +294,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                     onChange={(e) => handleKassaExtras({ addIncome: e.target.checked })}
                     className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                   />
-                  Girdeji goş
+                  {t('users.addIncome')}
                 </label>
                 <label className="flex items-center gap-1.5 text-[10.5px] font-semibold text-gray-700 cursor-pointer">
                   <input
@@ -303,7 +303,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                     onChange={(e) => handleKassaExtras({ addExpense: e.target.checked })}
                     className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                   />
-                  Çykdajy goş
+                  {t('users.addExpense')}
                 </label>
                 <label className="flex items-center gap-1.5 text-[10.5px] font-semibold text-gray-700 cursor-pointer">
                   <input
@@ -312,7 +312,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                     onChange={(e) => handleKassaExtras({ viewBalance: e.target.checked })}
                     className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                   />
-                  Kassa balansyny görkez
+                  {t('users.showBalance')}
                 </label>
               </div>
 
@@ -321,9 +321,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 <div className="bg-[#F8FAFC] border border-gray-200 rounded-lg p-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10.5px] font-bold text-gray-600">
-                      {language === 'tm'
-                        ? 'Rugsat berilen kategoriýalar'
-                        : 'İzin verilen kategoriler'}
+                      {t('users.allowedCategories')}
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -331,14 +329,14 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                         onClick={selectAllIncome}
                         className="px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-emerald-50 text-[10px] font-bold text-gray-600 transition-colors"
                       >
-                        Hemmesini saýla
+                        {t('users.selectAll')}
                       </button>
                       <button
                         type="button"
                         onClick={clearAllIncome}
                         className="px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-rose-50 text-[10px] font-bold text-gray-600 transition-colors"
                       >
-                        Hemmesini aýyr
+                        {t('users.clearAll')}
                       </button>
                     </div>
                   </div>
@@ -365,7 +363,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               )}
 
               {/* Faktura */}
-              <div className="text-[10.5px] font-bold text-gray-500 mt-1">Faktura</div>
+              <div className="text-[10.5px] font-bold text-gray-500 mt-1">{t('users.fakturaSection')}</div>
               <div className="flex flex-wrap items-center gap-2">
                 <label className="flex items-center gap-1.5 text-[10.5px] font-semibold text-gray-700 cursor-pointer">
                   <input
@@ -374,7 +372,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                     onChange={(e) => handleFakturaExtras({ editPrice: e.target.checked })}
                     className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                   />
-                  Bahany üýtget
+                  {t('users.editPrice')}
                 </label>
                 <label className="flex items-center gap-1.5 text-[10.5px] font-semibold text-gray-700 cursor-pointer">
                   <input
@@ -383,7 +381,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                     onChange={(e) => handleFakturaExtras({ allowDiscount: e.target.checked })}
                     className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                   />
-                  Arzanladyş ber
+                  {t('users.allowDiscount')}
                 </label>
               </div>
 
@@ -391,9 +389,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               <div className="bg-[#F8FAFC] border border-gray-200 rounded-lg p-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10.5px] font-bold text-gray-600">
-                    {language === 'tm'
-                      ? 'Rugsat berilen faktura görnüşleri'
-                      : 'İzin verilen fatura türleri'}
+                    {t('users.allowedInvoiceTypes')}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <button
@@ -401,14 +397,14 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                       onClick={selectAllInvoiceTypes}
                       className="px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-emerald-50 text-[10px] font-bold text-gray-600 transition-colors"
                     >
-                      Hemmesini saýla
+                      {t('users.selectAll')}
                     </button>
                     <button
                       type="button"
                       onClick={clearAllInvoiceTypes}
                       className="px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-rose-50 text-[10px] font-bold text-gray-600 transition-colors"
                     >
-                      Hemmesini aýyr
+                      {t('users.clearAll')}
                     </button>
                   </div>
                 </div>
@@ -465,13 +461,13 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               onClick={onClose}
               className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
             >
-              Ýatyr
+              {t('cancel')}
             </button>
             <button
               type="submit"
               className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
             >
-              Ýatda sakla
+              {t('save')}
             </button>
           </div>
         </form>

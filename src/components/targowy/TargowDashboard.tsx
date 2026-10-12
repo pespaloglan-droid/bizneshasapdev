@@ -3,6 +3,7 @@ import { Award, PackageCheck, TrendingUp, Users } from 'lucide-react';
 import type { InvoiceRecord, LanguageCode, Targow } from '../../types';
 import { currentWindow, statsFor } from '../../db/targowService';
 import { formatMoney } from '../../utils/money';
+import { useT } from '../../locales/LanguageContext';
 
 interface TargowDashboardProps {
   targows: readonly Targow[];
@@ -15,6 +16,7 @@ export const TargowDashboard: React.FC<TargowDashboardProps> = ({
   invoices,
   language,
 }) => {
+  const t = useT();
   const window = currentWindow('today');
   const activeTargows = targows.filter((targow) => targow.isActive);
 
@@ -36,7 +38,7 @@ export const TargowDashboard: React.FC<TargowDashboardProps> = ({
   const cards = [
     {
       key: 'amount',
-      label: language === 'tm' ? 'Şu günki umumy satuw' : 'Bugünkü toplam satış',
+      label: t('targowy.todayTotalSales'),
       value: `${formatMoney(todayAmount)} TMT`,
       valueClass: 'text-emerald-600',
       icon: <TrendingUp className="w-4 h-4" />,
@@ -44,7 +46,7 @@ export const TargowDashboard: React.FC<TargowDashboardProps> = ({
     },
     {
       key: 'orders',
-      label: language === 'tm' ? 'Şu günki sargytlar sany' : 'Bugünkü sipariş adedi',
+      label: t('targowy.todayOrderCount'),
       value: String(todayOrders),
       valueClass: 'text-gray-900',
       icon: <PackageCheck className="w-4 h-4" />,
@@ -52,7 +54,7 @@ export const TargowDashboard: React.FC<TargowDashboardProps> = ({
     },
     {
       key: 'active',
-      label: language === 'tm' ? 'Işjeň targowçylar' : 'Aktif targowçılar',
+      label: t('targowy.activeTargows'),
       value: `${activeTargows.length} / ${targows.length}`,
       valueClass: 'text-gray-900',
       icon: <Users className="w-4 h-4" />,
@@ -79,7 +81,7 @@ export const TargowDashboard: React.FC<TargowDashboardProps> = ({
       <div className="bg-white rounded-2xl shadow-sm border border-amber-200 p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-            {language === 'tm' ? 'Iň gowy targowçy (şu gün)' : 'Günün en iyi targowçısı'}
+            {t('targowy.bestToday')}
           </span>
           <span className="w-8 h-8 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600">
             <Award className="w-4 h-4" />
@@ -94,7 +96,7 @@ export const TargowDashboard: React.FC<TargowDashboardProps> = ({
           </>
         ) : (
           <div className="text-xs font-semibold text-gray-400">
-            {language === 'tm' ? 'Şu gün sargyt ýok' : 'Bugün sipariş yok'}
+            {t('targowy.noOrdersToday')}
           </div>
         )}
       </div>

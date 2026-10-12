@@ -6,9 +6,11 @@ import { inWindow, type DateWindow } from '../../utils/calcPeriods';
 import { moneyTmt } from '../../utils/calcFlow';
 import { invoiceTmt, productSales } from '../../utils/calcAssets';
 import { formatMoney, todayIsoDate } from '../../utils/money';
+import { localeFor } from '../../utils/locale';
+import { useLanguage, useT } from '../../locales/LanguageContext';
 import { updatedStamp, useReport } from '../../utils/report';
 import { EmptyState, ReportActions } from './charts';
-import { PAY_LABEL, XAccotInvoiceTable } from './XAccotInvoiceTable';
+import { payLabel, XAccotInvoiceTable } from './XAccotInvoiceTable';
 
 interface XAccotTabProps {
   invoices: readonly InvoiceRecord[];
@@ -74,6 +76,9 @@ export const XAccotTab: React.FC<XAccotTabProps> = ({
   rangeLabel,
   paperWidth,
 }) => {
+  const { language } = useLanguage();
+  const t = useT();
+  const locale = localeFor(language);
   const [day, setDay] = useState(todayIsoDate());
   const window = useMemo(() => dayWindow(day), [day]);
   const stats = useMemo(
@@ -91,54 +96,54 @@ export const XAccotTab: React.FC<XAccotTabProps> = ({
   const report = useReport(paperWidth);
 
   const net = stats.income - stats.expense;
-  const dayLabel = window.from.toLocaleDateString('tr-TR', {
+  const dayLabel = window.from.toLocaleDateString(locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   });
 
   const cards = [
-    { key: 'orders', label: 'Faktura sany', value: String(stats.orderCount), cls: 'text-gray-900' },
-    { key: 'sales', label: 'Satyş jemi', value: formatMoney(stats.salesTotal), cls: 'text-emerald-600' },
-    { key: 'cash', label: 'Nagt', value: formatMoney(stats.cash), cls: 'text-emerald-600' },
-    { key: 'card', label: 'Karta', value: formatMoney(stats.card), cls: 'text-sky-600' },
-    { key: 'credit', label: 'Nesiýe', value: formatMoney(stats.credit), cls: 'text-amber-600' },
-    { key: 'income', label: 'Kassa girdeji', value: formatMoney(stats.income), cls: 'text-emerald-600' },
-    { key: 'expense', label: 'Kassa çykdajy', value: formatMoney(stats.expense), cls: 'text-rose-600' },
-    { key: 'net', label: 'Arassa', value: formatMoney(net), cls: net >= 0 ? 'text-emerald-600' : 'text-rose-600' },
+    { key: 'orders', label: t('hasaplama.cardInvoices'), value: String(stats.orderCount), cls: 'text-gray-900' },
+    { key: 'sales', label: t('hasaplama.cardSalesTotal'), value: formatMoney(stats.salesTotal), cls: 'text-emerald-600' },
+    { key: 'cash', label: t('hasaplama.cardCash'), value: formatMoney(stats.cash), cls: 'text-emerald-600' },
+    { key: 'card', label: t('hasaplama.cardCard'), value: formatMoney(stats.card), cls: 'text-sky-600' },
+    { key: 'credit', label: t('hasaplama.cardCredit'), value: formatMoney(stats.credit), cls: 'text-amber-600' },
+    { key: 'income', label: t('hasaplama.cardKassaIncome'), value: formatMoney(stats.income), cls: 'text-emerald-600' },
+    { key: 'expense', label: t('hasaplama.cardKassaExpense'), value: formatMoney(stats.expense), cls: 'text-rose-600' },
+    { key: 'net', label: t('hasaplama.cardNet'), value: formatMoney(net), cls: net >= 0 ? 'text-emerald-600' : 'text-rose-600' },
   ];
 
   const summaryRows: (string | number)[][] = [
-    ['Faktura sany', stats.orderCount],
-    ['Satyş jemi (TMT)', stats.salesTotal.toFixed(2)],
-    ['Nagt', stats.cash.toFixed(2)],
-    ['Karta', stats.card.toFixed(2)],
-    ['Nesiýe', stats.credit.toFixed(2)],
-    ['Kassa girdeji', stats.income.toFixed(2)],
-    ['Kassa çykdajy', stats.expense.toFixed(2)],
-    ['Arassa', net.toFixed(2)],
+    [t('hasaplama.cardInvoices'), stats.orderCount],
+    [t('hasaplama.salesTotalTmt'), stats.salesTotal.toFixed(2)],
+    [t('hasaplama.cardCash'), stats.cash.toFixed(2)],
+    [t('hasaplama.cardCard'), stats.card.toFixed(2)],
+    [t('hasaplama.cardCredit'), stats.credit.toFixed(2)],
+    [t('hasaplama.cardKassaIncome'), stats.income.toFixed(2)],
+    [t('hasaplama.cardKassaExpense'), stats.expense.toFixed(2)],
+    [t('hasaplama.cardNet'), net.toFixed(2)],
   ];
 
   const invoiceRows: (string | number)[][] = dayInvoices.map((invoice) => [
     invoice.invoiceNo,
-    new Date(invoice.createdAt).toLocaleTimeString('tr-TR', {
+    new Date(invoice.createdAt).toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit',
     }),
     invoice.customerName,
     invoice.itemCount,
-    PAY_LABEL[invoice.paymentMethod] ?? invoice.paymentMethod,
+    payLabel(invoice.paymentMethod, t),
     invoiceTmt(invoice).toFixed(2),
   ]);
 
-  const invoiceHeaders = ['Faktura No', 'Wagt', 'Müşderi', 'Haryt', 'Töleg', 'Tutar (TMT)'];
+  const invoiceHeaders = [t('hasaplama.colInvoiceNo'), t('hasaplama.colTime'), t('hasaplama.colCustomer'), t('hasaplama.colProduct'), t('hasaplama.colPayment'), t('hasaplama.colAmountTmt')];
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
           <CalendarClock className="w-3.5 h-3.5 text-emerald-600" />
-          X-Accot · günlük biznes · {rangeLabel}
+          {t('hasaplama.xaccotTitle')} · {rangeLabel}
         </span>
         <div className="flex items-center gap-2">
           <input
@@ -151,14 +156,14 @@ export const XAccotTab: React.FC<XAccotTabProps> = ({
             isPrinting={report.isPrinting}
             onPrint={() =>
               void report.print({
-                title: 'X-ACCOT (Günlük biznes)',
+                title: t('hasaplama.xaccotPrintTitle'),
                 subtitle: dayLabel,
-                columns: ['Beýan', 'Baha'],
+                columns: [t('hasaplama.colDesc'), t('hasaplama.colValue')],
                 rows: summaryRows,
-                footer: `Arassa: ${formatMoney(net)} TMT · ${dayInvoices.length} faktura`,
+                footer: t('hasaplama.netFooter', { amount: formatMoney(net), count: dayInvoices.length }),
                 extras: [
                   {
-                    title: `Günüň fakturalary (${dayInvoices.length})`,
+                    title: t('hasaplama.dayInvoices', { count: dayInvoices.length }),
                     columns: invoiceHeaders,
                     rows: invoiceRows,
                   },
@@ -193,17 +198,17 @@ export const XAccotTab: React.FC<XAccotTabProps> = ({
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 text-xs font-bold text-gray-700">
-          Günüň iň köp satylan harytlary
+          {t('hasaplama.dayBestSellers')}
         </div>
         {best.length === 0 ? (
-          <EmptyState text="Bu gün üçin satyş ýok" />
+          <EmptyState text={t('hasaplama.noSalesToday')} />
         ) : (
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                <th className="py-2 px-4">Haryt</th>
-                <th className="py-2 px-4 text-right">Sany</th>
-                <th className="py-2 px-4 text-right">Tutar (TMT)</th>
+                <th className="py-2 px-4">{t('hasaplama.colProduct')}</th>
+                <th className="py-2 px-4 text-right">{t('hasaplama.colQty')}</th>
+                <th className="py-2 px-4 text-right">{t('hasaplama.colAmountTmt')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -222,7 +227,7 @@ export const XAccotTab: React.FC<XAccotTabProps> = ({
       </div>
 
       <div className="text-[10px] text-gray-400 font-semibold text-right">
-        Taýýarlanyldy: {updatedStamp()} · {products.length} haryt görnüşi
+        {t('hasaplama.preparedAt')} {updatedStamp()} · {t('hasaplama.productKindsSuffix', { count: products.length })}
       </div>
     </div>
   );

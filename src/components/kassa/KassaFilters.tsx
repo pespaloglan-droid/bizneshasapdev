@@ -2,6 +2,7 @@ import React from 'react';
 import { Plus, Search, SlidersHorizontal, X } from 'lucide-react';
 import type { Customer, LanguageCode, MoneyCategoryId, MoneyTxType } from '../../types';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../../db/moneyService';
+import { useT } from '../../locales/LanguageContext';
 
 export interface KassaFilterState {
   search: string;
@@ -64,6 +65,7 @@ export const KassaFilters: React.FC<KassaFiltersProps> = ({
   canAddExpense = true,
   allowedIncomeCategories,
 }) => {
+  const t = useT();
   // Rugsat berilen gelir kategoriýalary (undefined = ählisi açyk).
   const visibleIncomeCategories =
     allowedIncomeCategories && allowedIncomeCategories.length > 0
@@ -78,11 +80,7 @@ export const KassaFilters: React.FC<KassaFiltersProps> = ({
           type="text"
           value={filters.search}
           onChange={(e) => onChange({ ...filters, search: e.target.value })}
-          placeholder={
-            language === 'tm'
-              ? 'Düşündiriş ýa-da kategoriýa boýunça gözle...'
-              : 'Açıklama veya kategoriye göre ara...'
-          }
+          placeholder={t('kassa.searchPlaceholder')}
           className="w-full pl-9 pr-4 h-10 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
         />
       </div>
@@ -92,7 +90,7 @@ export const KassaFilters: React.FC<KassaFiltersProps> = ({
         type="button"
         onClick={onOpenAdvanced}
         className="h-10 w-10 flex-shrink-0 flex items-center justify-center bg-white border border-gray-200 hover:border-emerald-400 hover:text-emerald-600 rounded-xl text-gray-600 shadow-sm transition-all active:scale-95"
-        title={language === 'tm' ? 'Giňişleýin gözleg (F3)' : 'Gelişmiş arama (F3)'}
+        title={t('kassa.advancedSearchTip')}
       >
         <SlidersHorizontal className="w-4 h-4" />
       </button>
@@ -102,9 +100,9 @@ export const KassaFilters: React.FC<KassaFiltersProps> = ({
         onChange={(e) => onChange({ ...filters, type: e.target.value as MoneyTxType | '' })}
         className={FIELD}
       >
-        <option value="">Ählisi</option>
-        <option value="income">Girdeji</option>
-        <option value="expense">Çykdajy</option>
+        <option value="">{t('kassa.all')}</option>
+        <option value="income">{t('kassa.income')}</option>
+        <option value="expense">{t('kassa.expense')}</option>
       </select>
 
       <select
@@ -112,15 +110,15 @@ export const KassaFilters: React.FC<KassaFiltersProps> = ({
         onChange={(e) => onChange({ ...filters, category: e.target.value as MoneyCategoryId | '' })}
         className={FIELD}
       >
-        <option value="">Ähli kategoriýalar</option>
-        <optgroup label="Girdeji">
+        <option value="">{t('kassa.allCategories')}</option>
+        <optgroup label={t('kassa.income')}>
           {visibleIncomeCategories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.label}
             </option>
           ))}
         </optgroup>
-        <optgroup label="Çykdajy">
+        <optgroup label={t('kassa.expense')}>
           {EXPENSE_CATEGORIES.map((category) => (
             <option key={category.id} value={category.id}>
               {category.label}
@@ -134,7 +132,7 @@ export const KassaFilters: React.FC<KassaFiltersProps> = ({
         onChange={(e) => onChange({ ...filters, customerId: e.target.value })}
         className={FIELD}
       >
-        <option value="">Ähli müşderiler</option>
+        <option value="">{t('kassa.allCustomers')}</option>
         {customers.map((customer) => (
           <option key={customer.id} value={customer.id}>
             {customer.name}
@@ -146,14 +144,14 @@ export const KassaFilters: React.FC<KassaFiltersProps> = ({
         type="date"
         value={filters.dateFrom}
         onChange={(e) => onChange({ ...filters, dateFrom: e.target.value })}
-        title="Başlangyç sene"
+        title={t('kassa.dateStartTip')}
         className={FIELD}
       />
       <input
         type="date"
         value={filters.dateTo}
         onChange={(e) => onChange({ ...filters, dateTo: e.target.value })}
-        title="Ahyrky sene"
+        title={t('kassa.dateEndTip')}
         className={FIELD}
       />
 
@@ -164,7 +162,7 @@ export const KassaFilters: React.FC<KassaFiltersProps> = ({
           className="h-10 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center gap-1.5 text-xs font-bold transition-colors"
         >
           <X className="w-3.5 h-3.5" />
-          Arassala
+          {t('kassa.clear')}
         </button>
       )}
 
@@ -176,7 +174,7 @@ export const KassaFilters: React.FC<KassaFiltersProps> = ({
           className="h-10 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm flex-shrink-0"
         >
           <Plus className="w-4 h-4" />
-          Girdeji
+          {t('kassa.income')}
         </button>
         )}
         {canAddExpense && (
@@ -186,7 +184,7 @@ export const KassaFilters: React.FC<KassaFiltersProps> = ({
           className="h-10 px-5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm flex-shrink-0"
         >
           <Plus className="w-4 h-4" />
-          Çykdajy
+          {t('kassa.expense')}
         </button>
         )}
       </div>

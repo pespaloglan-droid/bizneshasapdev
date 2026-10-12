@@ -7,6 +7,7 @@ import type {
 import { getLocalDatabase, upsertDoc } from './pouch';
 import { ROLE_PERMISSIONS } from './userService';
 import { applyBaseCurrency, DEFAULT_BASE_CURRENCY } from './currencyService';
+import { detectInitialLanguage } from '../utils/languageDetect';
 
 const SETTINGS_DOC = 'settings_app';
 const ROLES_DOC = 'settings_roles';
@@ -162,7 +163,7 @@ export async function saveBaseCurrency(
   storeDb: string,
   currency: { code: string; name: string; symbol: string }
 ): Promise<void> {
-  const current = (await getAppSettings(storeDb)) ?? defaultSettings('tm', '');
+  const current = (await getAppSettings(storeDb)) ?? defaultSettings(detectInitialLanguage(), '');
   const next: AppSettings = {
     ...current,
     general: {
@@ -181,7 +182,7 @@ export async function saveBaseCurrency(
  */
 export function normalizeSettings(raw: AppSettings | null): AppSettings | null {
   if (!raw) return null;
-  const language = raw.general?.language ?? 'tm';
+  const language = raw.general?.language ?? detectInitialLanguage();
   const companyName = raw.receipt?.companyName ?? '';
   const d = defaultSettings(language, companyName);
   const rawStandard = raw.receipt?.standard;
@@ -211,6 +212,22 @@ export async function saveAppSettings(
   storeDb: string
 ): Promise<void> {
   await upsertDoc(storeDb, SETTINGS_DOC, { docType: 'settings', settings });
+}
+
+/**
+ * Tek dil kaynağı senkronu: localStorage'daki son seçim kazanır ve
+ * AppSettings.general.language olarak DB'ye yazılır (dil değişiminde ve girişte).
+ */
+export async function syncLanguageToDb(
+  storeDb: string,
+  language: LanguageCode
+): Promise<void> {
+  const current = (await getAppSettings(storeDb)) ?? defaultSettings(language, '');
+  if (current.general.language === language) return;
+  await saveAppSettings(
+    { ...current, general: { ...current.general, language } },
+    storeDb
+  );
 }
 
 export async function getRoleTemplates(storeDb: string): Promise<RoleTemplates> {

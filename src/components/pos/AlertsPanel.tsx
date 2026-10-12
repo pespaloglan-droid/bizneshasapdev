@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { AlertTriangle, HandCoins, Package, X } from 'lucide-react';
 import type { InvoiceRecord, LanguageCode, Product } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 export interface DueCreditRow {
   readonly invoice: InvoiceRecord;
@@ -26,7 +27,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
   onSelectCustomer,
   onClose,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
   const total = criticalStock.length + dueCredits.length;
 
   useEffect(() => {
@@ -38,9 +39,9 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
   }, [onClose]);
 
   const dueLabel = (daysLeft: number): string => {
-    if (daysLeft < 0) return isTm ? `${Math.abs(daysLeft)} gün geçdi` : `${Math.abs(daysLeft)} gün gecikti`;
-    if (daysLeft === 0) return isTm ? 'Şu gün' : 'Bugün';
-    return isTm ? `${daysLeft} gün galdy` : `${daysLeft} gün kaldı`;
+    if (daysLeft < 0) return t('pos.dueOverdue', { days: Math.abs(daysLeft) });
+    if (daysLeft === 0) return t('pos.dueToday');
+    return t('pos.dueDaysLeft', { days: daysLeft });
   };
 
   return (
@@ -58,16 +59,12 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-bold tracking-wide">
-                {isTm ? 'Duýduryşlar' : 'Uyarılar'}
+                {t('pos.alertsTitle')}
               </h3>
               <p className="text-[10px] text-gray-300">
                 {total > 0
-                  ? isTm
-                    ? `${total} sany üns talap edýär`
-                    : `${total} adet dikkat gerektiriyor`
-                  : isTm
-                  ? 'Ähli zat ýerinde'
-                  : 'Her şey yolunda'}
+                  ? t('pos.alertsAttention', { count: total })
+                  : t('pos.alertsAllOk')}
               </p>
             </div>
           </div>
@@ -85,12 +82,10 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
             <div className="py-12 px-4 flex flex-col items-center justify-center text-gray-400">
               <AlertTriangle className="w-10 h-10 text-gray-200 mb-2 stroke-1" />
               <span className="text-xs font-semibold text-gray-500">
-                {isTm ? 'Häzirlikçe duýduryş ýok' : 'Şu anda uyarı yok'}
+                {t('pos.alertsEmpty')}
               </span>
               <p className="text-[11px] text-gray-400 mt-1 text-center">
-                {isTm
-                  ? 'Kritik stok ýa-da möhleti ýakynlaşan bergi ýok.'
-                  : 'Kritik stok veya vadesi yaklaşan borç yok.'}
+                {t('pos.alertsEmptyHint')}
               </p>
             </div>
           ) : (
@@ -100,7 +95,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
                 <div className="px-4 py-2 bg-gray-50/80 flex items-center gap-2 border-b border-gray-100">
                   <Package className="w-3.5 h-3.5 text-amber-600" />
                   <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wide">
-                    {isTm ? 'Stokdaky azalan harytlar' : 'Stoğu azalan ürünler'}
+                    {t('pos.alertsLowStock')}
                   </span>
                   <span className="ml-auto text-[10px] font-bold font-mono bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
                     {criticalStock.length}
@@ -108,7 +103,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
                 </div>
                 {criticalStock.length === 0 ? (
                   <div className="px-4 py-3 text-[11px] text-gray-400">
-                    {isTm ? 'Kritik stok ýok' : 'Kritik stok yok'}
+                    {t('pos.alertsNoCritical')}
                   </div>
                 ) : (
                   criticalStock.map((product) => {
@@ -125,7 +120,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
                             {product.name}
                           </div>
                           <div className="text-[10px] text-gray-400">
-                            {isTm ? 'Kritik dereje' : 'Kritik seviye'}: {product.criticalStock ?? 0}
+                            {t('pos.alertsCriticalLevel')}: {product.criticalStock ?? 0}
                           </div>
                         </div>
                         <span
@@ -137,7 +132,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
                         </span>
                         {negative && (
                           <span className="text-[9px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded flex-shrink-0">
-                            {isTm ? 'MINUS' : 'EKSİ'}
+                            {t('pos.alertsMinus')}
                           </span>
                         )}
                       </button>
@@ -151,7 +146,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
                 <div className="px-4 py-2 bg-gray-50/80 flex items-center gap-2 border-b border-gray-100">
                   <HandCoins className="w-3.5 h-3.5 text-rose-600" />
                   <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wide">
-                    {isTm ? 'Töleg wagty ýakynlaşýan nesiýeler' : 'Vadesi yaklaşan veresiyeler'}
+                    {t('pos.alertsDueCredits')}
                   </span>
                   <span className="ml-auto text-[10px] font-bold font-mono bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded">
                     {dueCredits.length}
@@ -159,7 +154,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
                 </div>
                 {dueCredits.length === 0 ? (
                   <div className="px-4 py-3 text-[11px] text-gray-400">
-                    {isTm ? 'Möhleti ýakyn bergi ýok' : 'Vadesi yakın borç yok'}
+                    {t('pos.alertsNoDue')}
                   </div>
                 ) : (
                   dueCredits.map((row) => {
@@ -187,12 +182,12 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
                             </span>
                             {overdue && (
                               <span className="text-[9px] font-bold text-white bg-rose-700 px-1.5 py-0.5 rounded flex-shrink-0">
-                                {isTm ? 'MÖHLETI GEÇDI' : 'VADESİ GEÇTİ'}
+                                {t('pos.alertsOverdue')}
                               </span>
                             )}
                             {today && (
                               <span className="text-[9px] font-bold text-white bg-rose-500 px-1.5 py-0.5 rounded flex-shrink-0">
-                                {isTm ? 'ŞU GÜN' : 'BUGÜN'}
+                                {t('pos.alertsToday')}
                               </span>
                             )}
                           </div>

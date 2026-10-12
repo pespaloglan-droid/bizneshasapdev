@@ -6,6 +6,7 @@ import { ReceiptPreview } from './ReceiptPreview';
 import { StandardInvoicePreview } from './StandardInvoicePreview';
 import { ThermalReceiptSettings } from './ThermalReceiptSettings';
 import { StandardPrintPanel } from './StandardPrintPanel';
+import { useT } from '../../locales/LanguageContext';
 
 interface ReceiptSettingsPanelProps {
   value: ReceiptSettings;
@@ -29,6 +30,7 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
   onSave,
   onReset,
 }) => {
+  const t = useT();
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<ReceiptTab>('thermal');
@@ -39,11 +41,11 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
     setError('');
     if (!file) return;
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Diňe PNG ýa-da JPG surat kabul edilýär.');
+      setError(t('sazlamalar.rcErrType'));
       return;
     }
     if (file.size > MAX_LOGO_BYTES) {
-      setError('Suratyň ululygy 2 MB-dan uly bolmaly däl.');
+      setError(t('sazlamalar.rcErrSize'));
       return;
     }
     const reader = new FileReader();
@@ -55,8 +57,8 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
   };
 
   const TAB_BUTTONS: { id: ReceiptTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'thermal', label: 'Termal çek (80mm)', icon: <Receipt className="w-4 h-4" /> },
-    { id: 'standard', label: 'Adaty çap (A4)', icon: <FileText className="w-4 h-4" /> },
+    { id: 'thermal', label: t('sazlamalar.rcTabThermal'), icon: <Receipt className="w-4 h-4" /> },
+    { id: 'standard', label: t('sazlamalar.rcTabStandard'), icon: <FileText className="w-4 h-4" /> },
   ];
 
   const activePaper = tab === 'standard' ? 'A4' : value.paperWidth || paperWidth;
@@ -82,7 +84,7 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
         </div>
 
         {/* Ortak: Logo */}
-        <SettingsCard title="Logo" description="Her iki çap görnüşinde hem ulanylýan surat (PNG/JPG, iň köp 2 MB)">
+        <SettingsCard title={t('sazlamalar.rcLogoTitle')} description={t('sazlamalar.rcLogoDesc')}>
           <div className="flex items-center gap-3">
             <div className="w-20 h-20 rounded-xl border border-gray-200 bg-[#F8FAFC] flex items-center justify-center overflow-hidden flex-shrink-0">
               {value.logoDataUrl ? (
@@ -97,7 +99,7 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
                 onClick={() => fileRef.current?.click()}
                 className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
               >
-                Logo ýükle
+                {t('sazlamalar.rcLogoUpload')}
               </button>
               {value.logoDataUrl && (
                 <button
@@ -106,7 +108,7 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
                   className="h-9 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center gap-1.5"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Aýyr
+                  {t('sazlamalar.rcRemove')}
                 </button>
               )}
             </div>
@@ -119,7 +121,7 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
             />
           </div>
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Logo ini (px; 0 = deslapky)">
+            <Field label={t('sazlamalar.rcLogoWidth')}>
               <input
                 type="number"
                 min="0"
@@ -128,7 +130,7 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
                 className={`${INPUT} font-mono font-bold text-gray-800`}
               />
             </Field>
-            <Field label="Logony ortalaşdyr">
+            <Field label={t('sazlamalar.rcLogoCenter')}>
               <button
                 type="button"
                 onClick={() => patch({ logoCenter: !(value.logoCenter ?? true) })}
@@ -138,7 +140,7 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
                     : 'bg-white text-gray-500 border border-gray-200'
                 }`}
               >
-                {(value.logoCenter ?? true) ? 'Ortada' : 'Çepde'}
+                {(value.logoCenter ?? true) ? t('sazlamalar.rcCenter') : t('sazlamalar.rcLeft')}
               </button>
             </Field>
           </div>
@@ -146,8 +148,8 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
         </SettingsCard>
 
         {/* Ortak: Kärhana maglumatlary */}
-        <SettingsCard title="Kärhana maglumatlary" description="Iki çap görnüşinde hem bir hakyky çeşmeden gelýär">
-          <Field label="Kärhananyň ady">
+        <SettingsCard title={t('sazlamalar.rcCompanyTitle')} description={t('sazlamalar.rcCompanyDesc')}>
+          <Field label={t('sazlamalar.rcCompanyName')}>
             <input
               type="text"
               value={value.companyName}
@@ -155,7 +157,7 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
               className={`${INPUT} font-medium text-gray-800`}
             />
           </Field>
-          <Field label="Salgysy">
+          <Field label={t('sazlamalar.rcAddress')}>
             <input
               type="text"
               value={value.address}
@@ -164,7 +166,7 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
             />
           </Field>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Field label="Telefon belgisi">
+            <Field label={t('sazlamalar.rcPhone')}>
               <input
                 type="text"
                 value={value.phone}
@@ -173,7 +175,7 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
                 className={`${INPUT} font-medium text-gray-800`}
               />
             </Field>
-            <Field label="Salgyt belgisi / STIR">
+            <Field label={t('sazlamalar.rcTaxId')}>
               <input
                 type="text"
                 value={value.taxId}
@@ -197,7 +199,7 @@ export const ReceiptSettingsPanel: React.FC<ReceiptSettingsPanelProps> = ({
       <div className="xl:w-[360px] flex-shrink-0">
         <div className="xl:sticky xl:top-0">
           <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2 text-center">
-            Öňünden görmek ({activePaper})
+            {t('sazlamalar.rcPreview', { paper: activePaper })}
           </div>
           <div className="bg-[#F1F5F9] rounded-2xl border border-gray-200 p-4">
             {tab === 'thermal' ? (

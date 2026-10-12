@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bell, BellOff, FileClock, Save } from 'lucide-react';
 import type { LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface FakturaActionsBarProps {
   language: LanguageCode;
@@ -22,7 +23,7 @@ export const FakturaActionsBar: React.FC<FakturaActionsBarProps> = ({
   onSaveInvoice,
   onOpenDrafts,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
 
   return (
     <div className="w-full grid grid-cols-[1fr_1fr_auto] gap-1.5">
@@ -31,11 +32,11 @@ export const FakturaActionsBar: React.FC<FakturaActionsBarProps> = ({
         type="button"
         onClick={onSaveInvoice}
         className={`${BASE} border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/70`}
-        title={isTm ? 'Faktura ýazga al (garalama)' : 'Faturayı kaydet (taslak)'}
+        title={t('pos.faSaveTip')}
       >
         <Save className="w-5 h-5 text-[#0B1F3A]" />
         <span className="text-[11px] font-bold text-gray-800 leading-tight text-center truncate w-full">
-          Faktura ýazga al
+          {t('pos.faSaveLabel')}
         </span>
       </button>
 
@@ -44,11 +45,11 @@ export const FakturaActionsBar: React.FC<FakturaActionsBarProps> = ({
         type="button"
         onClick={onOpenDrafts}
         className={`${BASE} relative border-gray-200 hover:border-amber-400 hover:bg-amber-50/70`}
-        title={isTm ? 'Garalama fakturalar' : 'Taslak faturalar'}
+        title={t('pos.faDraftsTip')}
       >
         <FileClock className="w-5 h-5 text-amber-600" />
         <span className="text-[11px] font-bold text-gray-800 leading-tight text-center truncate w-full">
-          Garalama fakturalar
+          {t('pos.faDraftsLabel')}
         </span>
         {pendingCount > 0 && (
           <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
@@ -68,12 +69,8 @@ export const FakturaActionsBar: React.FC<FakturaActionsBarProps> = ({
         }`}
         title={
           soundEnabled
-            ? isTm
-              ? 'Bildirim sesi açyk — basyp öçür'
-              : 'Bildirim sesi açık — kapatmak için bas'
-            : isTm
-            ? 'Bildirim sesi ýapyk — basyp aç'
-            : 'Bildirim sesi kapalı — açmak için bas'
+            ? t('pos.faSoundOnTip')
+            : t('pos.faSoundOffTip')
         }
       >
         {soundEnabled ? (

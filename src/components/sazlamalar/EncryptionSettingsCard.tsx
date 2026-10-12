@@ -13,6 +13,7 @@
 import React, { useState } from 'react';
 import { Lock, LockOpen, RefreshCw, ShieldCheck } from 'lucide-react';
 import { SettingsCard, Notice } from './settingsUi';
+import { useT } from '../../locales/LanguageContext';
 import { isEncryptionEnabled, applyEncryptionFlag } from '../../db/encryptionState';
 import { migrateAllStoresToEncrypted, type AccountMigrationResult } from '../../db/runEncryptionMigration';
 import { getAccountStoreKey } from '../../db/pouch';
@@ -32,6 +33,7 @@ type Phase =
   | { kind: 'disabled'; restartNeeded: true };
 
 export const EncryptionSettingsCard: React.FC<EncryptionSettingsCardProps> = ({ disabled }) => {
+  const t = useT();
   const [enabled, setEnabled] = useState(() => isEncryptionEnabled());
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
 
@@ -66,8 +68,8 @@ export const EncryptionSettingsCard: React.FC<EncryptionSettingsCardProps> = ({ 
 
   return (
     <SettingsCard
-      title="Maglumat bazasyny şifrlemek"
-      description="Maglumatlar lisans açaryndan ösdürilýän parol bilen şifrlenýär"
+      title={t('sazlamalar.encTitle')}
+      description={t('sazlamalar.encDesc')}
       aside={
         <span
           className={`w-8 h-8 rounded-xl flex items-center justify-center ${
@@ -82,35 +84,35 @@ export const EncryptionSettingsCard: React.FC<EncryptionSettingsCardProps> = ({ 
         {enabled ? (
           <Notice
             tone="success"
-            text="Şifrleme işjeň. Maglumat bazasy şifrlenen görnüşde saklanýar; lisanssyz enjamda açylmaz."
+            text={t('sazlamalar.encEnabledNotice')}
           />
         ) : (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] font-semibold text-amber-800 space-y-1">
-            <p>Şifrleme açylandan soň lisanssyz enjamda maglumat okalyp bilinmez.</p>
-            <p>Dowam etmezden öň ätiýaçlyk nusga (.bhbak) alyň.</p>
-            <p>Bulut eşitleme ulanylsa, uzak serwerde maglumat şifrlenen galyar.</p>
-            <p>Çeşme (şifresiz) maglumat bazasy POZULMAÝAR — islen wagt şifrlemäni öçürip dolanyp bilersiňiz.</p>
+            <p>{t('sazlamalar.encWarn1')}</p>
+            <p>{t('sazlamalar.encWarn2')}</p>
+            <p>{t('sazlamalar.encWarn3')}</p>
+            <p>{t('sazlamalar.encWarn4')}</p>
           </div>
         )}
 
         {phase.kind === 'migrating' && (
           <Notice
             tone="info"
-            text={`Göçürilýär... ${phase.done}/${phase.total} maglumat bazasy`}
+            text={t('sazlamalar.encMigrating', { done: phase.done, total: phase.total })}
           />
         )}
 
         {phase.kind === 'done' && failedCount === 0 && (
           <Notice
             tone="success"
-            text={`Göçürme tamamlandy: ${phase.results.reduce((s, r) => s + r.copied, 0)} ýazgy nusgalandy we barlandy. Çeşme bazalar saklandy.`}
+            text={t('sazlamalar.encDone', { count: phase.results.reduce((sum, r) => sum + r.copied, 0) })}
           />
         )}
 
         {phase.kind === 'done' && failedCount > 0 && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 space-y-1">
             <p className="text-[11px] font-bold text-rose-700">
-              {failedCount} ýazgy göçürilmedi — şifrleme AÇYLMADY. Hiç hili maglumat ýitmedi.
+              {t('sazlamalar.encFailed', { count: failedCount })}
             </p>
             <ul className="text-[10px] font-mono text-rose-600 max-h-28 overflow-y-auto space-y-0.5">
               {phase.results.flatMap((r) =>
@@ -127,7 +129,7 @@ export const EncryptionSettingsCard: React.FC<EncryptionSettingsCardProps> = ({ 
         {phase.kind === 'disabled' && (
           <Notice
             tone="info"
-            text="Şifrleme öçürildi. Programma täzeden açylanda öňki (şifresiz) maglumat bazasy ulanylar."
+            text={t('sazlamalar.encDisabledNotice')}
           />
         )}
 
@@ -138,7 +140,7 @@ export const EncryptionSettingsCard: React.FC<EncryptionSettingsCardProps> = ({ 
             className="h-9 px-4 rounded-xl bg-[#0B1F3A] hover:bg-[#163864] text-white font-bold text-xs flex items-center gap-1.5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Täzeden başlat (üýtgeşmäniň güýje girmegi üçin)
+            {t('sazlamalar.encRestart')}
           </button>
         )}
 
@@ -151,7 +153,7 @@ export const EncryptionSettingsCard: React.FC<EncryptionSettingsCardProps> = ({ 
               className="h-9 px-4 rounded-xl bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              Maglumat bazasyny şifrle
+              {t('sazlamalar.encEnable')}
             </button>
           )}
           {enabled && phase.kind === 'idle' && (
@@ -161,7 +163,7 @@ export const EncryptionSettingsCard: React.FC<EncryptionSettingsCardProps> = ({ 
               onClick={() => setPhase({ kind: 'confirm-disable' })}
               className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-bold text-xs"
             >
-              Şifrlemäni öçür
+              {t('sazlamalar.encDisable')}
             </button>
           )}
         </div>
@@ -172,10 +174,10 @@ export const EncryptionSettingsCard: React.FC<EncryptionSettingsCardProps> = ({ 
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center space-y-4">
             <p className="font-bold text-gray-800 text-sm">
-              Ähli hesaplaryň maglumatlary şifrlenen bazaya KOPYALANAR. Dowam etmelimi?
+              {t('sazlamalar.encConfirmEnableTitle')}
             </p>
             <p className="text-[11px] text-gray-500 font-medium">
-              Çeşme maglumat bazasy pozulmaýar. Lisanssyz enjamda şifrlenen maglumat açylmaz.
+              {t('sazlamalar.encConfirmEnableHint')}
             </p>
             <div className="flex gap-2 justify-center">
               <button
@@ -183,14 +185,14 @@ export const EncryptionSettingsCard: React.FC<EncryptionSettingsCardProps> = ({ 
                 onClick={() => setPhase({ kind: 'idle' })}
                 className="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
               >
-                Ýatyr
+                {t('sazlamalar.cancelBtn')}
               </button>
               <button
                 type="button"
                 onClick={() => void runMigration()}
                 className="px-5 py-2 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
               >
-                Dowam et
+                {t('sazlamalar.continueBtn')}
               </button>
             </div>
           </div>
@@ -201,9 +203,9 @@ export const EncryptionSettingsCard: React.FC<EncryptionSettingsCardProps> = ({ 
       {phase.kind === 'confirm-disable' && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center space-y-4">
-            <p className="font-bold text-gray-800 text-sm">Şifrlemäni öçürmek isleýärsiňizmi?</p>
+            <p className="font-bold text-gray-800 text-sm">{t('sazlamalar.encConfirmDisableTitle')}</p>
             <p className="text-[11px] text-gray-500 font-medium">
-              Programma täzeden açylanda öňki (şifresiz) maglumat bazasy ulanylar. Maglumat ýitmez.
+              {t('sazlamalar.encConfirmDisableHint')}
             </p>
             <div className="flex gap-2 justify-center">
               <button
@@ -211,14 +213,14 @@ export const EncryptionSettingsCard: React.FC<EncryptionSettingsCardProps> = ({ 
                 onClick={() => setPhase({ kind: 'idle' })}
                 className="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
               >
-                Ýatyr
+                {t('sazlamalar.cancelBtn')}
               </button>
               <button
                 type="button"
                 onClick={runDisable}
                 className="px-5 py-2 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
               >
-                Dowam et
+                {t('sazlamalar.continueBtn')}
               </button>
             </div>
           </div>

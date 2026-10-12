@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Keyboard, Search, Triangle } from 'lucide-react';
 import { LanguageCode } from '../../types';
 import { ShortcutGroups } from '../common/ShortcutGroups';
+import { useT } from '../../locales/LanguageContext';
 
 interface ShortcutsModalProps {
   /** Paneli açan ikon: 'search' = lumpa, 'triangle' = bellige. */
@@ -11,7 +12,7 @@ interface ShortcutsModalProps {
 }
 
 export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ type, language, onClose }) => {
-  const isTm = language === 'tm';
+  const t = useT();
   const isSearch = type === 'search';
 
   return (
@@ -24,7 +25,7 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ type, language, 
             ) : (
               <Triangle className="w-4 h-4 text-amber-400" />
             )}
-            <span>{isTm ? 'Klawiatura gysgaltmalary' : 'Klavye Kısayolları'}</span>
+            <span>{t('modals.shortcutsTitle')}</span>
           </h3>
           <button
             type="button"
@@ -43,9 +44,7 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ type, language, 
           <div className="flex items-center space-x-1 text-[10px] text-gray-500">
             <Keyboard className="w-3.5 h-3.5 text-gray-400" />
             <span>
-              {isTm
-                ? 'F düwmelerine basyp gönüden-göni işledip bilersiňiz.'
-                : 'F tuşlarına basarak doğrudan çalıştırabilirsiniz.'}
+              {t('modals.shortcutsHint')}
             </span>
           </div>
           <button
@@ -53,7 +52,7 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ type, language, 
             onClick={onClose}
             className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg shadow-sm"
           >
-            {isTm ? 'Ýapy' : 'Kapat'}
+            {t('modals.shortcutsClose')}
           </button>
         </div>
       </div>

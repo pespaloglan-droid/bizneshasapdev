@@ -8,6 +8,7 @@ import { overdueDebts } from '../../utils/creditReminders';
 import { formatIsoDate } from '../../utils/paymentLabels';
 import { formatMoney } from '../../utils/money';
 import { updatedStamp, useReport } from '../../utils/report';
+import { useT } from '../../locales/LanguageContext';
 import { EmptyState, ReportActions } from './charts';
 
 interface DebtTabProps {
@@ -27,6 +28,7 @@ export const DebtTab: React.FC<DebtTabProps> = ({
   rangeLabel,
   paperWidth,
 }) => {
+  const t = useT();
   const rows = receivables(customers, transactions);
   const total = totalReceivables(rows);
   const supplier = supplierDebts(customers);
@@ -45,21 +47,21 @@ export const DebtTab: React.FC<DebtTabProps> = ({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-          Bergi-borç hasabaty · {rangeLabel}
+          {t('hasaplama.tabDebt')} · {rangeLabel}
         </span>
         <ReportActions
           isPrinting={report.isPrinting}
           onPrint={() =>
             void report.print({
-              title: 'Bergi-borç hasabaty',
+              title: t('hasaplama.tabDebt'),
               subtitle: rangeLabel,
-              columns: ['Müşderi', 'Bergi (TMT)', 'Soňky töleg'],
+              columns: [t('hasaplama.colCustomer'), t('hasaplama.colDebtTmt'), t('hasaplama.colLastPayment')],
               rows: csvRows,
-              footer: `Jemi alacak: ${formatMoney(total)} TMT`,
+              footer: t('hasaplama.totalReceivableFooter', { amount: formatMoney(total) }),
             })
           }
           csvName="bergi-borc"
-          headers={['Müşderi', 'Bergi (TMT)', 'Soňky töleg']}
+          headers={[t('hasaplama.colCustomer'), t('hasaplama.colDebtTmt'), t('hasaplama.colLastPayment')]}
           rows={csvRows}
           disabled={rows.length === 0}
         />
@@ -73,10 +75,10 @@ export const DebtTab: React.FC<DebtTabProps> = ({
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { key: 'recv', label: 'Jemi alacak', value: total, cls: 'text-amber-600' },
-          { key: 'sup', label: 'Üpjün edijilere bergi', value: supplier, cls: 'text-rose-600' },
-          { key: 'bor', label: 'Alynan karz (Karz almak)', value: borrowed, cls: 'text-rose-600' },
-          { key: 'lent', label: 'Beren karz (Karz bermek)', value: lent, cls: 'text-sky-600' },
+          { key: 'recv', label: t('hasaplama.totalReceivable'), value: total, cls: 'text-amber-600' },
+          { key: 'sup', label: t('hasaplama.supplierDebt'), value: supplier, cls: 'text-rose-600' },
+          { key: 'bor', label: t('hasaplama.borrowed'), value: borrowed, cls: 'text-rose-600' },
+          { key: 'lent', label: t('hasaplama.lent'), value: lent, cls: 'text-sky-600' },
         ].map((card) => (
           <div key={card.key} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
@@ -91,17 +93,17 @@ export const DebtTab: React.FC<DebtTabProps> = ({
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 text-xs font-bold text-gray-700">
-          Müşderilerden alynmaly (weresiýe)
+          {t('hasaplama.receivablesTitle')}
         </div>
         {rows.length === 0 ? (
-          <EmptyState text="Bergi ýok — ähli hasaplar arassa" />
+          <EmptyState text={t('hasaplama.noDebt')} />
         ) : (
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                <th className="py-2 px-4">Müşderi</th>
-                <th className="py-2 px-4 text-right">Bergi (TMT)</th>
-                <th className="py-2 px-4">Soňky töleg</th>
+                <th className="py-2 px-4">{t('hasaplama.colCustomer')}</th>
+                <th className="py-2 px-4 text-right">{t('hasaplama.colDebtTmt')}</th>
+                <th className="py-2 px-4">{t('hasaplama.colLastPayment')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -124,23 +126,23 @@ export const DebtTab: React.FC<DebtTabProps> = ({
         <div className="px-4 py-3 border-b border-rose-100 flex items-center justify-between">
           <span className="text-xs font-bold text-rose-700 flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5" />
-            Möhleti geçen bergiler
+            {t('hasaplama.overdueTitle')}
           </span>
           <span className="text-[11px] font-bold font-mono text-rose-600">
             {formatMoney(overdue.reduce((sum, row) => sum + row.remaining, 0))} TMT
           </span>
         </div>
         {overdue.length === 0 ? (
-          <EmptyState text="Möhleti geçen bergi ýok" />
+          <EmptyState text={t('hasaplama.noOverdue')} />
         ) : (
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                <th className="py-2 px-4">Müşderi</th>
-                <th className="py-2 px-4">Faktura №</th>
-                <th className="py-2 px-4 text-right">Bergi (TMT)</th>
-                <th className="py-2 px-4">Vade senesi</th>
-                <th className="py-2 px-4 text-right">Gecikme</th>
+                <th className="py-2 px-4">{t('hasaplama.colCustomer')}</th>
+                <th className="py-2 px-4">{t('hasaplama.colInvoiceNo')}</th>
+                <th className="py-2 px-4 text-right">{t('hasaplama.colDebtTmt')}</th>
+                <th className="py-2 px-4">{t('hasaplama.colDueDate')}</th>
+                <th className="py-2 px-4 text-right">{t('hasaplama.colLate')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -157,7 +159,7 @@ export const DebtTab: React.FC<DebtTabProps> = ({
                     {formatIsoDate(row.dueDate)}
                   </td>
                   <td className="py-2 px-4 text-right font-bold text-rose-700">
-                    {row.daysLate} gün
+                    {t('hasaplama.daysLate', { days: row.daysLate })}
                   </td>
                 </tr>
               ))}
@@ -167,7 +169,7 @@ export const DebtTab: React.FC<DebtTabProps> = ({
       </div>
 
       <div className="text-[10px] text-gray-400 font-semibold text-right">
-        Taýýarlanyldy: {updatedStamp()}
+        {t('hasaplama.preparedAt')} {updatedStamp()}
       </div>
     </div>
   );

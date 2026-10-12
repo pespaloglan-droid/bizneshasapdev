@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, LayoutGrid, List, ScanLine, X } from 'lucide-react';
 import { LanguageCode, Product, ProductCategory } from '../../types';
-import { translations } from '../../locales/i18n';
+import { translations, translate } from '../../locales/i18n';
 import { ProductImage } from './ProductImage';
 import { CurrencyLabel } from './CurrencyLabel';
 import { ALL_CATEGORIES, productCategories } from '../../db/productService';
@@ -106,7 +106,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           type="button"
           onClick={() => void handleCameraScan()}
           disabled={scanning}
-          title="Kamera ile barkod okut"
+          title={translate(language, 'pos.cameraScanTip')}
           className="h-9 px-2.5 rounded-xl border border-gray-400 bg-white text-emerald-700 hover:border-emerald-600 disabled:opacity-50 flex items-center justify-center"
         >
           <ScanLine className="w-4 h-4" />
@@ -120,7 +120,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             className={`px-2.5 h-full rounded-lg transition-colors flex items-center justify-center ${
               viewMode === 'grid' ? 'bg-emerald-100 text-emerald-800 font-bold' : 'text-gray-500 hover:text-gray-800'
             }`}
-            title="Grid Görünümü"
+            title={translate(language, 'pos.gridView')}
           >
             <LayoutGrid className="w-4 h-4" />
           </button>
@@ -130,7 +130,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             className={`px-2.5 h-full rounded-lg transition-colors flex items-center justify-center ${
               viewMode === 'list' ? 'bg-emerald-100 text-emerald-800 font-bold' : 'text-gray-500 hover:text-gray-800'
             }`}
-            title="Liste Görünümü"
+            title={translate(language, 'pos.listView')}
           >
             <List className="w-4 h-4" />
           </button>

@@ -5,6 +5,7 @@ import { emptyPermissions } from '../../db/settingsService';
 import { MODULE_LABELS } from '../../db/userService';
 import { PermissionMatrix } from '../users/PermissionMatrix';
 import { Notice, SaveBar, SettingsCard, Toggle } from './settingsUi';
+import { useT } from '../../locales/LanguageContext';
 
 interface PermissionsPanelProps {
   templates: RoleTemplates;
@@ -29,6 +30,7 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({
   onSave,
   onReset,
 }) => {
+  const t = useT();
   const roleNames = useMemo(() => Object.keys(templates).sort((a, b) => a.localeCompare(b, 'tr')), [
     templates,
   ]);
@@ -58,7 +60,7 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({
     const name = newRole.trim();
     if (!name) return;
     if (templates[name]) {
-      setError('Bu rol eýýäm bar.');
+      setError(t('sazlamalar.permRoleExists'));
       return;
     }
     onChangeTemplates({ ...templates, [name]: emptyPermissions() });
@@ -69,7 +71,7 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({
 
   const handleDeleteRole = (role: string) => {
     if (PROTECTED_ROLES.includes(role)) {
-      setError('Esasy rollary pozup bolmaýar.');
+      setError(t('sazlamalar.permProtectedDelete'));
       return;
     }
     const next: RoleTemplates = { ...templates };
@@ -82,8 +84,8 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({
   return (
     <div className="space-y-3">
       <SettingsCard
-        title="Roller"
-        description="Rol şablonlary Ulanyjy moduly bilen deň modeli paýlaşýar — täze ulanyjy döredilende şu rugsatlar öňünden doldurylýar"
+        title={t('sazlamalar.permRolesTitle')}
+        description={t('sazlamalar.permRolesDesc')}
       >
         <div className="flex flex-wrap items-center gap-2">
           {roleNames.map((role) => (
@@ -110,7 +112,7 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleAddRole();
             }}
-            placeholder="Täze rolyň ady..."
+            placeholder={t('sazlamalar.permNewRolePh')}
             className="flex-1 h-9 px-3 border border-gray-200 rounded-xl text-sm bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 outline-none"
           />
           <button
@@ -120,7 +122,7 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({
             className="h-9 px-4 rounded-xl bg-[#0B1F3A] hover:bg-[#163864] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
-            Täze rol goş
+            {t('sazlamalar.permAddRole')}
           </button>
           {current && !PROTECTED_ROLES.includes(current) && (
             <button
@@ -129,7 +131,7 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({
               className="h-9 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center gap-1.5"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Poz
+              {t('sazlamalar.permDelete')}
             </button>
           )}
         </div>
@@ -140,7 +142,7 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({
           <div>
             <div className="text-[11px] font-bold text-gray-500 mb-1.5 flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              «{current}» roly üçin modul rugsatlary
+              {t('sazlamalar.permRolePerms', { role: current })}
             </div>
             <PermissionMatrix
               language={language}
@@ -148,19 +150,18 @@ export const PermissionsPanel: React.FC<PermissionsPanelProps> = ({
               onChange={handlePermissionChange}
             />
             <div className="text-[10px] text-gray-400 font-medium mt-1.5">
-              {Object.keys(MODULE_LABELS).length} modul · Ulanyjy modulyndaky aýratyn üýtgeşmeler
-              bozulmaýar
+              {t('sazlamalar.permModulesNote', { count: Object.keys(MODULE_LABELS).length })}
             </div>
           </div>
         )}
       </SettingsCard>
 
-      <SettingsCard title="Audit" description="Ulgam hereketleriniň ýazgysy">
+      <SettingsCard title={t('sazlamalar.permAuditTitle')} description={t('sazlamalar.permAuditDesc')}>
         <Toggle
           checked={auditLogEnabled}
           onChange={onChangeAudit}
-          label="Bu ulgamda ähli hereketleri ýazga alaýsyn"
-          description="Işjeňleşdirilse, ulanyjylaryň hereketleri ýazga alynýar"
+          label={t('sazlamalar.permAuditLabel')}
+          description={t('sazlamalar.permAuditLabelDesc')}
         />
       </SettingsCard>
 

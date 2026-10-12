@@ -3,6 +3,7 @@ import { Search, X, Package, Check } from 'lucide-react';
 import type { Product } from '../../types';
 import { ProductImage } from '../pos/ProductImage';
 import { formatPromoMoney } from '../../db/promoService';
+import { useT } from '../../locales/LanguageContext';
 
 export type PickerAccent = 'blue' | 'green';
 
@@ -30,6 +31,7 @@ export const ProductPickerModal: React.FC<ProductPickerModalProps> = ({
   onSelect,
   onClose,
 }) => {
+  const t = useT();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const tone = ACCENT[accent];
@@ -63,7 +65,7 @@ export const ProductPickerModal: React.FC<ProductPickerModalProps> = ({
             <div>
               <h3 className="text-sm font-bold tracking-wide">{title}</h3>
               <p className="text-[11px] opacity-90">
-                {products.length} haryt · işjeň walýuta: {currencyCode}
+                {t('promo.pickerCount', { count: products.length, code: currencyCode })}
               </p>
             </div>
           </div>
@@ -84,7 +86,7 @@ export const ProductPickerModal: React.FC<ProductPickerModalProps> = ({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ady / barkod / SKU boýunça gözle..."
+              placeholder={t('promo.pickerSearchPh')}
               className="w-full h-9 pl-9 pr-3 bg-white border border-gray-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs outline-none"
             />
           </div>
@@ -93,7 +95,7 @@ export const ProductPickerModal: React.FC<ProductPickerModalProps> = ({
             onChange={(e) => setCategory(e.target.value)}
             className="h-9 px-3 bg-white border border-gray-200 rounded-xl text-xs outline-none cursor-pointer"
           >
-            <option value="">Ähli kategoriýalar</option>
+            <option value="">{t('promo.pickerAllCategories')}</option>
             {categories.map((item) => (
               <option key={item} value={item}>
                 {item}
@@ -107,7 +109,7 @@ export const ProductPickerModal: React.FC<ProductPickerModalProps> = ({
           {filtered.length === 0 ? (
             <div className="py-14 flex flex-col items-center justify-center text-gray-400">
               <Package className="w-10 h-10 text-gray-200 mb-2 stroke-1" />
-              <span className="text-xs font-semibold text-gray-500">Haryt tapylmady</span>
+              <span className="text-xs font-semibold text-gray-500">{t('promo.pickerNotFound')}</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -146,7 +148,7 @@ export const ProductPickerModal: React.FC<ProductPickerModalProps> = ({
                             negative ? 'text-rose-600' : critical ? 'text-amber-600' : 'text-gray-600'
                           }`}
                         >
-                          Stok: {product.stock}
+                          {t('promo.stockLabel')} {product.stock}
                         </span>
                         <span className="text-[11px] font-black font-mono text-emerald-700">
                           {formatPromoMoney(product.price, currencyCode)}
@@ -169,7 +171,7 @@ export const ProductPickerModal: React.FC<ProductPickerModalProps> = ({
             onClick={onClose}
             className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
           >
-            Ýap
+            {t('promo.pickerClose')}
           </button>
         </div>
       </div>

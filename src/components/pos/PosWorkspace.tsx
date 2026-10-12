@@ -40,12 +40,12 @@ import {
   UnitType,
   User
 } from '../../types';
-import { ALL_CATEGORIES, filterProducts, saveProductToDb, deleteProductFromDb, getProductsForAccount } from '../../db/productService';
+import { ALL_CATEGORIES, filterProducts, saveProductToDb, saveProductsBatchDb, deleteProductFromDb, getProductsForAccount } from '../../db/productService';
 import { SYNC_IMPORTED_EVENT } from '../../db/schemaBridge';
 import { useAutoConnection } from '../../hooks/useAutoConnection';
 import { generateInvoiceNo, getInvoicesForAccount, saveInvoiceToDb } from '../../db/salesService';
-import { deleteCustomerFromDb, ensureGeneralCustomerSeeded, GENERAL_CUSTOMER_ID, saveCustomerToDb } from '../../db/customerService';
-import { getAccountStoreKey } from '../../db/pouch';
+import { deleteCustomerFromDb, ensureGeneralCustomerSeeded, GENERAL_CUSTOMER_ID, saveCustomerToDb, saveCustomersBatchDb } from '../../db/customerService';
+import { getAccountStoreKey, type BatchWriteResult } from '../../db/pouch';
 import { resolveModulePermission } from '../../db/ledgerService';
 import {
   filterIdList,
@@ -76,7 +76,8 @@ import { GaralamaListModal } from '../faktura/GaralamaListModal';
 import { DraftFormModal } from '../faktura/DraftFormModal';
 import { useModuleStores } from '../../hooks/useModuleStores';
 import { useMoneyStore, type CustomerAdjustment } from '../../hooks/useMoneyStore';
-import { translations } from '../../locales/i18n';
+import { translate } from '../../locales/i18n';
+import { useT } from '../../locales/LanguageContext';
 import { CheckCircle2, FileText, Plus } from 'lucide-react';
 import { checkRouteAccess } from '../../utils/gateMiddleware';
 import type { LicenseInfo } from '../../types/license';
@@ -116,14 +117,13 @@ const TAB_MODULE: Record<PosTabType, ModuleName | null> = {
 
 /** Mobil yüzen + butonunun erişilebilirlik etiketi. */
 function fabLabel(tab: PosTabType, language: LanguageCode): string {
-  const tm = language === 'tm';
   switch (tab) {
-    case 'product': return tm ? 'Haryt goş' : 'Ürün ekle';
-    case 'customer': return tm ? 'Müşderi goş' : 'Müşteri ekle';
-    case 'money': return tm ? 'Hereket goş' : 'İşlem ekle';
-    case 'courier': return tm ? 'Targowçy goş' : 'Kurye ekle';
-    case 'currency': return tm ? 'Walýuta goş' : 'Para birimi ekle';
-    default: return tm ? 'Goş' : 'Ekle';
+    case 'product': return translate(language, 'pos.fabAddProduct');
+    case 'customer': return translate(language, 'pos.fabAddCustomer');
+    case 'money': return translate(language, 'pos.fabAddMoney');
+    case 'courier': return translate(language, 'pos.fabAddCourier');
+    case 'currency': return translate(language, 'pos.fabAddCurrency');
+    default: return translate(language, 'pos.fabAdd');
   }
 }
 
@@ -153,7 +153,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
   onSelectPrinterMode,
   onLicenseRequired
 }) => {
-  const t = translations[language] || translations.en;
+  const t = useT();
 
   // Navigation
   const [activeTab, setActiveTab] = useState<PosTabType>('checkout');
@@ -581,10 +581,10 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     handleTabChange(first ?? 'checkout');
     setToastMessage({
       type: 'info',
-      text: language === 'tm' ? 'Rugsat ýok' : 'Yetkiniz yok',
+      text: t('pos.noPermission'),
     });
     setTimeout(() => setToastMessage(null), 3000);
-  }, [allowedTabs, activeTab, language]);
+  }, [allowedTabs, activeTab, t]);
 
   // Filtered Products (ýörite rugsatlar + passiw haryt düzgüni boýunça)
   const filteredProducts = useMemo(() => {
@@ -620,7 +620,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
   const showNoStockToast = () => {
     setToastMessage({
       type: 'info',
-      text: language === 'tm' ? 'Stok ýok. Minus satyş üçin harytda ikony açyň.' : 'Stok yok. Eksi satış için üründe ikonu açın.'
+      text: t('pos.noStock')
     });
     setTimeout(() => setToastMessage(null), 3000);
   };
@@ -630,7 +630,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (product.isActive === false && !(ops?.allowInactiveProduct)) {
       setToastMessage({
         type: 'info',
-        text: language === 'tm' ? 'Bu haryt passiw — sepete goşup bolmaýar.' : 'Bu ürün pasif — sepete eklenemez.',
+        text: t('pos.inactiveProduct'),
       });
       setTimeout(() => setToastMessage(null), 3000);
       return;
@@ -709,7 +709,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     setIsResetConfirmOpen(false);
     setToastMessage({
       type: 'info',
-      text: language === 'tm' ? 'Ähli üýtgeşmeler geri alyndy.' : 'Tüm değişiklikler geri alındı.',
+      text: t('pos.resetDone'),
     });
     setTimeout(() => setToastMessage(null), 3000);
   };
@@ -745,7 +745,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (source.length === 0) {
       setToastMessage({
         type: 'info',
-        text: language === 'tm' ? 'Sepet boş — eksport edip bolmaýar.' : 'Sepet boş — dışa aktarılamaz.',
+        text: t('pos.cartEmptyExport'),
       });
       setTimeout(() => setToastMessage(null), 3000);
       return;
@@ -763,7 +763,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       const data = btoa(binary);
       const safeCode = (codeLabel || 'FAKTURA').replace(/[^\w.-]+/g, '_');
       const saved = await saveFileAs({
-        title: 'Faktura Excel eksporty',
+        title: t('pos.exportDialogTitle'),
         defaultName: `${safeCode}-${todayIso()}.xlsx`,
         data,
         filters: [{ name: 'Excel (.xlsx)', extensions: ['xlsx'] }],
@@ -771,12 +771,12 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       setToastMessage({
         type: saved ? 'success' : 'info',
         text: saved
-          ? (language === 'tm' ? 'Excel eksport edildi.' : 'Excel dışa aktarıldı.')
-          : (language === 'tm' ? 'Eksport ýatyrlanmady.' : 'Dışa aktarma iptal edildi.'),
+          ? t('pos.excelExported')
+          : t('pos.exportCancelled'),
       });
       setTimeout(() => setToastMessage(null), 3500);
     } catch {
-      setToastMessage({ type: 'info', text: 'Excel eksporty başartmady.' });
+      setToastMessage({ type: 'info', text: t('pos.exportFailed') });
       setTimeout(() => setToastMessage(null), 3500);
     }
   };
@@ -804,7 +804,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       handleAddToCart(found);
       setBarcodeQuery('');
     } else {
-      setToastMessage({ type: 'info', text: `"${barcodeQuery}" ${t.productNotFoundToast}` });
+      setToastMessage({ type: 'info', text: translate(language, 'productNotFoundToast', { code: barcodeQuery }) });
       setTimeout(() => setToastMessage(null), 3000);
     }
   };
@@ -848,7 +848,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
   // Update Item Price directly (inçe rugsat: "Bahany üýtget" + alş bahasy düzgüni)
   const handleUpdatePrice = (productId: string, newPrice: number) => {
     if (!fakturaExtras.editPrice) {
-      setToastMessage({ type: 'info', text: language === 'tm' ? 'Rugsat ýok' : 'Yetkiniz yok' });
+      setToastMessage({ type: 'info', text: t('pos.noPermission') });
       setTimeout(() => setToastMessage(null), 2500);
       return;
     }
@@ -860,10 +860,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       if (cost > 0 && validPrice < cost) {
         setToastMessage({
           type: 'info',
-          text:
-            language === 'tm'
-              ? `Alş bahasynyň aşagyna satyp bolmaýar (alş: ${cost.toFixed(2)}).`
-              : `Alış fiyatının altına satılamaz (alış: ${cost.toFixed(2)}).`,
+          text: t('pos.belowCost', { cost: cost.toFixed(2) }),
         });
         setTimeout(() => setToastMessage(null), 3000);
         return;
@@ -894,7 +891,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (!customer) {
       setToastMessage({
         type: 'info',
-        text: language === 'tm' ? 'Müşderi saýlaň' : 'Müşteri seçin',
+        text: t('pos.selectCustomer'),
       });
       setTimeout(() => setToastMessage(null), 3000);
       return;
@@ -902,7 +899,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (cartItems.length === 0) {
       setToastMessage({
         type: 'info',
-        text: language === 'tm' ? 'Sepet boş' : 'Sepet boş',
+        text: t('pos.cartEmpty'),
       });
       setTimeout(() => setToastMessage(null), 3000);
       return;
@@ -919,10 +916,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (entries.length === 0) {
       setToastMessage({
         type: 'info',
-        text:
-          language === 'tm'
-            ? 'Ozel baha girizilmedik'
-            : 'Özel fiyat girilmedi',
+        text: t('pos.specialPriceMissing'),
       });
       setTimeout(() => setToastMessage(null), 3000);
       return;
@@ -931,17 +925,14 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       const written = await saveCustomerPrices(storeDb, customer.id, entries);
       setToastMessage({
         type: 'success',
-        text:
-          language === 'tm'
-            ? `${written} harydyň ozel bahasy ${customer.name} üçin saklandy`
-            : `${written} ürünün özel fiyatı ${customer.name} için kaydedildi`,
+        text: t('pos.specialPriceSaved', { count: written, customer: customer.name }),
       });
       setTimeout(() => setToastMessage(null), 4000);
     } catch (err) {
       console.error('[F6] ozel baha saklamak', err);
       setToastMessage({
         type: 'info',
-        text: language === 'tm' ? 'Baha saklanmady' : 'Fiyat kaydedilmedi',
+        text: t('pos.priceSaveFailed'),
       });
       setTimeout(() => setToastMessage(null), 3000);
     }
@@ -953,7 +944,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (!customer) {
       setToastMessage({
         type: 'info',
-        text: language === 'tm' ? 'Müşderi saýlaň' : 'Müşteri seçin',
+        text: t('pos.selectCustomer'),
       });
       setTimeout(() => setToastMessage(null), 3000);
       return;
@@ -961,7 +952,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (cartItems.length === 0) {
       setToastMessage({
         type: 'info',
-        text: language === 'tm' ? 'Sepet boş' : 'Sepet boş',
+        text: t('pos.cartEmpty'),
       });
       setTimeout(() => setToastMessage(null), 3000);
       return;
@@ -981,10 +972,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (applied === 0) {
       setToastMessage({
         type: 'info',
-        text:
-          language === 'tm'
-            ? 'Müşderiniň ýa-da harytlaryň ozel bahasy tapylmady'
-            : 'Müşterinin veya ürünlerin özel fiyatı bulunamadı',
+        text: t('pos.specialPriceNotFound'),
       });
       setTimeout(() => setToastMessage(null), 4000);
       return;
@@ -998,10 +986,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     );
     setToastMessage({
       type: 'success',
-      text:
-        language === 'tm'
-          ? `${applied} harydyň bahasy dikeldildi`
-          : `${applied} ürünün fiyatı uygulandı`,
+      text: t('pos.pricesApplied', { count: applied }),
     });
     setTimeout(() => setToastMessage(null), 4000);
   };
@@ -1030,10 +1015,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (!result.success) {
       setToastMessage({
         type: 'info',
-        text:
-          language === 'tm'
-            ? `Çap başartmady: ${result.failureReason || 'näbelli säwlik'}`
-            : `Çap başarısız: ${result.failureReason || 'bilinmeyen hata'}`,
+        text: t('pos.printFailed', { reason: result.failureReason || t('pos.unknownError') }),
       });
       setTimeout(() => setToastMessage(null), 4000);
     }
@@ -1058,7 +1040,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
   // Update Individual Item +/- % (inçe rugsat: "Arzanladyş ber")
   const handleUpdatePercent = (productId: string, percent: number) => {
     if (!fakturaExtras.allowDiscount) {
-      setToastMessage({ type: 'info', text: language === 'tm' ? 'Rugsat ýok' : 'Yetkiniz yok' });
+      setToastMessage({ type: 'info', text: t('pos.noPermission') });
       setTimeout(() => setToastMessage(null), 2500);
       return;
     }
@@ -1095,7 +1077,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
   // Apply Global Toptan % to All Cart Items (inçe rugsat: "Arzanladyş ber")
   const handleApplyGlobalPercent = (percent: number) => {
     if (!fakturaExtras.allowDiscount) {
-      setToastMessage({ type: 'info', text: language === 'tm' ? 'Rugsat ýok' : 'Yetkiniz yok' });
+      setToastMessage({ type: 'info', text: t('pos.noPermission') });
       setTimeout(() => setToastMessage(null), 2500);
       return;
     }
@@ -1200,7 +1182,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       invoiceNo: generateInvoiceNo(),
       invoiceType,                               // ← artık state'ten geliyor
       customerId: selectedCustomer?.id || null,
-      customerName: selectedCustomer?.name || t.generalCustomer,
+      customerName: selectedCustomer?.name || t('generalCustomer'),
       items: [...cartItems],
       itemCount: cartItems.reduce((sum, item) => sum + item.qty, 0),
       subtotal,
@@ -1227,7 +1209,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
 
     setToastMessage({
       type: 'success',
-      text: `${t.posApproved} (${newInvoice.invoiceNo})`
+      text: `${t('posApproved')} (${newInvoice.invoiceNo})`
     });
 
     // Sepeti Sıfırla
@@ -1253,14 +1235,9 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       if (short.length > 0) {
         setToastMessage({
           type: 'info',
-          text:
-            language === 'tm'
-              ? `Düzüm stogy ýetmän: ${short
-                  .map((s) => `${s.name} (${s.available}/${s.required})`)
-                  .join(', ')}`
-              : `Kompozisyon stoğu yetersiz: ${short
-                  .map((s) => `${s.name} (${s.available}/${s.required})`)
-                  .join(', ')}`,
+          text: t('pos.compositionShort', {
+            list: short.map((s) => `${s.name} (${s.available}/${s.required})`).join(', '),
+          }),
         });
         setTimeout(() => setToastMessage(null), 5000);
         return;
@@ -1272,9 +1249,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (ops?.operationStartDate && effDate < ops.operationStartDate) {
       setToastMessage({
         type: 'info',
-        text: language === 'tm'
-          ? `Bu sene operasiýa açylmady (başlangyç: ${ops.operationStartDate}).`
-          : `Bu tarihte işlem açılmadı (başlangıç: ${ops.operationStartDate}).`,
+        text: t('pos.dateBeforeStart', { date: ops.operationStartDate }),
       });
       setTimeout(() => setToastMessage(null), 3500);
       return;
@@ -1282,9 +1257,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (ops?.operationEndDate && effDate > ops.operationEndDate) {
       setToastMessage({
         type: 'info',
-        text: language === 'tm'
-          ? `Operasiýa döwri gutardy (soňky: ${ops.operationEndDate}).`
-          : `İşlem dönemi bitti (son: ${ops.operationEndDate}).`,
+        text: t('pos.dateAfterEnd', { date: ops.operationEndDate }),
       });
       setTimeout(() => setToastMessage(null), 3500);
       return;
@@ -1294,9 +1267,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     if (paymentMethod === 'cash' && selectedCustomer?.cashSalesBlocked) {
       setToastMessage({
         type: 'info',
-        text: language === 'tm'
-          ? 'Bu müşderä nagt satuw edip bolmaýar.'
-          : 'Bu müşteriye nakit satış yapılamaz.',
+        text: t('pos.cashSaleBlocked'),
       });
       setTimeout(() => setToastMessage(null), 3500);
       return;
@@ -1312,9 +1283,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
         if (currentReceivable + newReceivable > limit) {
           setToastMessage({
             type: 'info',
-            text: language === 'tm'
-              ? `Karz limiti aşylýar (limit: ${limit.toFixed(2)} TMT).`
-              : `Kredi limiti aşılıyor (limit: ${limit.toFixed(2)} TMT).`,
+            text: t('pos.creditLimitExceeded', { limit: limit.toFixed(2) }),
           });
           setTimeout(() => setToastMessage(null), 3500);
           return;
@@ -1338,7 +1307,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       invoiceNo: generateInvoiceNo(),
       invoiceType,                               // ← artık state'ten geliyor
       customerId: selectedCustomer?.id || null,
-      customerName: selectedCustomer?.name || t.generalCustomer,
+      customerName: selectedCustomer?.name || t('generalCustomer'),
       items: [...cartItems],
       itemCount: cartItems.reduce((sum, item) => sum + item.qty, 0),
       subtotal,
@@ -1375,7 +1344,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
 
     setToastMessage({
       type: 'success',
-      text: `${t.saleCompletedToast} (${newInvoice.invoiceNo} • ${amountDue.toFixed(2)})`
+      text: `${t('saleCompletedToast')} (${newInvoice.invoiceNo} • ${amountDue.toFixed(2)})`
     });
 
     // Reset Cart and Notes for next customer
@@ -1438,10 +1407,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       if (cartItems.length === 0 && !selectedCustomer && !barcodeQuery.trim()) {
         setToastMessage({
           type: 'info',
-          text:
-            language === 'tm'
-              ? 'Arassalamak üçin üýtgeşme ýok'
-              : 'Temizlenecek değişiklik yok',
+          text: t('pos.nothingToReset'),
         });
         setTimeout(() => setToastMessage(null), 3000);
         return;
@@ -1511,7 +1477,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
         e.preventDefault();
         if (activeTab !== 'checkout') return;
         if (!adminRef.current) {
-          setToastMessage({ type: 'info', text: language === 'tm' ? 'Rugsat ýok' : 'Yetkiniz yok' });
+          setToastMessage({ type: 'info', text: t('pos.noPermission') });
           setTimeout(() => setToastMessage(null), 3000);
           return;
         }
@@ -1598,6 +1564,58 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
   const handleDeleteProduct = (id: string) => {
     setProducts(prev => prev.filter(x => x.id !== id));
     deleteProductFromDb(id, storeDb).catch(() => {});
+  };
+
+  // ── Excel import: toplu ýazgy — ähli harytlar BIR batch-de ýazylýar. ──
+  // Şowsuz galanlar UI-a goşulmaýar; setir belgisi + sebäp bilen hasaba alnyp
+  // import modalyna gaýdýar (ýalňyşlyk ýutulmaýar).
+  const handleImportProducts = async (
+    items: ReadonlyArray<{ product: Product; rowNumber: number }>
+  ): Promise<BatchWriteResult> => {
+    const result = await saveProductsBatchDb(
+      items.map((item) => item.product),
+      storeDb
+    );
+    const failedIds = new Set(result.failed.map((f) => f.id));
+    const succeeded = items.map((item) => item.product).filter((p) => !failedIds.has(p.id));
+    setProducts((prev) => {
+      const prevIds = new Set(prev.map((p) => p.id));
+      const fresh: Product[] = [];
+      const replaced = new Map<string, Product>();
+      for (const product of succeeded) {
+        if (prevIds.has(product.id)) replaced.set(product.id, product);
+        else fresh.push(product);
+      }
+      return [...fresh, ...prev.map((p) => replaced.get(p.id) ?? p)];
+    });
+    return result;
+  };
+
+  // ── Excel import: toplu ýazgy — ähli müşderiler BIR batch-de ýazylýar. ──
+  const handleImportCustomers = async (
+    items: ReadonlyArray<{ customer: Customer; rowNumber: number }>
+  ): Promise<BatchWriteResult> => {
+    const result = await saveCustomersBatchDb(
+      items.map((item) => item.customer),
+      storeDb
+    );
+    const failedIds = new Set(result.failed.map((f) => f.id));
+    const succeeded = items.map((item) => item.customer).filter((c) => !failedIds.has(c.id));
+    setCustomers((prev) => {
+      const prevIds = new Set(prev.map((c) => c.id));
+      const fresh: Customer[] = [];
+      const replaced = new Map<string, Customer>();
+      for (const customer of succeeded) {
+        if (prevIds.has(customer.id)) replaced.set(customer.id, customer);
+        else fresh.push(customer);
+      }
+      return [...fresh, ...prev.map((c) => replaced.get(c.id) ?? c)];
+    });
+    setSelectedCustomer((prev) => {
+      if (!prev) return prev;
+      return succeeded.find((c) => c.id === prev.id) ?? prev;
+    });
+    return result;
   };
 
   const handleAddCustomer = (newCustomer: Customer) => {
@@ -1791,7 +1809,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
   // şol bir `id` bilen üstüne ýazylýar (çoýulma bolmaýar).
   const handleSaveDraftFromCart = () => {
     if (cartItems.length === 0) {
-      setToastMessage({ type: 'info', text: 'Sebet boş. Öň haryt goşuň.' });
+      setToastMessage({ type: 'info', text: t('pos.cartEmptyAddFirst') });
       setTimeout(() => setToastMessage(null), 3000);
       return;
     }
@@ -1805,7 +1823,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
       invoiceNo: existing ? existing.invoiceNo : generateInvoiceNo(),
       invoiceType,
       customerId: selectedCustomer?.id ?? null,
-      customerName: selectedCustomer?.name ?? t.generalCustomer,
+      customerName: selectedCustomer?.name ?? t('generalCustomer'),
       items: [...cartItems],
       itemCount: cartItems.reduce((sum, item) => sum + item.qty, 0),
       subtotal,
@@ -1934,7 +1952,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
     applyAcceptedDraft({
       ...draft,
       customerId: selectedCustomer ? selectedCustomer.id : null,
-      customerName: selectedCustomer ? selectedCustomer.name : t.generalCustomer,
+      customerName: selectedCustomer ? selectedCustomer.name : t('generalCustomer'),
       items: [...cartItems],
       itemCount: cartItems.reduce((sum, item) => sum + item.qty, 0),
       subtotal,
@@ -2051,9 +2069,9 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
               <div className="grid grid-cols-3 gap-1 p-1 bg-white border border-gray-200 rounded-2xl shadow-sm">
                 {(
                   [
-                    { id: 'cart', label: language === 'tm' ? 'Sebet' : 'Sepet', badge: cartCount > 0 ? String(cartCount) : '' },
-                    { id: 'catalog', label: t.tabHaryt, badge: '' },
-                    { id: 'pay', label: language === 'tm' ? 'Töleg' : 'Ödeme', badge: amountDue > 0 ? amountDue.toFixed(0) : '' },
+                    { id: 'cart', label: t('pos.paneCart'), badge: cartCount > 0 ? String(cartCount) : '' },
+                    { id: 'catalog', label: t('tabHaryt'), badge: '' },
+                    { id: 'pay', label: t('pos.panePay'), badge: amountDue > 0 ? amountDue.toFixed(0) : '' },
                   ] as const
                 ).map((pane) => (
                   <button
@@ -2119,7 +2137,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
                       onClick={() => setMobilePane('pay')}
                       className="w-full py-4 rounded-2xl bg-[#0B1F3A] text-white font-bold text-base shadow-lg active:scale-[0.98]"
                     >
-                      {language === 'tm' ? 'Tölege geç' : 'Ödemeye geç'} • {amountDue.toFixed(2)}
+                      {t('pos.goToPayment')} • {amountDue.toFixed(2)}
                     </button>
                   )}
                 </div>
@@ -2345,9 +2363,11 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
           onAddProduct={handleAddProduct}
           onUpdateProduct={handleUpdateProduct}
           onDeleteProduct={handleDeleteProduct}
+          onImportProducts={handleImportProducts}
           onAddCustomer={handleAddCustomer}
           onUpdateCustomer={handleUpdateCustomer}
           onDeleteCustomer={handleDeleteCustomer}
+          onImportCustomers={handleImportCustomers}
           canEditCustomer={canEditCustomer}
           onQuickAddCustomer={handleQuickAddCustomer}
           storeDb={storeDb}
@@ -2478,12 +2498,10 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
         <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5">
             <div className="text-sm font-bold text-gray-800 mb-1">
-              {language === 'tm' ? 'Geri almak' : 'Geri Al'}
+              {t('pos.resetTitle')}
             </div>
             <p className="text-xs text-gray-500 leading-relaxed">
-              {language === 'tm'
-                ? 'Häzirki ekrandaky ähli üýtgeşmeler (saýlanan harytlar, müşderi, baha görnüşi, töleg) arassalanýar. Dowam etmek isleýärmiň?'
-                : 'Mevcut ekrandaki tüm değişiklikler (seçilen ürünler, müşteri, fiyat tipi, ödeme) temizlenir. Devam etmek istiyor musunuz?'}
+              {t('pos.resetMsg')}
             </p>
             <div className="flex justify-end gap-2 pt-3">
               <button
@@ -2491,14 +2509,14 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
                 onClick={() => setIsResetConfirmOpen(false)}
                 className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
               >
-                {language === 'tm' ? 'Ýatyr' : 'İptal'}
+                {t('pos.resetCancel')}
               </button>
               <button
                 type="button"
                 onClick={handleResetCheckout}
                 className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
               >
-                {language === 'tm' ? 'Geri al' : 'Geri Al'}
+                {t('pos.resetConfirm')}
               </button>
             </div>
           </div>

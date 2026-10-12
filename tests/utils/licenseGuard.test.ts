@@ -26,23 +26,23 @@ beforeEach(() => {
 
 describe('licenseGuard AES-GCM', () => {
   // Mock 32-byte key
-  const testKey = Buffer.from('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'hex');
+  const testKey = Uint8Array.from(makeKey(1));
 
   describe('encryptWithKey', () => {
     it('should encrypt string data', async () => {
       const plaintext = 'Test data for encryption';
       const encrypted = await encryptWithKey(plaintext, testKey);
       
-      expect(encrypted).toBeInstanceOf(Buffer);
+      expect(encrypted).toBeInstanceOf(Uint8Array);
       expect(encrypted.length).toBeGreaterThan(plaintext.length); // IV + data + tag
       expect(encrypted.length).toBeGreaterThanOrEqual(12 + plaintext.length + 16);
     });
 
     it('should encrypt Buffer data', async () => {
-      const plaintext = Buffer.from('Test buffer data', 'utf8');
+      const plaintext = new TextEncoder().encode('Test buffer data');
       const encrypted = await encryptWithKey(plaintext, testKey);
       
-      expect(encrypted).toBeInstanceOf(Buffer);
+      expect(encrypted).toBeInstanceOf(Uint8Array);
       expect(encrypted.length).toBeGreaterThan(plaintext.length);
     });
 
@@ -56,7 +56,7 @@ describe('licenseGuard AES-GCM', () => {
 
     it('should handle empty string', async () => {
       const encrypted = await encryptWithKey('', testKey);
-      expect(encrypted).toBeInstanceOf(Buffer);
+      expect(encrypted).toBeInstanceOf(Uint8Array);
       expect(encrypted.length).toBe(12 + 16); // IV + tag only
     });
   });
@@ -67,14 +67,14 @@ describe('licenseGuard AES-GCM', () => {
       const encrypted = await encryptWithKey(plaintext, testKey);
       const decrypted = await decryptWithKey(encrypted, testKey);
       
-      expect(decrypted.toString('utf8')).toBe(plaintext);
+      expect(new TextDecoder().decode(decrypted)).toBe(plaintext);
     });
 
     it('should fail with wrong key', async () => {
       const plaintext = 'Secret message';
       const encrypted = await encryptWithKey(plaintext, testKey);
       
-      const wrongKey = Buffer.from('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 'hex');
+      const wrongKey = Uint8Array.from(makeKey(2));
       
       await expect(decryptWithKey(encrypted, wrongKey)).rejects.toThrow('DECRYPT_ERROR');
     });
@@ -90,7 +90,7 @@ describe('licenseGuard AES-GCM', () => {
     });
 
     it('should fail with too short data', async () => {
-      const tooShort = Buffer.from('short', 'utf8');
+      const tooShort = new TextEncoder().encode('short');
       await expect(decryptWithKey(tooShort, testKey)).rejects.toThrow('Veri çok kısa');
     });
 
@@ -99,7 +99,7 @@ describe('licenseGuard AES-GCM', () => {
       const encrypted = await encryptWithKey(plaintext, testKey);
       const decrypted = await decryptWithKey(encrypted, testKey);
       
-      expect(decrypted.toString('utf8')).toBe('');
+      expect(new TextDecoder().decode(decrypted)).toBe('');
     });
   });
 
@@ -116,7 +116,7 @@ describe('licenseGuard AES-GCM', () => {
       for (const plaintext of testCases) {
         const encrypted = await encryptWithKey(plaintext, testKey);
         const decrypted = await decryptWithKey(encrypted, testKey);
-        expect(decrypted.toString('utf8')).toBe(plaintext);
+        expect(new TextDecoder().decode(decrypted)).toBe(plaintext);
       }
     });
   });
@@ -145,7 +145,7 @@ describe('licenseGuard — anahtar türetme (spec 16.1)', () => {
       const backupKey = await getLicenseKeyForBackup();
       const reportKey = await getLicenseKeyForReports();
 
-      expect(Buffer.from(backupKey!).equals(Buffer.from(reportKey!))).toBe(false);
+      expect(backupKey!).not.toEqual(reportKey!);
     });
 
     it('lisanssızda null döner (veri açılamaz)', async () => {
@@ -171,10 +171,10 @@ describe('licenseGuard — anahtar türetme (spec 16.1)', () => {
       (window as any).electronAPI.deriveLicenseKey = saved;
     });
 
-    it('32 byte anahtarı Buffer olarak döner', async () => {
+    it('32 byte anahtarı Uint8Array olarak döner', async () => {
       deriveLicenseKey.mockResolvedValue(makeKey(5));
       const key = await getLicenseKeyForBackup();
-      expect(key).toBeInstanceOf(Buffer);
+      expect(key).toBeInstanceOf(Uint8Array);
       expect(key!.length).toBe(32);
     });
   });
@@ -190,8 +190,8 @@ describe('licenseGuard — anahtar türetme (spec 16.1)', () => {
       const data = { products: [{ ad: 'Çay' }], invoices: [{ toplam: 100 }] };
 
       const encrypted = await createEncryptedBackup(data);
-      expect(encrypted).toBeInstanceOf(Buffer);
-      expect(encrypted!.toString('utf8')).not.toContain('Çay');
+      expect(encrypted).toBeInstanceOf(Uint8Array);
+      expect(new TextDecoder().decode(encrypted!)).not.toContain('Çay');
 
       const restored = await restoreEncryptedBackup(encrypted!);
       expect(restored).toEqual(data);
@@ -201,7 +201,7 @@ describe('licenseGuard — anahtar türetme (spec 16.1)', () => {
   describe('restoreEncryptedBackup', () => {
     it('lisanssızda fırlatır', async () => {
       deriveLicenseKey.mockResolvedValue(null);
-      await expect(restoreEncryptedBackup(Buffer.from([1, 2, 3]))).rejects.toThrow(
+      await expect(restoreEncryptedBackup(Uint8Array.from([1, 2, 3]))).rejects.toThrow(
         'LICENSE_REQUIRED'
       );
     });
@@ -226,8 +226,8 @@ describe('licenseGuard — anahtar türetme (spec 16.1)', () => {
     it('lisanslıysa şifreli rapor üretir', async () => {
       deriveLicenseKey.mockResolvedValue(makeKey(1));
       const out = await exportEncryptedReport({ toplam: 500 }, 'excel');
-      expect(out).toBeInstanceOf(Buffer);
-      expect(out!.toString('utf8')).not.toContain('500');
+      expect(out).toBeInstanceOf(Uint8Array);
+      expect(new TextDecoder().decode(out!)).not.toContain('500');
     });
   });
 });

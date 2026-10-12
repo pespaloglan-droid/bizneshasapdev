@@ -4,6 +4,7 @@ import type { LanguageCode, Product, Warehouse as WarehouseType } from '../../ty
 import { ProductImage } from './ProductImage';
 import { CurrencyLabel } from './CurrencyLabel';
 import { productCategories } from '../../db/productService';
+import { useT } from '../../locales/LanguageContext';
 
 interface ProductSearchModalProps {
   products: readonly Product[];
@@ -30,7 +31,7 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
   onSelect,
   onClose,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
   const [query, setQuery] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [category, setCategory] = useState('');
@@ -118,10 +119,9 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
           <div className="flex items-center gap-2">
             <Search className="w-5 h-5" />
             <div>
-              <h3 className="text-sm font-bold tracking-wide">{isTm ? 'Haryt gözle' : 'Ürün Ara'}</h3>
+              <h3 className="text-sm font-bold tracking-wide">{t('pos.psTitle')}</h3>
               <p className="text-[11px] text-gray-300">
-                {isTm ? 'Tapylan: ' : 'Bulunan: '}
-                {filtered.length} {isTm ? 'haryt' : 'ürün'}
+                {t('pos.psFoundHeader', { count: filtered.length })}
               </p>
             </div>
           </div>
@@ -139,7 +139,7 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
           <div className="w-[250px] flex-shrink-0 border-r border-gray-100 bg-gray-50/60 p-3 space-y-3 overflow-y-auto">
             <div>
               <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                {isTm ? 'Gözleg' : 'Arama'}
+                {t('pos.psSearchLabel')}
               </label>
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600 pointer-events-none" />
@@ -148,7 +148,7 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={isTm ? 'Ady / kody / ştrihkody...' : 'Ad / kod / barkod...'}
+                  placeholder={t('pos.psSearchPlaceholder')}
                   className="w-full h-9 pl-9 pr-3 bg-white border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl text-xs font-semibold text-gray-800 outline-none"
                 />
               </div>
@@ -156,14 +156,14 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
 
             <div>
               <label className="flex items-center gap-1 text-[10px] font-bold text-gray-500 uppercase mb-1">
-                <Warehouse className="w-3 h-3" /> {isTm ? 'Ammar' : 'Ambar'}
+                <Warehouse className="w-3 h-3" /> {t('pos.psWarehouseLabel')}
               </label>
               <select
                 value={warehouseId}
                 onChange={(e) => setWarehouseId(e.target.value)}
                 className="w-full h-9 px-2 bg-white border border-gray-200 rounded-xl text-xs outline-none cursor-pointer"
               >
-                <option value="">{isTm ? 'Hemmesi' : 'Tümü'}</option>
+                <option value="">{t('pos.psAll')}</option>
                 {warehouses.map((w) => (
                   <option key={w.id} value={w.id}>
                     {w.name}
@@ -174,14 +174,14 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
 
             <div>
               <label className="flex items-center gap-1 text-[10px] font-bold text-gray-500 uppercase mb-1">
-                <Filter className="w-3 h-3" /> {isTm ? 'Kategoriýa' : 'Kategori'}
+                <Filter className="w-3 h-3" /> {t('pos.psCategoryLabel')}
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full h-9 px-2 bg-white border border-gray-200 rounded-xl text-xs outline-none cursor-pointer"
               >
-                <option value="">{isTm ? 'Hemmesi' : 'Tümü'}</option>
+                <option value="">{t('pos.psAll')}</option>
                 {categories.map((c) => (
                   <option key={c} value={c}>
                     {c}
@@ -192,15 +192,15 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
 
             <div>
               <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                {isTm ? 'Ştrihkody ýagdaýy' : 'Barkod durumu'}
+                {t('pos.psBarcodeStatus')}
               </label>
               <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1">
                 {(
                   [
-                    { id: 'all', tm: 'Hemmesi', tr: 'Tümü' },
-                    { id: 'with', tm: 'Barlar', tr: 'Olanlar' },
-                    { id: 'without', tm: 'Ýoklar', tr: 'Olmayanlar' },
-                  ] as { id: BarcodeStatus; tm: string; tr: string }[]
+                    { id: 'all', labelKey: 'pos.psAll' },
+                    { id: 'with', labelKey: 'pos.psBsWith' },
+                    { id: 'without', labelKey: 'pos.psBsWithout' },
+                  ] as { id: BarcodeStatus; labelKey: string }[]
                 ).map((o) => (
                   <button
                     key={o.id}
@@ -208,7 +208,7 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
                     onClick={() => setBarcodeStatus(o.id)}
                     className={`flex-1 ${segBtn(barcodeStatus === o.id)}`}
                   >
-                    {isTm ? o.tm : o.tr}
+                    {t(o.labelKey)}
                   </button>
                 ))}
               </div>
@@ -216,16 +216,16 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
 
             <div>
               <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                {isTm ? 'Stok ýagdaýy' : 'Stok durumu'}
+                {t('pos.psStockStatus')}
               </label>
               <div className="grid grid-cols-2 gap-1 rounded-xl border border-gray-200 bg-white p-1">
                 {(
                   [
-                    { id: 'all', tm: 'Hemmesi', tr: 'Tümü' },
-                    { id: 'inStock', tm: 'Stokda bar', tr: 'Stokta var' },
-                    { id: 'out', tm: 'Stok gutardy', tr: 'Stok bitti' },
-                    { id: 'critical', tm: 'Kritik stok', tr: 'Kritik stok' },
-                  ] as { id: StockStatus; tm: string; tr: string }[]
+                    { id: 'all', labelKey: 'pos.psAll' },
+                    { id: 'inStock', labelKey: 'pos.psSsInStock' },
+                    { id: 'out', labelKey: 'pos.psSsOut' },
+                    { id: 'critical', labelKey: 'pos.psSsCritical' },
+                  ] as { id: StockStatus; labelKey: string }[]
                 ).map((o) => (
                   <button
                     key={o.id}
@@ -233,7 +233,7 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
                     onClick={() => setStockStatus(o.id)}
                     className={segBtn(stockStatus === o.id)}
                   >
-                    {isTm ? o.tm : o.tr}
+                    {t(o.labelKey)}
                   </button>
                 ))}
               </div>
@@ -244,8 +244,7 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
           <div className="flex-1 flex flex-col min-w-0">
             <div className="px-3 py-2 flex items-center justify-between border-b border-gray-100 flex-shrink-0">
               <span className="text-[11px] font-bold text-gray-500">
-                {isTm ? 'Tapyldy: ' : 'Bulunan: '}
-                <span className="text-emerald-600">{filtered.length}</span> {isTm ? 'haryt' : 'ürün'}
+                {t('pos.psFound', { count: filtered.length })}
               </span>
               <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden bg-white p-0.5 h-8">
                 <button
@@ -272,7 +271,7 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
                 <div className="h-full flex flex-col items-center justify-center text-gray-400">
                   <Package className="w-10 h-10 text-gray-200 mb-2 stroke-1" />
                   <span className="text-xs font-semibold text-gray-500">
-                    {isTm ? 'Haryt tapylmady' : 'Ürün bulunamadı'}
+                    {t('pos.psNotFound')}
                   </span>
                 </div>
               ) : viewMode === 'grid' ? (
@@ -294,7 +293,7 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
                         <div className="text-[11px] font-semibold text-gray-800 line-clamp-1 leading-tight">{p.name}</div>
                         <div className="text-[9px] text-gray-400 line-clamp-1">{p.category || '—'}</div>
                         <div className={`text-[9px] font-mono ${p.stock < 0 ? 'text-rose-500 font-bold' : 'text-gray-400'}`}>
-                          {isTm ? 'Stok' : 'Stok'}: {p.stock}
+                          {t('pos.psStock')}: {p.stock}
                         </div>
                         <div className="text-xs font-bold text-[#10b981] font-mono">
                           {p.price.toFixed(2)} <CurrencyLabel className="text-[9px] text-emerald-600/70" />
@@ -321,7 +320,7 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
                           <div>
                             <div className="text-xs font-semibold text-gray-900">{p.name}</div>
                             <div className="text-[10px] text-gray-400">
-                              {p.category || '—'} • SKU: {p.sku} • Stok: {p.stock}
+                              {p.category || '—'} • SKU: {p.sku} • {t('pos.psStock')}: {p.stock}
                             </div>
                           </div>
                         </div>
@@ -340,15 +339,14 @@ export const ProductSearchModal: React.FC<ProductSearchModalProps> = ({
         {/* Aşaky setir */}
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
           <span className="text-[11px] font-bold text-gray-500">
-            {isTm ? 'Tapyldy: ' : 'Bulunan: '}
-            <span className="text-emerald-600 font-mono">{filtered.length}</span> {isTm ? 'haryt' : 'ürün'}
+            {t('pos.psFound', { count: filtered.length })}
           </span>
           <button
             type="button"
             onClick={onClose}
             className="h-9 px-5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
           >
-            {isTm ? 'Barysy' : 'Kapat'}
+            {t('pos.psClose')}
           </button>
         </div>
       </div>

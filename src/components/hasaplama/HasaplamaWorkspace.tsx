@@ -10,13 +10,15 @@ import type {
   Targow,
 } from '../../types';
 import {
-  CALC_PERIODS,
+  CALC_PERIOD_KEYS,
   periodWindow,
   type CalcPeriod,
   type DateWindow,
 } from '../../utils/calcPeriods';
 import { flowTotals } from '../../utils/calcFlow';
 import { getAppSettings } from '../../db/settingsService';
+import { localeFor } from '../../utils/locale';
+import { useLanguage, useT } from '../../locales/LanguageContext';
 import {
   ledgerRows,
   receivables,
@@ -37,6 +39,15 @@ import { CalculatorWidget } from './CalculatorWidget';
 
 type ReportTab = 'xaccot' | 'pl' | 'debt' | 'stock' | 'cash' | 'targow';
 
+const TAB_KEYS: Record<ReportTab, string> = {
+  xaccot: 'hasaplama.tabXaccot',
+  pl: 'hasaplama.tabPl',
+  debt: 'hasaplama.tabDebt',
+  stock: 'hasaplama.tabStock',
+  cash: 'hasaplama.tabCash',
+  targow: 'hasaplama.tabTargow',
+};
+
 interface HasaplamaWorkspaceProps {
   invoices: readonly InvoiceRecord[];
   transactions: readonly MoneyTransaction[];
@@ -52,19 +63,19 @@ interface HasaplamaWorkspaceProps {
   onGoToCheckout?: () => void;
 }
 
-const TABS: { id: ReportTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'xaccot', label: 'X-Accot (günlük)', icon: <CalendarClock className="w-3.5 h-3.5" /> },
-  { id: 'pl', label: 'Peýda-zyýan hasabaty', icon: <Coins className="w-3.5 h-3.5" /> },
-  { id: 'debt', label: 'Bergi-borç hasabaty', icon: <HandCoins className="w-3.5 h-3.5" /> },
-  { id: 'stock', label: 'Ambar hasabaty', icon: <Package className="w-3.5 h-3.5" /> },
-  { id: 'cash', label: 'Kassa hasabaty', icon: <PiggyBank className="w-3.5 h-3.5" /> },
-  { id: 'targow', label: 'Targowçy netijeleri', icon: <Trophy className="w-3.5 h-3.5" /> },
+const TABS: { id: ReportTab; icon: React.ReactNode }[] = [
+  { id: 'xaccot', icon: <CalendarClock className="w-3.5 h-3.5" /> },
+  { id: 'pl', icon: <Coins className="w-3.5 h-3.5" /> },
+  { id: 'debt', icon: <HandCoins className="w-3.5 h-3.5" /> },
+  { id: 'stock', icon: <Package className="w-3.5 h-3.5" /> },
+  { id: 'cash', icon: <PiggyBank className="w-3.5 h-3.5" /> },
+  { id: 'targow', icon: <Trophy className="w-3.5 h-3.5" /> },
 ];
 
-function rangeLabel(period: CalcPeriod, window: DateWindow): string {
-  const label = CALC_PERIODS.find((item) => item.id === period)?.label ?? '';
-  const from = window.from.toLocaleDateString('tr-TR');
-  const to = new Date(window.to.getTime() - 86400000).toLocaleDateString('tr-TR');
+function rangeLabel(period: CalcPeriod, window: DateWindow, locale: string, t: (key: string) => string): string {
+  const label = t(CALC_PERIOD_KEYS[period]);
+  const from = window.from.toLocaleDateString(locale);
+  const to = new Date(window.to.getTime() - 86400000).toLocaleDateString(locale);
   return `${label} · ${from} — ${to}`;
 }
 
@@ -81,6 +92,8 @@ export const HasaplamaWorkspace: React.FC<HasaplamaWorkspaceProps> = ({
   onAddToCart,
   onGoToCheckout,
 }) => {
+  const { language } = useLanguage();
+  const t = useT();
   const [period, setPeriod] = useState<CalcPeriod>('month');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
@@ -106,7 +119,7 @@ export const HasaplamaWorkspace: React.FC<HasaplamaWorkspaceProps> = ({
     customTo,
   ]);
 
-  const label = useMemo(() => rangeLabel(period, window), [period, window]);
+  const label = useMemo(() => rangeLabel(period, window, localeFor(language), t), [period, window, language, t]);
 
   const totals = useMemo(() => flowTotals(transactions, window), [transactions, window]);
   const receivableRows = useMemo(
@@ -146,7 +159,7 @@ export const HasaplamaWorkspace: React.FC<HasaplamaWorkspaceProps> = ({
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-1.5 flex items-center gap-1 flex-wrap">
           <span className="inline-flex items-center gap-1.5 px-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
             <BarChart3 className="w-3.5 h-3.5" />
-            Hasaplama
+            {t('hasaplama.title')}
           </span>
           {TABS.map((item) => (
             <button
@@ -160,21 +173,21 @@ export const HasaplamaWorkspace: React.FC<HasaplamaWorkspaceProps> = ({
               }`}
             >
               {item.icon}
-              {item.label}
+              {t(TAB_KEYS[item.id])}
             </button>
           ))}
           <button
             type="button"
             onClick={() => setShowSummary(!showSummary)}
             className="ml-auto h-9 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] flex items-center gap-1.5"
-            title={showSummary ? 'Özet kartlary gizle — hasabata has köp ýer' : 'Özet kartlary görkez'}
+            title={showSummary ? t('hasaplama.summaryHideTip') : t('hasaplama.summaryShowTip')}
           >
             {showSummary ? (
               <ChevronUp className="w-3.5 h-3.5" />
             ) : (
               <ChevronDown className="w-3.5 h-3.5" />
             )}
-            {showSummary ? 'Özeti gizle' : 'Özeti görkez'}
+            {showSummary ? t('hasaplama.summaryHide') : t('hasaplama.summaryShow')}
           </button>
         </div>
 

@@ -10,6 +10,7 @@ import {
 import { GaralamaFilters } from './GaralamaFilters';
 import { GaralamaTable } from './GaralamaTable';
 import { GaralamaRejectDialog } from './GaralamaRejectDialog';
+import { useT } from '../../locales/LanguageContext';
 
 interface GaralamaListModalProps {
   language: LanguageCode;
@@ -40,6 +41,7 @@ export const GaralamaListModal: React.FC<GaralamaListModalProps> = ({
   onToggleSound,
   onClose,
 }) => {
+  const t = useT();
   const [filters, setFilters] = useState<DraftFilterState>(EMPTY_DRAFT_FILTER);
   const [rejectTarget, setRejectTarget] = useState<InvoiceRecord | null>(null);
 
@@ -53,7 +55,7 @@ export const GaralamaListModal: React.FC<GaralamaListModalProps> = ({
           <div>
             <span className="font-bold text-sm tracking-wide">Garalama fakturalar</span>
             <div className="text-[10px] text-gray-300 mt-0.5">
-              {drafts.length} {language === 'tm' ? 'ýazgy görkezilýär' : 'kayıt gösteriliyor'}
+              {drafts.length} {t('faktura.recordsShown')}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -77,12 +79,8 @@ export const GaralamaListModal: React.FC<GaralamaListModalProps> = ({
               }`}
               title={
                 soundEnabled
-                  ? language === 'tm'
-                    ? 'Bildirim sesi açyk — basyp öçür'
-                    : 'Bildirim sesi açık — kapatmak için bas'
-                  : language === 'tm'
-                  ? 'Bildirim sesi ýapyk — basyp aç'
-                  : 'Bildirim sesi kapalı — açmak için bas'
+                  ? t('faktura.soundOn')
+                  : t('faktura.soundOff')
               }
             >
               {soundEnabled ? (

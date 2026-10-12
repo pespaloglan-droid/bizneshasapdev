@@ -3,6 +3,7 @@ import {
   readSheet,
   cellText,
   cellNumber,
+  isTotalRowLabel,
   writeExcelFile,
   type SheetData,
 } from './excelIO';
@@ -43,7 +44,7 @@ export interface CustomerDraft {
 export type { CustomerDraft as CustomerDraftType };
 
 export interface ParsedCustomerRow {
-  /** Excel-de 1-den başlaýan setir belgisi (sözbaşy hasaplanmaýar). */
+  /** Excel-de görnýän hakyky setir belgisi (1-den başlaýar, sözbaşy hem hasaba alnar). */
   readonly rowNumber: number;
   readonly draft: CustomerDraft | null;
   readonly errors: string[];
@@ -150,6 +151,10 @@ export function parseCustomerRows(data: SheetData): ParsedCustomerRow[] {
 
   for (let rowIndex = headerIndex + 1; rowIndex < data.length; rowIndex += 1) {
     const row = data[rowIndex];
+    // Stilli eksportyň aşakyndaky «Jemi» setiri importda geçilýär.
+    if (isTotalRowLabel(cellText(row[0]))) continue;
+    // Excel-de görnýän hakyky setir belgisi (0-based index + 1).
+    const excelRowNumber = rowIndex + 1;
     const errors: string[] = [];
     const value = (key: keyof CustomerDraft): string => {
       const index = indexOf[key];
@@ -177,7 +182,7 @@ export function parseCustomerRows(data: SheetData): ParsedCustomerRow[] {
       if (firstSeen !== undefined) {
         errors.push(`At faýlda gaýtalanýar (${firstSeen}-nji setirde)`);
       } else {
-        seenNames.set(nameKey, rowIndex);
+        seenNames.set(nameKey, excelRowNumber);
       }
     }
     if (draft.phone) {
@@ -186,7 +191,7 @@ export function parseCustomerRows(data: SheetData): ParsedCustomerRow[] {
       if (firstSeen !== undefined) {
         errors.push(`Telefon faýlda gaýtalanýar (${firstSeen}-nji setirde)`);
       } else {
-        seenPhones.set(phoneKey, rowIndex);
+        seenPhones.set(phoneKey, excelRowNumber);
       }
     }
 
@@ -196,7 +201,7 @@ export function parseCustomerRows(data: SheetData): ParsedCustomerRow[] {
     if (isEmpty && errors.length === 0) continue;
 
     parsed.push({
-      rowNumber: rowIndex,
+      rowNumber: excelRowNumber,
       draft: errors.length === 0 ? draft : null,
       errors,
     });

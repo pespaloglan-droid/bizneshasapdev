@@ -12,6 +12,7 @@ import type {
 import { ledgerTransactions } from '../../db/ledgerService';
 import { formatMoney } from '../../utils/money';
 import { KassaTable } from '../kassa/KassaTable';
+import { useT } from '../../locales/LanguageContext';
 
 interface LedgerDetailProps {
   ledger: Ledger;
@@ -40,6 +41,7 @@ export const LedgerDetail: React.FC<LedgerDetailProps> = ({
   onEditTransaction,
   onDeleteTransaction,
 }) => {
+  const t = useT();
   const rows = ledgerTransactions(ledger, transactions);
 
   return (
@@ -50,7 +52,7 @@ export const LedgerDetail: React.FC<LedgerDetailProps> = ({
             type="button"
             onClick={onBack}
             className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-[#0B1F3A] hover:text-white text-gray-500 transition-colors flex-shrink-0"
-            title={language === 'tm' ? 'Yza' : 'Geri'}
+            title={t('depder.back')}
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -62,14 +64,14 @@ export const LedgerDetail: React.FC<LedgerDetailProps> = ({
           <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-gray-900 truncate">{ledger.name}</div>
             <div className="text-[11px] text-gray-400 font-medium truncate">
-              {ledger.description || (language === 'tm' ? 'Beýany ýok' : 'Açıklama yok')} ·{' '}
-              {rows.length} {language === 'tm' ? 'hereket' : 'hareket'}
+              {ledger.description || t('depder.noDescription')} ·{' '}
+              {rows.length} {t('depder.txUnit')}
             </div>
           </div>
 
           <div className="text-right">
             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-              {language === 'tm' ? 'Häzirki galyndy' : 'Güncel bakiye'}
+              {t('depder.currentBalance')}
             </div>
             <div
               className={`font-mono font-bold text-lg ${

@@ -1,18 +1,22 @@
-import type { PaymentMethod } from '../types';
+import type { LanguageCode, PaymentMethod } from '../types';
+import { translate } from '../locales/i18n';
 
 /**
- * Faktura/çek üçin töleg görnüşiniň türkmen atlary.
+ * Faktura/çek üçin töleg görnüşiniň etiketi — diňe GÖRKEZME/çap üçin.
+ * DB-de `paymentMethod` enum hökmünde saklanýar; bu etiket hiç ýere ýazylmaýar.
+ * `language` berilmezse köne behavior (türkmençe) saklanýar.
  * (Kassa modulyndaky `MoneyPaymentMethod` aýratyn — bu ýerde faktura tölegleri.)
  */
-export const INVOICE_PAYMENT_LABELS: Record<PaymentMethod, string> = {
-  cash: 'NAGT',
-  card: 'BANK KARTY',
-  credit: 'NESIÝE',
-  split: 'BÖLÜNEN',
+const INVOICE_PAYMENT_KEYS: Record<PaymentMethod, string> = {
+  cash: 'payment.cash',
+  card: 'payment.card',
+  credit: 'payment.credit',
+  split: 'payment.split',
 };
 
-export function invoicePaymentLabel(method: PaymentMethod): string {
-  return INVOICE_PAYMENT_LABELS[method] ?? String(method).toUpperCase();
+export function invoicePaymentLabel(method: PaymentMethod, language: LanguageCode = 'tm'): string {
+  const key = INVOICE_PAYMENT_KEYS[method];
+  return key ? translate(language, key) : String(method).toUpperCase();
 }
 
 /** Satuw senesinden `days` gün goşup, vade senesini (YYYY-MM-DD) hasaplaýar. */

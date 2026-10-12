@@ -328,7 +328,7 @@ export async function startConnection(opts: StartOptions): Promise<TestResult> {
     return { ok: false, step: 'server', message: 'Adres okunamadı' };
   }
 
-  // Aynı anda tek bağlantı: öncekin�� durdur
+  // Aynı anda tek bağlantı: öncekini durdur
   stopCurrent();
 
   // Veri birleştirme: telefonda da, sunucuda da veri varsa sor

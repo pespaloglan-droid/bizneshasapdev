@@ -1,5 +1,6 @@
 import { AppUser, AppUserRole, LanguageCode, PermissionsMap, UserAccessControl, UserDefaults, UserModuleExtras } from '../../types';
 import { ROLE_PERMISSIONS, clonePermissions, generateUserId, isUsernameUnique } from '../../db/userService';
+import { translate } from '../../locales/i18n';
 import {
   emptyAccessControl,
   emptyDefaults,
@@ -58,15 +59,14 @@ export function validateUserForm(
   editingUser: AppUser | null,
   language: LanguageCode
 ): string | null {
-  const tm = language === 'tm';
   const username = form.username.trim();
 
-  if (!username) return tm ? 'Ulanyjy ady hökmanydyr.' : 'Kullanıcı adı zorunludur.';
+  if (!username) return translate(language, 'users.errUsernameRequired');
   if (!isUsernameUnique(username, users, editingUser?.id)) {
-    return tm ? 'Bu ulanyjy ady eýýäm ulanylýar.' : 'Bu kullanıcı ady zaten var.';
+    return translate(language, 'users.errUsernameTaken');
   }
   if (form.password !== form.confirmPassword) {
-    return tm ? 'Parollar gabat gelenok.' : 'Şifreler eşleşmiyor.';
+    return translate(language, 'users.errPasswordMismatch');
   }
   // Kassa: "Girdeji goş" açyk ýöne kategoriýa sanawy aýdyň boş — ýazga ýol ýok.
   const extras = normalizeModuleExtras(form.moduleExtras);
@@ -75,7 +75,7 @@ export function validateUserForm(
     extras.kassa.incomeCategories !== undefined &&
     extras.kassa.incomeCategories.length === 0
   ) {
-    return tm ? 'Iň azyndan bir kategoriýa saýlaň.' : 'En az bir kategoriya seçin.';
+    return translate(language, 'users.errCategoryRequired');
   }
   // Faktura: GOŞ açyk ýöne görnüş sanawy boş — hiç hili görnüşe ýol ýok.
   const access = normalizeAccessControl(form.accessControl);
@@ -84,7 +84,7 @@ export function validateUserForm(
     access.invoiceTypes.mode === 'whitelist' &&
     access.invoiceTypes.list.length === 0
   ) {
-    return tm ? 'Iň azyndan bir faktura görnüşi saýlaň.' : 'En az bir fatura türü seçin.';
+    return translate(language, 'users.errInvoiceTypeRequired');
   }
   return null;
 }

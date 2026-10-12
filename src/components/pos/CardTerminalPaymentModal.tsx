@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CreditCard, Wifi, CheckCircle2, XCircle, Loader2, ArrowRight, X, AlertTriangle, RefreshCw, SmartphoneNfc } from 'lucide-react';
 import { LanguageCode } from '../../types';
-import { translations } from '../../locales/i18n';
+import { translations, translate } from '../../locales/i18n';
 import { checkPosDeviceConnection, PosConnectionResult } from '../../services/posDeviceService';
 import { playCardBeep, playPaymentSuccessChime } from '../../utils/audio';
 
@@ -150,7 +150,7 @@ export const CardTerminalPaymentModal: React.FC<CardTerminalPaymentModalProps> =
             <div className="flex flex-col items-center my-4 py-2">
               <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-3" />
               <h4 className="text-sm font-bold text-gray-800">{t.posAnalyzing}</h4>
-              <p className="text-xs text-gray-500 mt-1">USB / COM / LAN portları taranıyor...</p>
+              <p className="text-xs text-gray-500 mt-1">{translate(language, 'pos.cardScanningPorts')}</p>
             </div>
           )}
 
@@ -179,9 +179,9 @@ export const CardTerminalPaymentModal: React.FC<CardTerminalPaymentModalProps> =
                   type="button"
                   onClick={handleEnableTestDevice}
                   className="px-2.5 py-1.5 bg-rose-200/70 hover:bg-rose-200 rounded-lg text-[11px] font-semibold text-rose-900 transition-all"
-                  title="Test amaçlı cihazı bağlı kabul et"
+                  title={translate(language, 'pos.cardTestModeTip')}
                 >
-                  Test Modu
+                  {translate(language, 'pos.cardTestMode')}
                 </button>
               </div>
             </div>
@@ -200,7 +200,7 @@ export const CardTerminalPaymentModal: React.FC<CardTerminalPaymentModalProps> =
               </div>
               <h4 className="text-sm font-bold text-gray-800 mb-1">{t.posWaitingCard}</h4>
               <p className="text-xs text-gray-500 max-w-xs leading-relaxed">
-                Müşteri kartını cihaza okutmalıdır. Cihaz ödemeyi onaylayınca aşağıdaki <strong>Onayla</strong> butonuna basınız.
+                {translate(language, 'pos.cardWaitingBefore')} <strong>{translate(language, 'pos.cardApprove')}</strong> {translate(language, 'pos.cardWaitingAfter')}
               </p>
             </div>
           )}
@@ -212,7 +212,7 @@ export const CardTerminalPaymentModal: React.FC<CardTerminalPaymentModalProps> =
                 <Loader2 className="w-8 h-8 animate-spin" />
               </div>
               <h4 className="text-sm font-bold text-gray-800 mb-1">{t.posProcessing}</h4>
-              <p className="text-xs text-gray-500 font-mono">Banka Onayı Alınıyor...</p>
+              <p className="text-xs text-gray-500 font-mono">{translate(language, 'pos.cardBankApproval')}</p>
             </div>
           )}
 
@@ -237,7 +237,7 @@ export const CardTerminalPaymentModal: React.FC<CardTerminalPaymentModalProps> =
                 <XCircle className="w-10 h-10" />
               </div>
               <h4 className="text-sm font-bold text-red-600 mb-1">{t.posDeclined}</h4>
-              <p className="text-xs text-gray-500">Ödeme tamamlanamadı.</p>
+              <p className="text-xs text-gray-500">{translate(language, 'pos.cardPaymentFailed')}</p>
             </div>
           )}
         </div>
@@ -258,7 +258,7 @@ export const CardTerminalPaymentModal: React.FC<CardTerminalPaymentModalProps> =
               onClick={handleApprovePayment}
               className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs font-bold transition-all flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer"
             >
-              <span>Ödeme Kabul Edildi & Çek Çıkar (Enter)</span>
+              <span>{translate(language, 'pos.cardApproveBtn')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           )}

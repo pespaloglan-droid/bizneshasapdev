@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import type { Customer, InvoiceType, LanguageCode } from '../../types';
 import { translations } from '../../locales/i18n';
+import { useT } from '../../locales/LanguageContext';
 import { GENERAL_CUSTOMER_ID } from '../../db/customerService';
 import { useBarcodeScan } from '../../hooks/useBarcodeScan';
 import { generateInvoiceCode, getInvoiceTypeLabel, invoiceTypeOptions } from '../pos/InvoiceControlBar';
@@ -56,6 +57,7 @@ export const MobileInvoiceBar: React.FC<MobileInvoiceBarProps> = ({
   onOpenCustomerSearch,
 }) => {
   const t = translations[language] || translations.en;
+  const tt = useT();
   const [isTypeOpen, setIsTypeOpen] = useState(false);
   const [isCustomerOpen, setIsCustomerOpen] = useState(false);
   const typeRef = useRef<HTMLDivElement>(null);
@@ -191,7 +193,7 @@ export const MobileInvoiceBar: React.FC<MobileInvoiceBarProps> = ({
         <button
           type="button"
           onClick={onOpenCustomerSearch}
-          title={language === 'tm' ? 'Müşderi gözle' : 'Müşteri ara'}
+          title={tt('mobile.customerSearchTitle')}
           className="h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-600 active:scale-95"
         >
           <Search className="w-5 h-5" />
@@ -240,7 +242,7 @@ export const MobileInvoiceBar: React.FC<MobileInvoiceBarProps> = ({
           type="button"
           onClick={() => onPrintCopiesChange(printCopies === 0 ? 1 : printCopies === 1 ? 2 : 0)}
           className="relative h-12 w-12 flex-shrink-0 rounded-2xl border border-gray-200 bg-white text-gray-700 font-black active:scale-95"
-          title="Fiş adedi"
+          title={tt('pos.icbCopiesTip')}
         >
           {printCopies}
         </button>

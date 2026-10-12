@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertCircle, Check } from 'lucide-react';
+import { useT } from '../../locales/LanguageContext';
 
 export const INPUT =
   'w-full h-9 px-3 border border-gray-200 rounded-xl text-sm bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none';
@@ -144,16 +145,18 @@ interface SaveBarProps {
   extra?: React.ReactNode;
 }
 
-export const SaveBar: React.FC<SaveBarProps> = ({ dirty, onSave, onReset, extra }) => (
+export const SaveBar: React.FC<SaveBarProps> = ({ dirty, onSave, onReset, extra }) => {
+  const t = useT();
+  return (
   <div className="flex items-center justify-between gap-3 pt-1">
     <div className="flex items-center gap-2">
       {dirty ? (
         <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1">
           <AlertCircle className="w-3 h-3" />
-          Ýatda saklanmadyk üýtgeşmeler bar
+          {t('sazlamalar.saveBarDirty')}
         </span>
       ) : (
-        <span className="text-[11px] font-semibold text-gray-400">Üýtgeşme ýok</span>
+        <span className="text-[11px] font-semibold text-gray-400">{t('sazlamalar.saveBarClean')}</span>
       )}
       {extra}
     </div>
@@ -164,7 +167,7 @@ export const SaveBar: React.FC<SaveBarProps> = ({ dirty, onSave, onReset, extra 
         disabled={!dirty}
         className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold text-xs"
       >
-        Ýatyr
+        {t('sazlamalar.cancelBtn')}
       </button>
       <button
         type="button"
@@ -172,8 +175,9 @@ export const SaveBar: React.FC<SaveBarProps> = ({ dirty, onSave, onReset, extra 
         disabled={!dirty}
         className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs"
       >
-        Ýatda sakla
+        {t('sazlamalar.saveBtn')}
       </button>
     </div>
   </div>
-);
+  );
+};

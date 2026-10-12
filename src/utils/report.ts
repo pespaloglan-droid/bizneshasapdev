@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { buildReportHtml, type ReportTable } from './csv';
 import { electronBridge } from './electron';
+import { formatDateTime } from './locale';
 
 export interface ReportPayload {
   readonly title: string;
@@ -50,5 +51,5 @@ export function useReport(paperWidth = '80mm'): ReportState {
 }
 
 export function updatedStamp(): string {
-  return new Date().toLocaleString('tr-TR');
+  return formatDateTime(new Date());
 }

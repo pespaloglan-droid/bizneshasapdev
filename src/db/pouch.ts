@@ -284,21 +284,45 @@ export async function removeDoc(dbName: string, id: string): Promise<boolean> {
 /** Toplu yazma yığın boyutu (PouchDB `_bulk_docs`). */
 export const BULK_BATCH_SIZE = 100;
 
+/** Toplu yazmada şowsuz galan bir belge. */
+export interface BatchWriteFailure {
+  /** Yazylmadyk belginiň `_id`-si. */
+  id: string;
+  /** PouchDB ýalňyşlyk teksti (conflict, license we ş.m.). */
+  error: string;
+}
+
+/** Toplu yazma jemi — ýazylan/şowsuz sanawy bilen (import hasabaty üçin). */
+export interface BatchWriteResult {
+  written: number;
+  failed: BatchWriteFailure[];
+}
+
+/** PouchDB bulkDocs jogabyndan okalýan ýalňyşlyk teksti. */
+function bulkErrorText(row: unknown): string {
+  const r = row as { message?: string; reason?: string; name?: string } | null;
+  return r?.message || r?.reason || r?.name || 'unknown_error';
+}
+
 /**
  * Çok sayıda belgeyi topluca yazar (100'erlik gruplar).
  *
  * Tek tek `upsertDoc` çağırmak yüzlerce `get` + `put` demek; hem yavaştır hem
  * arayüzü meşgul eder. Burada rev'ler tek `allDocs` çağrısında alınır, yazma
  * `bulkDocs` ile yapılır — büyük veri aktarımında arayüzün donmasını önler.
+ *
+ * Kısmi başarı mumkin: her belge aýratyn netijelenýär. Şowsuz belgiler
+ * YUTULMAÝAR — `failed` sanawyna aýratynlykda düşýär (satyr + sebäp).
  */
 export async function upsertDocsBatch(
   dbName: string,
   entries: ReadonlyArray<{ id: string; fields: Record<string, unknown> }>,
   batchSize = BULK_BATCH_SIZE
-): Promise<number> {
-  if (entries.length === 0) return 0;
+): Promise<BatchWriteResult> {
+  if (entries.length === 0) return { written: 0, failed: [] };
   const db = getLocalDatabase(dbName);
   let written = 0;
+  const failed: BatchWriteFailure[] = [];
 
   for (let i = 0; i < entries.length; i += batchSize) {
     const chunk = entries.slice(i, i + batchSize);
@@ -318,15 +342,22 @@ export async function upsertDocsBatch(
     const docs = chunk.map((e) => ({ _id: e.id, _rev: revs.get(e.id), ...e.fields }));
     try {
       const res = await db.bulkDocs(docs as never[]);
-      written += res.filter((r) => (r as { ok?: boolean }).ok).length;
+      for (const row of res) {
+        const r = row as { id?: string; ok?: boolean };
+        if (r.ok) written += 1;
+        else failed.push({ id: r.id ?? '?', error: bulkErrorText(row) });
+      }
     } catch {
       // Toplu yazma başarısızsa tek tek dene (kısmi başarı korunur)
       for (const entry of chunk) {
         try {
           await upsertDoc(dbName, entry.id, entry.fields);
           written += 1;
-        } catch {
-          // bu belge atlanır
+        } catch (error) {
+          failed.push({
+            id: entry.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       }
     }
@@ -336,7 +367,7 @@ export async function upsertDocsBatch(
       await new Promise((r) => setTimeout(r, 0));
     }
   }
-  return written;
+  return { written, failed };
 }
 
 export async function listDocsByPrefix(

@@ -9,6 +9,7 @@ import {
   generateCurrencyId,
   isCurrencyCodeUnique,
 } from '../../db/currencyService';
+import { useT } from '../../locales/LanguageContext';
 
 interface CurrencyFormModalProps {
   language: LanguageCode;
@@ -52,6 +53,7 @@ export const CurrencyFormModal: React.FC<CurrencyFormModalProps> = ({
   onSave,
   onClose,
 }) => {
+  const t = useT();
   const [form, setForm] = useState<CurrencyFormState>(() =>
     editingCurrency ? stateFromCurrency(editingCurrency) : emptyState()
   );
@@ -76,35 +78,25 @@ export const CurrencyFormModal: React.FC<CurrencyFormModalProps> = ({
     e.preventDefault();
 
     if (!resolvedCode) {
-      setError(language === 'tm' ? 'Walýuta koduny giriziň.' : 'Para birimi kodunu girin.');
+      setError(t('walyuta.codeRequired'));
       return;
     }
     if (resolvedCode === BASE_CURRENCY_CODE) {
-      setError(
-        language === 'tm'
-          ? 'TMT esas walýuta, aýratyn goşup bolmaýar.'
-          : 'TMT esas para birimidir, ayrıca eklenemez.'
-      );
+      setError(t('walyuta.tmtIsBase'));
       return;
     }
     if (!isCurrencyCodeUnique(resolvedCode, currencies, editingCurrency?.id)) {
-      setError(
-        language === 'tm' ? 'Bu walýuta kody eýýäm bar.' : 'Bu para birimi kodu zaten var.'
-      );
+      setError(t('walyuta.codeExists'));
       return;
     }
     if (!form.name.trim()) {
-      setError(language === 'tm' ? 'Walýuta adyny giriziň.' : 'Para birimi adını girin.');
+      setError(t('walyuta.nameRequired'));
       return;
     }
 
     const rate = Number(form.rate);
     if (!Number.isFinite(rate) || rate <= 0) {
-      setError(
-        language === 'tm'
-          ? `${resolvedCode} kursy 0-dan uly bolmaly.`
-          : `${resolvedCode} kuru 0'dan büyük olmalı.`
-      );
+      setError(t('walyuta.ratePositive', { code: resolvedCode }));
       return;
     }
 
@@ -125,7 +117,7 @@ export const CurrencyFormModal: React.FC<CurrencyFormModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]">
         <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
           <span className="font-bold text-sm tracking-wide">
-            {editingCurrency ? 'Walýutany redaktirle' : 'Täze walýuta'}
+            {editingCurrency ? t('walyuta.editTitle') : t('walyuta.newTitle')}
           </span>
           <button
             type="button"
@@ -158,7 +150,7 @@ export const CurrencyFormModal: React.FC<CurrencyFormModalProps> = ({
           {isCustom && (
             <div>
               <label className={LABEL}>
-                {language === 'tm' ? 'Walýuta kody (el bilen)' : 'Para birimi kodu (manuel)'} *
+                {t('walyuta.customCodeLabel')} *
               </label>
               <input
                 type="text"
@@ -205,7 +197,7 @@ export const CurrencyFormModal: React.FC<CurrencyFormModalProps> = ({
 
             <div>
               <label className={LABEL}>
-                Belgi / Simge ({language === 'tm' ? 'islege görä' : 'opsiyonel'})
+                Belgi / Simge ({t('targowy.optional')})
               </label>
               <input
                 type="text"

@@ -19,37 +19,38 @@ import type {
   StandardPrintInfo,
 } from '../../types';
 import { Field, INPUT, SettingsCard, Toggle } from './settingsUi';
+import { useT } from '../../locales/LanguageContext';
 
 interface StandardPrintPanelProps {
   value: ReceiptSettings;
   onChange: (next: ReceiptSettings) => void;
 }
 
-const ORIENTATIONS: { id: PageOrientation; label: string }[] = [
-  { id: 'portrait', label: 'Dik (Portrait)' },
-  { id: 'landscape', label: 'Ýatyk (Landscape)' },
+const ORIENTATIONS: { id: PageOrientation; labelKey: string }[] = [
+  { id: 'portrait', labelKey: 'sazlamalar.spOrientPortrait' },
+  { id: 'landscape', labelKey: 'sazlamalar.spOrientLandscape' },
 ];
 
-const FONTS: { id: PrintFontScale; label: string }[] = [
-  { id: 'sm', label: 'Kiçi' },
-  { id: 'md', label: 'Orta' },
-  { id: 'lg', label: 'Uly' },
+const FONTS: { id: PrintFontScale; labelKey: string }[] = [
+  { id: 'sm', labelKey: 'sazlamalar.fontSm' },
+  { id: 'md', labelKey: 'sazlamalar.fontMd' },
+  { id: 'lg', labelKey: 'sazlamalar.fontLg' },
 ];
 
-const COLUMNS: { key: keyof StandardPrintColumns; label: string; icon: React.ReactNode }[] = [
-  { key: 'barcode', label: 'Barkod / SKU', icon: <Barcode className="w-3.5 h-3.5 text-gray-500" /> },
-  { key: 'unit', label: 'Ölçeg birligi', icon: <Ruler className="w-3.5 h-3.5 text-gray-500" /> },
-  { key: 'unitPrice', label: 'Birlik bahasy', icon: <Tag className="w-3.5 h-3.5 text-gray-500" /> },
-  { key: 'discount', label: 'Ýeňillik (%)', icon: <Percent className="w-3.5 h-3.5 text-gray-500" /> },
-  { key: 'subtotal', label: 'Aralyk jemi', icon: <Calculator className="w-3.5 h-3.5 text-gray-500" /> },
-  { key: 'tax', label: 'Salgyt (KDV)', icon: <Receipt className="w-3.5 h-3.5 text-gray-500" /> },
+const COLUMNS: { key: keyof StandardPrintColumns; labelKey: string; icon: React.ReactNode }[] = [
+  { key: 'barcode', labelKey: 'sazlamalar.spColBarcode', icon: <Barcode className="w-3.5 h-3.5 text-gray-500" /> },
+  { key: 'unit', labelKey: 'sazlamalar.spColUnit', icon: <Ruler className="w-3.5 h-3.5 text-gray-500" /> },
+  { key: 'unitPrice', labelKey: 'sazlamalar.spColUnitPrice', icon: <Tag className="w-3.5 h-3.5 text-gray-500" /> },
+  { key: 'discount', labelKey: 'sazlamalar.spColDiscount', icon: <Percent className="w-3.5 h-3.5 text-gray-500" /> },
+  { key: 'subtotal', labelKey: 'sazlamalar.spColSubtotal', icon: <Calculator className="w-3.5 h-3.5 text-gray-500" /> },
+  { key: 'tax', labelKey: 'sazlamalar.spColTax', icon: <Receipt className="w-3.5 h-3.5 text-gray-500" /> },
 ];
 
-const INFO: { key: keyof StandardPrintInfo; label: string; icon: React.ReactNode }[] = [
-  { key: 'currency', label: 'Pul birligi (TMT)', icon: <Coins className="w-3.5 h-3.5 text-emerald-600" /> },
-  { key: 'payment', label: 'Kassa (töleg usuly)', icon: <CreditCard className="w-3.5 h-3.5 text-blue-600" /> },
-  { key: 'customer', label: 'Müşderi ady', icon: <User className="w-3.5 h-3.5 text-violet-600" /> },
-  { key: 'ledger', label: 'Depder ady', icon: <BookOpen className="w-3.5 h-3.5 text-amber-600" /> },
+const INFO: { key: keyof StandardPrintInfo; labelKey: string; icon: React.ReactNode }[] = [
+  { key: 'currency', labelKey: 'sazlamalar.spInfoCurrency', icon: <Coins className="w-3.5 h-3.5 text-emerald-600" /> },
+  { key: 'payment', labelKey: 'sazlamalar.spInfoPayment', icon: <CreditCard className="w-3.5 h-3.5 text-blue-600" /> },
+  { key: 'customer', labelKey: 'sazlamalar.spInfoCustomer', icon: <User className="w-3.5 h-3.5 text-violet-600" /> },
+  { key: 'ledger', labelKey: 'sazlamalar.spInfoLedger', icon: <BookOpen className="w-3.5 h-3.5 text-amber-600" /> },
 ];
 
 const segBtn = (active: boolean) =>
@@ -58,6 +59,7 @@ const segBtn = (active: boolean) =>
   }`;
 
 export const StandardPrintPanel: React.FC<StandardPrintPanelProps> = ({ value, onChange }) => {
+  const t = useT();
   const std = value.standard;
   const patchStd = (partial: Partial<ReceiptSettings['standard']>) =>
     onChange({ ...value, standard: { ...std, ...partial } });
@@ -68,26 +70,26 @@ export const StandardPrintPanel: React.FC<StandardPrintPanelProps> = ({ value, o
 
   return (
     <>
-      <SettingsCard title="Sahypa düzeni" description="A4 kagyzynyň ugry we ýaz ölçüsi">
-        <Field label="Kagyz ugry">
+      <SettingsCard title={t('sazlamalar.spLayoutTitle')} description={t('sazlamalar.spLayoutDesc')}>
+        <Field label={t('sazlamalar.spOrientation')}>
           <div className="flex items-center gap-2">
             {ORIENTATIONS.map((o) => (
               <button key={o.id} type="button" onClick={() => patchStd({ orientation: o.id })} className={segBtn(std.orientation === o.id)}>
-                {o.label}
+                {t(o.labelKey)}
               </button>
             ))}
           </div>
         </Field>
-        <Field label="Ýazy ölçüsi">
+        <Field label={t('sazlamalar.thFontSize')}>
           <div className="flex items-center gap-2">
             {FONTS.map((f) => (
               <button key={f.id} type="button" onClick={() => patchStd({ fontScale: f.id })} className={segBtn(std.fontScale === f.id)}>
-                {f.label}
+                {t(f.labelKey)}
               </button>
             ))}
           </div>
         </Field>
-        <Field label="Nusga sany (1–3)">
+        <Field label={t('sazlamalar.thCopies')}>
           <input
             type="number"
             min={1}
@@ -99,14 +101,14 @@ export const StandardPrintPanel: React.FC<StandardPrintPanelProps> = ({ value, o
         </Field>
       </SettingsCard>
 
-      <SettingsCard title="Harytlar" description="Ürün satyrlary nähili görkezilsin">
+      <SettingsCard title={t('sazlamalar.spItemsTitle')} description={t('sazlamalar.spItemsDesc')}>
         <Toggle
           checked={std.showImages}
-          label="Harytlary resim bilen görkez"
-          description="Açyk bolsa her haryt satyrynda onuň suraty hem çap edilýär."
+          label={t('sazlamalar.spShowImages')}
+          description={t('sazlamalar.spShowImagesDesc')}
           onChange={(v) => patchStd({ showImages: v })}
         />
-        <Field label="Görkeziljek sütünler">
+        <Field label={t('sazlamalar.spColumns')}>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {COLUMNS.map((col) => (
               <label
@@ -120,13 +122,13 @@ export const StandardPrintPanel: React.FC<StandardPrintPanelProps> = ({ value, o
                   className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 {col.icon}
-                <span className="text-[11px] font-bold text-gray-700">{col.label}</span>
+                <span className="text-[11px] font-bold text-gray-700">{t(col.labelKey)}</span>
               </label>
             ))}
           </div>
         </Field>
 
-        <Field label="Görkeziljek maglumatlar" hint="Kassa, müşderi, depder we pul birligi çapda görkezilsinmi.">
+        <Field label={t('sazlamalar.spInfo')} hint={t('sazlamalar.spInfoHint')}>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {INFO.map((item) => (
               <label
@@ -144,40 +146,40 @@ export const StandardPrintPanel: React.FC<StandardPrintPanelProps> = ({ value, o
                   className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 {item.icon}
-                <span className="text-[11px] font-bold text-gray-700">{item.label}</span>
+                <span className="text-[11px] font-bold text-gray-700">{t(item.labelKey)}</span>
               </label>
             ))}
           </div>
         </Field>
       </SettingsCard>
 
-      <SettingsCard title="Sahypa başlygy / aýagy" description="Ýokarsy we aşaky düzenlemeler">
+      <SettingsCard title={t('sazlamalar.spHeadFootTitle')} description={t('sazlamalar.spHeadFootDesc')}>
         <Toggle
           checked={std.header}
-          label="Sahypa başlygy"
-          description="Ýokarsynda uly logo we kärhana maglumatlary görkezilsin."
+          label={t('sazlamalar.spHeader')}
+          description={t('sazlamalar.spHeaderDesc')}
           onChange={(v) => patchStd({ header: v })}
         />
         <Toggle
           checked={std.pageNumbers}
-          label="Sahypa aýagy"
-          description="Aşaky böleginde kärhana ady we sahypa belgisi görkezilsin."
+          label={t('sazlamalar.spFooter')}
+          description={t('sazlamalar.spFooterDesc')}
           onChange={(v) => patchStd({ pageNumbers: v })}
         />
         <Toggle
           checked={std.signature}
-          label="Imza / Möhür ýeri"
-          description="Aşaky böleginde 'Satyjy' we 'Alyjy' imza gutulary."
+          label={t('sazlamalar.spSignature')}
+          description={t('sazlamalar.spSignatureDesc')}
           onChange={(v) => patchStd({ signature: v })}
         />
       </SettingsCard>
 
-      <SettingsCard title="Bellikler / Şertler" description="A4 çapynyň aşagyna goşulýan goşmaça tekst">
+      <SettingsCard title={t('sazlamalar.spNotesTitle')} description={t('sazlamalar.spNotesDesc')}>
         <textarea
           value={std.notes}
           onChange={(e) => patchStd({ notes: e.target.value })}
           rows={3}
-          placeholder="Mysal: Haryt 14 günüň dowamynda yzyna alynýar. Töleg şertleri..."
+          placeholder={t('sazlamalar.spNotesPh')}
           className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none resize-y font-medium text-gray-800"
         />
       </SettingsCard>

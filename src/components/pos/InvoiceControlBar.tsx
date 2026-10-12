@@ -6,7 +6,7 @@ import {
   Pencil, Gift, Search, X as XIcon
 } from 'lucide-react';
 import { Customer, InvoiceType, LanguageCode } from '../../types';
-import { translations } from '../../locales/i18n';
+import { useT } from '../../locales/LanguageContext';
 import { GENERAL_CUSTOMER_ID } from '../../db/customerService';
 
 interface InvoiceControlBarProps {
@@ -128,7 +128,7 @@ export const InvoiceControlBar: React.FC<InvoiceControlBarProps> = ({
   onOpenPromo,
   onOpenCustomerSearch,
 }) => {
-  const t = translations[language] || translations.en;
+  const t = useT();
   const [isInvoiceTypeOpen, setIsInvoiceTypeOpen] = useState(false);
   const [isCustomerOpen, setIsCustomerOpen] = useState(false);
   const invoiceDropdownRef = useRef<HTMLDivElement>(null);
@@ -209,7 +209,7 @@ export const InvoiceControlBar: React.FC<InvoiceControlBarProps> = ({
         {isInvoiceTypeOpen && (
           <div className="absolute top-11 left-0 z-50 w-56 bg-white border border-gray-200 rounded-xl shadow-2xl py-1.5 animate-in fade-in slide-in-from-top-1 duration-100">
             <div className="px-3 py-1 mb-1 border-b border-gray-100">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Faktura Görnüşi / Belgesi</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('pos.icbMenuTitle')}</span>
             </div>
             {availableInvoiceTypes.map((opt) => {
               const isActive = opt.id === invoiceType;
@@ -248,7 +248,7 @@ export const InvoiceControlBar: React.FC<InvoiceControlBarProps> = ({
             <div className="p-1 rounded-lg bg-gray-100 text-gray-600 flex-shrink-0">
               <User className="w-3.5 h-3.5" />
             </div>
-            <span className="truncate text-xs">{selectedCustomer?.name || t.generalCustomer}</span>
+            <span className="truncate text-xs">{selectedCustomer?.name || t('generalCustomer')}</span>
           </div>
           <ChevronDown className={`w-3 h-3 text-gray-500 flex-shrink-0 transition-transform ${isCustomerOpen ? 'rotate-180' : ''}`} />
         </button>
@@ -278,7 +278,7 @@ export const InvoiceControlBar: React.FC<InvoiceControlBarProps> = ({
         type="button"
         onClick={onOpenCustomerSearch}
         className="h-10 w-10 flex-shrink-0 flex items-center justify-center bg-white border border-gray-200 hover:border-emerald-400 hover:text-emerald-600 rounded-xl text-gray-600 shadow-sm transition-all active:scale-95"
-        title={language === 'tm' ? 'Müşderi gözle (F2)' : 'Müşteri ara (F2)'}
+        title={t('pos.icbCustomerSearchTip')}
       >
         <Search className="w-4 h-4" />
       </button>
@@ -294,14 +294,14 @@ export const InvoiceControlBar: React.FC<InvoiceControlBarProps> = ({
           value={barcodeQuery}
           onChange={(e) => onBarcodeChange(e.target.value)}
           onKeyDown={handleBarcodeKeyDown}
-          placeholder={t.scanBarcodePlaceholder}
+          placeholder={t('scanBarcodePlaceholder')}
           className="w-full h-10 pl-9 pr-9 bg-white border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl text-xs font-mono font-medium text-gray-800 placeholder-gray-400 transition-all shadow-sm"
         />
         {/* + ikonu (sağ kenar) */}
         <button
           type="button"
           onClick={onAddProduct}
-          title="Haryt goş (Enter)"
+          title={t('pos.icbAddTip')}
           className="absolute inset-y-0 right-0 pr-3 flex items-center text-emerald-600 hover:text-emerald-700 transition-colors"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -331,7 +331,7 @@ export const InvoiceControlBar: React.FC<InvoiceControlBarProps> = ({
             type="button"
             onClick={() => { onInvoiceCodeChange(''); codeInputRef.current?.focus(); }}
             className={`px-1.5 h-full flex items-center ${activeInvoiceType.color} opacity-60 hover:opacity-100 transition-opacity flex-shrink-0`}
-            title="Kody aýyr"
+            title={t('pos.icbClearCodeTip')}
           >
             <XIcon className="w-3.5 h-3.5" />
           </button>
@@ -342,7 +342,7 @@ export const InvoiceControlBar: React.FC<InvoiceControlBarProps> = ({
           type="button"
           onClick={handleGenerateCode}
           className={`px-2 h-full flex items-center ${activeInvoiceType.color} opacity-60 hover:opacity-100 border-l ${activeInvoiceType.borderColor} transition-opacity flex-shrink-0`}
-          title="Täze kod dör"
+          title={t('pos.icbNewCodeTip')}
         >
           <Pencil className="w-3.5 h-3.5" />
         </button>
@@ -356,7 +356,7 @@ export const InvoiceControlBar: React.FC<InvoiceControlBarProps> = ({
           const next = printCopies === 0 ? 1 : printCopies === 1 ? 2 : 0;
           onPrintCopiesChange(next);
         }}
-        title={`Çek sany: ${printCopies === 0 ? 'Çek çykarma' : printCopies + ' sany çek'}`}
+        title={`${t('pos.icbCopiesTip')}: ${printCopies === 0 ? t('pos.icbCopiesNone') : t('pos.icbCopiesCount', { count: printCopies })}`}
         className={`relative h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-xl border shadow-sm transition-all hover:shadow-md active:scale-95
           ${printCopies === 0
             ? 'bg-gray-100 border-gray-200 text-gray-400'

@@ -1,5 +1,5 @@
 import { Product, ProductCategory } from '../types';
-import { listDocsByPrefix, removeDoc, upsertDoc, upsertDocsBatch } from './pouch';
+import { listDocsByPrefix, removeDoc, upsertDoc, upsertDocsBatch, type BatchWriteResult } from './pouch';
 import { sanitizeProduct } from './sanitize';
 import { mirrorToPc } from './schemaBridge';
 
@@ -7,7 +7,19 @@ function productDocId(productId: string): string {
   return `product_${productId}`;
 }
 
-export async function saveProductsBatchDb(products: readonly Product[], dbName: string = 'default_store'): Promise<void> {
+/**
+ * Harytlary BIR toplu ýazmada saklaýar (Excel importy üçin).
+ *
+ * `upsertDocsBatch` arkaly ýeke DB hereketi hökmünde ýazylýar; ýalňyşlyklar
+ * ýutulmaýar — şowsuz harytlar aýratynlykda dolandyrylýar. PC aynasyna
+ * diňe hakykatdan ýazylan harytlar aýnalýar (şowsuzlary aýnalanok).
+ *
+ * @returns ýazylan sany we şowsuzlar (haryt ID-leri bilen).
+ */
+export async function saveProductsBatchDb(
+  products: readonly Product[],
+  dbName: string = 'default_store'
+): Promise<BatchWriteResult> {
   const syncedAt = new Date().toISOString();
   const entries = products.map((p) => ({
     id: productDocId(p.id),
@@ -17,13 +29,21 @@ export async function saveProductsBatchDb(products: readonly Product[], dbName: 
       syncedAt,
     },
   }));
-  // 1) Asıl PouchDB veritabanına toplu yaz
-  await upsertDocsBatch(dbName, entries);
+  const result = await upsertDocsBatch(dbName, entries);
 
-  // 2) Kasa(PC) mirror'ına PC şemasıyla kopya oluştur (Bridge) - 
-  // Bridge toplu yazmayı destekliyorsa mirrorToPc kullanılabilir fakat mevcut yapıda tekil async call:
-  const mirrorPromises = products.map((p) => mirrorToPc(dbName, 'product', p));
-  await Promise.allSettled(mirrorPromises);
+  // PC'nin okuyabilmesi için ayna kayıt (urun:<id>) — diňe ýazylanlar üçin.
+  const failedIds = new Set(result.failed.map((f) => f.id));
+  const mirrored = products.filter((p) => !failedIds.has(productDocId(p.id)));
+  await Promise.allSettled(mirrored.map((p) => mirrorToPc(dbName, 'product', p)));
+
+  // Ýalňyşlyk raporty haryt ID-si bilen işlänligi üçin docId → harytId.
+  return {
+    written: result.written,
+    failed: result.failed.map((f) => ({
+      id: f.id.startsWith('product_') ? f.id.slice('product_'.length) : f.id,
+      error: f.error,
+    })),
+  };
 }
 
 export async function saveProductToDb(product: Product, dbName: string = 'default_store'): Promise<Product> {

@@ -1,4 +1,5 @@
-import type { InvoiceDraftStatus, InvoiceRecord } from '../types';
+import type { InvoiceDraftStatus, InvoiceRecord, LanguageCode } from '../types';
+import { localeFor } from '../utils/locale';
 
 export interface DraftFilterState {
   search: string;
@@ -72,10 +73,10 @@ export function draftCreators(invoices: readonly InvoiceRecord[]): string[] {
   return Array.from(names).sort((a, b) => a.localeCompare(b, 'tr'));
 }
 
-export function formatDraftDate(iso: string): string {
+export function formatDraftDate(iso: string, language?: LanguageCode): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString('tr-TR', {
+  return date.toLocaleString(localeFor(language), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

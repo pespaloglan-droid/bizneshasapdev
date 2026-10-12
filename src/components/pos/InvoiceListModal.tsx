@@ -19,7 +19,8 @@ import {
   Trash2
 } from 'lucide-react';
 import { InvoiceRecord, InvoiceType, LanguageCode } from '../../types';
-import { translations } from '../../locales/i18n';
+import { useT } from '../../locales/LanguageContext';
+import { localeFor } from '../../utils/locale';
 import { InvoiceDeleteDialog } from './InvoiceDeleteDialog';
 
 export type DateFilterType = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'all';
@@ -45,7 +46,7 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
   canDelete = false,
   onVoidInvoice
 }) => {
-  const t = translations[language] || translations.en;
+  const t = useT();
 
   // Defaults: "direk f4 bastigimda bugunun satilmis fakturalari ciksin filtr sonradan yapilsin"
   const [dateFilter, setDateFilter] = useState<DateFilterType>('today');
@@ -180,16 +181,14 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-base font-bold tracking-wide">
-                  {language === 'tm' ? 'Fakturalaryň Sanawy' : 'Fatura Listesi'}
+                  {t('invoices.title')}
                 </h2>
                 <span className="bg-emerald-500 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-full shadow-xs">
                   F4
                 </span>
               </div>
               <p className="text-xs text-gray-300">
-                {language === 'tm'
-                  ? 'Satyryň üstüne iki gezet bas → faktuyny aç, soňra F11 (Excel) ýa-da F12 (çap)'
-                  : 'Satıra iki kez tıkla → faturayı aç, sonra F11 (Excel) veya F12 (yazdır)'}
+                {t('invoices.subtitle')}
               </p>
             </div>
           </div>
@@ -211,12 +210,12 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
             <div className="flex items-center space-x-1.5 bg-white p-1 rounded-2xl border border-gray-200 shadow-2xs flex-shrink-0">
               {(
                 [
-                  { id: 'today', labelTm: 'Şügün', labelTr: 'Bugün' },
-                  { id: 'yesterday', labelTm: 'Düýn', labelTr: 'Dün' },
-                  { id: 'this_week', labelTm: 'Şu Hepde', labelTr: 'Bu Hafta' },
-                  { id: 'this_month', labelTm: 'Şu Aý', labelTr: 'Bu Ay' },
-                  { id: 'all', labelTm: 'Ählisi', labelTr: 'Tümü' },
-                ] as { id: DateFilterType; labelTm: string; labelTr: string }[]
+                  { id: 'today', labelKey: 'invoices.filterToday' },
+                  { id: 'yesterday', labelKey: 'invoices.filterYesterday' },
+                  { id: 'this_week', labelKey: 'invoices.filterThisWeek' },
+                  { id: 'this_month', labelKey: 'invoices.filterThisMonth' },
+                  { id: 'all', labelKey: 'invoices.filterAll' },
+                ] as { id: DateFilterType; labelKey: string }[]
               ).map((btn) => {
                 const isActive = dateFilter === btn.id;
                 return (
@@ -230,7 +229,7 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
-                    {language === 'tm' ? btn.labelTm : btn.labelTr}
+                    {t(btn.labelKey)}
                   </button>
                 );
               })}
@@ -241,7 +240,7 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
               {/* Başlık */}
               <div className="flex flex-col items-center mr-1">
                 <span className="text-[9px] font-black uppercase tracking-widest text-[#0B1F3A] opacity-70 leading-none mb-0.5">
-                  {language === 'tm' ? 'Haçankylar' : 'Tarih Aralığı'}
+                  {t('invoices.rangeTitle')}
                 </span>
               </div>
               {/* Başlangıç Tarihi */}
@@ -268,7 +267,7 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                       ? 'bg-[#10b981] shadow-md'
                       : 'bg-[#0B1F3A] hover:bg-[#163864]'
                   }`}
-                  title={language === 'tm' ? 'Taýýar aralygy saýlaň' : 'Hazır tarih aralığı seç'}
+                  title={t('invoices.presetTooltip')}
                 >
                   <div className="w-3 border-t-[1.5px] border-white mb-[2px]" />
                   <div className="w-3 border-t-[1.5px] border-white" />
@@ -279,24 +278,24 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                 {isRangeMenuOpen && (
                   <div className="absolute top-9 left-1/2 -translate-x-1/2 z-[80] bg-white border border-gray-200 rounded-2xl shadow-2xl w-64 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                     <div className="px-4 py-2.5 bg-[#0B1F3A] text-white text-[10px] font-black uppercase tracking-wider">
-                      {language === 'tm' ? 'Taýýar Aralygy Saýla' : 'Hazır Tarih Aralığı Seç'}
+                      {t('invoices.presetMenuTitle')}
                     </div>
                     <div className="overflow-y-auto max-h-[320px] py-1">
                       {([
-                        { days: null,  labelTm: 'Şu gün',                     labelTr: 'Bugün',                        from: 0,   to: 0   },
-                        { days: -1,    labelTm: 'Düýn',                        labelTr: 'Dün',                          from: 1,   to: 1   },
-                        { days: -2,    labelTm: 'Öňňun',                       labelTr: 'Evvelsi gün',                  from: 2,   to: 2   },
-                        { days: 7,     labelTm: 'Şu hepde',                    labelTr: 'Bu hafta',                     from: 'week_start', to: 0  },
-                        { days: 31,    labelTm: 'Şu aý',                       labelTr: 'Bu ay',                        from: 'month_start', to: 0 },
-                        { days: 365,   labelTm: 'Şu ýyl',                      labelTr: 'Bu yıl',                       from: 'year_start', to: 0  },
-                        { days: null,  labelTm: '─────────────────',           labelTr: '─────────────────',            from: null, to: null, divider: true },
-                        { days: 7,     labelTm: 'Geçen hepde',                 labelTr: 'Geçen hafta',                  from: 'last_week_start', to: 'last_week_end' },
-                        { days: 31,    labelTm: 'Geçen aý',                    labelTr: 'Geçen ay',                     from: 'last_month_start', to: 'last_month_end' },
-                        { days: 2,     labelTm: 'Düýnden bäri',               labelTr: 'Dünden bu yana',               from: 1,   to: 0   },
-                        { days: 3,     labelTm: 'Öňňundan bäri',              labelTr: 'Evvelsiden bu yana',           from: 2,   to: 0   },
-                        { days: 8,     labelTm: 'Geçen hepdäniň başyndan bäri', labelTr: 'Geçen hafta başından beri',  from: 8,   to: 0   },
-                        { days: 55,    labelTm: 'Geçen aýyň başyndan bäri',   labelTr: 'Geçen ay başından beri',       from: 55,  to: 0   },
-                        { days: 365,   labelTm: 'Geçen ýyl',                  labelTr: 'Geçen yıl',                    from: 'last_year_start', to: 'last_year_end' },
+                        { days: null,  labelKey: 'invoices.presetToday',          from: 0,   to: 0   },
+                        { days: -1,    labelKey: 'invoices.presetYesterday',      from: 1,   to: 1   },
+                        { days: -2,    labelKey: 'invoices.presetDayBefore',      from: 2,   to: 2   },
+                        { days: 7,     labelKey: 'invoices.presetThisWeek',       from: 'week_start', to: 0  },
+                        { days: 31,    labelKey: 'invoices.presetThisMonth',      from: 'month_start', to: 0 },
+                        { days: 365,   labelKey: 'invoices.presetThisYear',       from: 'year_start', to: 0  },
+                        { days: null,  divider: true,                             from: null, to: null },
+                        { days: 7,     labelKey: 'invoices.presetLastWeek',       from: 'last_week_start', to: 'last_week_end' },
+                        { days: 31,    labelKey: 'invoices.presetLastMonth',      from: 'last_month_start', to: 'last_month_end' },
+                        { days: 2,     labelKey: 'invoices.presetSinceYesterday', from: 1,   to: 0   },
+                        { days: 3,     labelKey: 'invoices.presetSinceDayBefore', from: 2,   to: 0   },
+                        { days: 8,     labelKey: 'invoices.presetSinceLastWeek',  from: 8,   to: 0   },
+                        { days: 55,    labelKey: 'invoices.presetSinceLastMonth', from: 55,  to: 0   },
+                        { days: 365,   labelKey: 'invoices.presetLastYear',       from: 'last_year_start', to: 'last_year_end' },
                       ] as any[]).map((preset, idx) => {
                         if (preset.divider) {
                           return <div key={idx} className="my-1 mx-4 border-t border-gray-100" />;
@@ -351,9 +350,9 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                             )}
                             {preset.days === null && <span className="w-8 mr-3" />}
                             <span className="text-xs font-semibold text-gray-700 group-hover:text-[#0B1F3A] transition-colors">
-                              {language === 'tm' ? preset.labelTm : preset.labelTr}
+                              {t(preset.labelKey)}
                             </span>
-                            {(preset.days === 365 && (preset.labelTm === 'Şu ýyl' || preset.labelTm === 'Geçen ýyl')) && (
+                            {(preset.days === 365 && (preset.labelKey === 'invoices.presetThisYear' || preset.labelKey === 'invoices.presetLastYear')) && (
                               <span className="ml-auto text-blue-500 font-bold text-sm">›</span>
                             )}
                           </button>
@@ -386,11 +385,7 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={
-                  language === 'tm'
-                    ? 'Faktura kody, müşderi ady...'
-                    : 'Fatura no, müşteri adı ile ara...'
-                }
+                placeholder={t('invoices.searchPlaceholder')}
                 className="w-full h-9 pl-3 pr-8 bg-white border border-gray-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 outline-none shadow-2xs transition-all"
               />
               {searchQuery && (
@@ -409,17 +404,17 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
           <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5">
             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mr-1 flex items-center space-x-1">
               <Filter className="w-3.5 h-3.5 text-gray-400" />
-              <span>{language === 'tm' ? 'Görnüşi:' : 'Fatura Tipi:'}</span>
+              <span>{t('invoices.typeLabel')}</span>
             </span>
             {(
               [
-                { id: 'sales', labelTm: 'Söwda (Satış)', labelTr: 'Satış Faturası' },
-                { id: 'all', labelTm: 'Hemmesi (Ählisi)', labelTr: 'Tüm Tipler' },
-                { id: 'purchase', labelTm: 'Satyn Alyş (Alış)', labelTr: 'Alış Faturası' },
-                { id: 'returns', labelTm: 'Yzyna Gaýtarmak (İade)', labelTr: 'İadeler' },
-                { id: 'transfer', labelTm: 'Ammarlar Hereketi', labelTr: 'Transfer' },
-                { id: 'other', labelTm: 'Başga Giriş/Çykyş', labelTr: 'Diğer Giriş/Çıkış' },
-              ] as { id: InvoiceTypeFilter; labelTm: string; labelTr: string }[]
+                { id: 'sales', labelKey: 'invoices.typeSales' },
+                { id: 'all', labelKey: 'invoices.typeAll' },
+                { id: 'purchase', labelKey: 'invoices.typePurchase' },
+                { id: 'returns', labelKey: 'invoices.typeReturns' },
+                { id: 'transfer', labelKey: 'invoices.typeTransfer' },
+                { id: 'other', labelKey: 'invoices.typeOther' },
+              ] as { id: InvoiceTypeFilter; labelKey: string }[]
             ).map((tBtn) => {
               const isSelected = typeFilter === tBtn.id;
               return (
@@ -433,7 +428,7 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                       : 'bg-white text-gray-600 border border-gray-200/80 hover:bg-gray-100 hover:text-gray-900'
                   }`}
                 >
-                  {language === 'tm' ? tBtn.labelTm : tBtn.labelTr}
+                  {t(tBtn.labelKey)}
                 </button>
               );
             })}
@@ -444,11 +439,11 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
         <div className="px-6 py-2.5 bg-white border-b border-gray-100 flex items-center justify-between flex-wrap gap-3 text-xs flex-shrink-0">
           <div className="flex items-center space-x-4">
             <div>
-              <span className="text-gray-400 font-medium">Jemi Faktura: </span>
-              <span className="font-mono font-bold text-gray-900">{stats.totalCount} sany</span>
+              <span className="text-gray-400 font-medium">{t('invoices.statsTotal')}: </span>
+              <span className="font-mono font-bold text-gray-900">{stats.totalCount} {t('invoices.statsCountSuffix')}</span>
             </div>
             <div>
-              <span className="text-gray-400 font-medium">Jemi Tutar: </span>
+              <span className="text-gray-400 font-medium">{t('invoices.statsAmount')}: </span>
               <span className="font-mono font-black text-emerald-600 text-sm">
                 {stats.totalAmount.toFixed(2)} TMT
               </span>
@@ -458,15 +453,15 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
           <div className="flex items-center space-x-3 text-[11px]">
             <div className="flex items-center space-x-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60 font-mono font-bold">
               <Banknote className="w-3.5 h-3.5" />
-              <span>Nagt: {stats.cashTotal.toFixed(2)} TMT</span>
+              <span>{t('invoices.payCash')}: {stats.cashTotal.toFixed(2)} TMT</span>
             </div>
             <div className="flex items-center space-x-1 text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200/60 font-mono font-bold">
               <CreditCard className="w-3.5 h-3.5" />
-              <span>Karta: {stats.cardTotal.toFixed(2)} TMT</span>
+              <span>{t('invoices.payCard')}: {stats.cardTotal.toFixed(2)} TMT</span>
             </div>
             <div className="flex items-center space-x-1 text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 font-mono font-bold">
               <ClipboardList className="w-3.5 h-3.5" />
-              <span>Nesiýe: {stats.creditTotal.toFixed(2)} TMT</span>
+              <span>{t('invoices.payCredit')}: {stats.creditTotal.toFixed(2)} TMT</span>
             </div>
 
             {canDelete && (
@@ -478,13 +473,9 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                     ? 'bg-gray-800 text-white border-gray-800'
                     : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                 }`}
-                title={
-                  language === 'tm'
-                    ? 'Ýatyrylan fakturalary görkez / gizle'
-                    : 'İptal edilen faturaları göster / gizle'
-                }
+                title={t('invoices.voidedToggleTip')}
               >
-                {language === 'tm' ? 'Ýatyrylanlar' : 'İptaller'}
+                {t('invoices.voidedToggle')}
               </button>
             )}
           </div>
@@ -496,28 +487,26 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
             <div className="py-20 flex flex-col items-center justify-center text-gray-400 text-xs">
               <FileText className="w-12 h-12 text-gray-300 mb-2 stroke-1" />
               <span className="font-semibold text-gray-500">
-                {language === 'tm'
-                  ? 'Görkezilen filtre görä faktura tapylmady.'
-                  : 'Seçili filtrelere uygun fatura bulunamadı.'}
+                {t('invoices.emptyTitle')}
               </span>
               <p className="text-[11px] text-gray-400 mt-1">
-                {language === 'tm' ? 'Tarih ýa-da görnüş filtrini üýtgedip görüň.' : 'Filtreleri değiştirerek tekrar deneyebilirsiniz.'}
+                {t('invoices.emptyHint')}
               </p>
             </div>
           ) : (
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-gray-50/80 border-b border-gray-200 text-[10px] font-bold text-gray-500 uppercase tracking-wider select-none sticky top-0 bg-gray-50 z-10">
-                  <th className="py-3 px-4">{language === 'tm' ? 'Faktura Kody' : 'Fatura No'}</th>
-                  <th className="py-3 px-4">{language === 'tm' ? 'Sene / Wagt' : 'Tarih / Saat'}</th>
-                  <th className="py-3 px-4">{language === 'tm' ? 'Müşderi / Cari' : 'Müşteri'}</th>
-                  <th className="py-3 px-4">{language === 'tm' ? 'Görnüşi' : 'Tip'}</th>
-                  <th className="py-3 px-4">{language === 'tm' ? 'Töleg Usuly' : 'Ödeme'}</th>
-                  <th className="py-3 px-4 text-center">{language === 'tm' ? 'Haryt' : 'Kalem'}</th>
-                  <th className="py-3 px-4 text-right">{language === 'tm' ? 'Jemi Tutar' : 'Tutar'}</th>
+                  <th className="py-3 px-4">{t('invoices.colNo')}</th>
+                  <th className="py-3 px-4">{t('invoices.colDate')}</th>
+                  <th className="py-3 px-4">{t('invoices.colCustomer')}</th>
+                  <th className="py-3 px-4">{t('invoices.colType')}</th>
+                  <th className="py-3 px-4">{t('invoices.colPayment')}</th>
+                  <th className="py-3 px-4 text-center">{t('invoices.colItems')}</th>
+                  <th className="py-3 px-4 text-right">{t('invoices.colAmount')}</th>
                   {canDelete && (
                     <th className="py-3 px-4 text-center w-16">
-                      {language === 'tm' ? 'Amal' : 'İşlem'}
+                      {t('invoices.colAction')}
                     </th>
                   )}
                 </tr>
@@ -525,7 +514,7 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
               <tbody className="divide-y divide-gray-100">
                 {filteredInvoices.map((inv) => {
                   const formattedDate = new Date(inv.createdAt).toLocaleString(
-                    language === 'tm' ? 'tk-TM' : 'tr-TR',
+                    localeFor(language),
                     {
                       day: '2-digit',
                       month: '2-digit',
@@ -547,11 +536,7 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                             ? 'bg-gray-50/70 opacity-60'
                             : 'hover:bg-emerald-50/30'
                       }`}
-                      title={
-                        language === 'tm'
-                          ? 'Fakturany açmak üçin iki gezet basyň'
-                          : 'Faturayı açmak için iki kez tıklayın'
-                      }
+                      title={t('invoices.rowOpenTip')}
                     >
                       {/* Faktura Kody */}
                       <td className="py-3 px-4">
@@ -562,18 +547,14 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                             onSelectInvoice(inv);
                           }}
                           className="font-mono font-bold text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-300 px-2.5 py-1 rounded-xl whitespace-nowrap shadow-xs transition-all flex items-center space-x-1.5 active:scale-95 group"
-                          title={
-                            language === 'tm'
-                              ? 'Fakturanyň çekini açmak üçin basyň'
-                              : 'Faturayı açmak için tıklayın'
-                          }
+                          title={t('invoices.receiptOpenTip')}
                         >
                           <Receipt className="w-3.5 h-3.5 text-emerald-600 group-hover:text-white transition-colors" />
                           <span className={inv.status === 'voided' ? 'line-through' : ''}>{inv.invoiceNo}</span>
                         </button>
                         {inv.status === 'voided' && (
                           <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-200 text-[9px] font-bold align-middle">
-                            {language === 'tm' ? 'Ýatyryldy' : 'İptal'}
+                            {t('invoices.voidedBadge')}
                           </span>
                         )}
                       </td>
@@ -602,11 +583,11 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                           }`}
                         >
                           {inv.invoiceType === 'sales'
-                            ? 'Söwda (Satış)'
+                            ? t('invoices.typeSales')
                             : inv.invoiceType === 'sales_return'
-                            ? 'İade'
+                            ? t('invoices.returnBadge')
                             : inv.invoiceType === 'warehouse_move'
-                            ? 'Transfer'
+                            ? t('invoices.typeTransfer')
                             : inv.invoiceType}
                         </span>
                       </td>
@@ -625,12 +606,12 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                           }`}
                         >
                           {inv.paymentMethod === 'cash'
-                            ? 'Nagt'
+                            ? t('invoices.payCash')
                             : inv.paymentMethod === 'card'
-                            ? 'Karta'
+                            ? t('invoices.payCard')
                             : inv.paymentMethod === 'credit'
-                            ? 'Nesiýe'
-                            : 'Bölünen'}
+                            ? t('invoices.payCredit')
+                            : t('invoices.paySplit')}
                         </span>
                       </td>
 
@@ -655,7 +636,7 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
                               setVoidTarget(inv);
                             }}
                             className="w-8 h-8 inline-flex items-center justify-center rounded-xl bg-gray-100 hover:bg-rose-500 hover:text-white text-gray-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                            title={language === 'tm' ? 'Faturany pozmak' : 'Faturayı sil'}
+                            title={t('invoices.deleteTip')}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -672,9 +653,7 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
         {/* 5. Alt Bilgi & Kapat Butonu */}
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-shrink-0">
           <div className="text-[11px] text-gray-500 font-medium">
-            {language === 'tm'
-              ? 'Faturany görmek üçin satyra ýa-da "Çek" düwmesine basyň.'
-              : 'Fatura detayını veya fişi görüntülemek için satıra tıklayın.'}
+            {t('invoices.footerHint')}
           </div>
 
           <button
@@ -682,7 +661,7 @@ export const InvoiceListModal: React.FC<InvoiceListModalProps> = ({
             onClick={onClose}
             className="px-6 py-2 rounded-xl bg-gray-800 hover:bg-gray-900 text-white font-bold text-xs transition-colors shadow-xs"
           >
-            {language === 'tm' ? 'Ýap (Esc)' : 'Kapat (Esc)'}
+            {t('invoices.closeBtn')}
           </button>
         </div>
       </div>

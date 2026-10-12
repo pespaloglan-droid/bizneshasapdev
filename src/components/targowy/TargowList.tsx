@@ -3,6 +3,7 @@ import { Plus, Users } from 'lucide-react';
 import type { InvoiceRecord, LanguageCode, Targow, TargowRegion } from '../../types';
 import { currentWindow, dailyTotals, statsFor } from '../../db/targowService';
 import { TargowCard } from './TargowCard';
+import { useT } from '../../locales/LanguageContext';
 
 export type TargowStatusFilter = 'all' | 'active' | 'inactive';
 
@@ -38,6 +39,7 @@ export const TargowList: React.FC<TargowListProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const t = useT();
   const filtered = targows.filter((targow) => {
     if (regionFilter && !targow.regionIds.includes(regionFilter)) return false;
     if (statusFilter === 'active' && !targow.isActive) return false;
@@ -53,7 +55,7 @@ export const TargowList: React.FC<TargowListProps> = ({
       <div className="px-6 pb-3 flex-shrink-0">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex items-center gap-3 flex-wrap">
           <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-            {language === 'tm' ? 'Targowçylar' : 'Targowçılar'} ({filtered.length})
+            {t('targowy.targows')} ({filtered.length})
           </span>
 
           <select
@@ -61,7 +63,7 @@ export const TargowList: React.FC<TargowListProps> = ({
             onChange={(e) => onRegionFilterChange(e.target.value)}
             className={FIELD}
           >
-            <option value="">{language === 'tm' ? 'Ähli etraplar' : 'Tüm etraplar'}</option>
+            <option value="">{t('targowy.allRegions')}</option>
             {regions.map((region) => (
               <option key={region.id} value={region.id}>
                 {region.name}
@@ -74,9 +76,9 @@ export const TargowList: React.FC<TargowListProps> = ({
             onChange={(e) => onStatusFilterChange(e.target.value as TargowStatusFilter)}
             className={FIELD}
           >
-            <option value="all">{language === 'tm' ? 'Ähli status' : 'Tüm durumlar'}</option>
-            <option value="active">Işjeň</option>
-            <option value="inactive">Işjeň däl</option>
+            <option value="all">{t('targowy.allStatuses')}</option>
+            <option value="active">{t('targowy.activeLabel')}</option>
+            <option value="inactive">{t('targowy.inactiveLabel')}</option>
           </select>
 
           <button
@@ -85,7 +87,7 @@ export const TargowList: React.FC<TargowListProps> = ({
             className="h-10 px-5 bg-[#10b981] hover:bg-[#059669] text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-colors shadow-sm ml-auto flex-shrink-0"
           >
             <Plus className="w-4 h-4" />
-            {language === 'tm' ? 'Targowçy goş' : 'Targowçı ekle'}
+            {t('targowy.addTargow')}
           </button>
         </div>
       </div>
@@ -99,12 +101,8 @@ export const TargowList: React.FC<TargowListProps> = ({
               </div>
               <p className="font-bold text-gray-500 text-sm">
                 {targows.length === 0
-                  ? language === 'tm'
-                    ? 'Targowçy ýok'
-                    : 'Targowçı yok'
-                  : language === 'tm'
-                  ? 'Targowçy tapylmady'
-                  : 'Targowçı bulunamadı'}
+                  ? t('targowy.noTargow')
+                  : t('targowy.notFound')}
               </p>
             </div>
           </div>

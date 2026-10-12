@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import type { LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface InvoiceDeleteDialogProps {
   invoiceNo: string;
@@ -21,7 +22,7 @@ export const InvoiceDeleteDialog: React.FC<InvoiceDeleteDialogProps> = ({
   onConfirm,
   onCancel,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
 
   return (
     <div className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 select-none animate-in fade-in duration-150">
@@ -33,7 +34,7 @@ export const InvoiceDeleteDialog: React.FC<InvoiceDeleteDialogProps> = ({
           </div>
           <div>
             <h3 className="text-sm font-bold tracking-wide">
-              {isTm ? 'Fakturany pozmak' : 'Faturayı Sil'}
+              {t('invoices.deleteTitle')}
             </h3>
             <p className="text-[11px] text-red-100 font-mono">{invoiceNo}</p>
           </div>
@@ -42,18 +43,14 @@ export const InvoiceDeleteDialog: React.FC<InvoiceDeleteDialogProps> = ({
         {/* Mazmun */}
         <div className="px-5 py-5 space-y-3">
           <p className="text-xs text-gray-700 font-medium leading-relaxed">
-            {isTm
-              ? 'Bu fakturany pozmak isleýäňizmi? Bu amal yza gaýtarylyp bilinmez.'
-              : 'Bu faturayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'}
+            {t('invoices.deleteMsg')}
           </p>
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[11px] text-amber-800 font-semibold">
-            {isTm
-              ? 'Faktura bilen bagly ammar stoky, müşderi bergisi we Kassa/Depder ýazgylary hem tersine düzediler.'
-              : 'Faturaya bağlı ambar stoğu, müşteri borcu ve Kassa/Defter kayıtları da geri alınacaktır.'}
+            {t('invoices.deleteCascade')}
           </div>
           {customerName && (
             <div className="text-[11px] text-gray-500">
-              {isTm ? 'Müşderi' : 'Müşteri'}: <span className="font-bold text-gray-700">{customerName}</span>
+              {t('invoices.customerLabel')}: <span className="font-bold text-gray-700">{customerName}</span>
             </div>
           )}
         </div>
@@ -65,7 +62,7 @@ export const InvoiceDeleteDialog: React.FC<InvoiceDeleteDialogProps> = ({
             onClick={onCancel}
             className="px-5 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs transition-colors"
           >
-            {isTm ? 'Ýatyr' : 'Vazgeç'}
+            {t('invoices.cancelBtn')}
           </button>
           <button
             type="button"
@@ -73,7 +70,7 @@ export const InvoiceDeleteDialog: React.FC<InvoiceDeleteDialogProps> = ({
             className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors shadow-sm flex items-center gap-1.5"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            {isTm ? 'Hawa, poz' : 'Evet, sil'}
+            {t('invoices.confirmDeleteBtn')}
           </button>
         </div>
       </div>

@@ -22,6 +22,17 @@ export const CALC_PERIODS: { id: CalcPeriod; label: string }[] = [
   { id: 'custom', label: 'Ýörite aralyk' },
 ];
 
+/** Dönem kimliği → çeviri anahtarı (UI `label` yerine bunu kullanır). */
+export const CALC_PERIOD_KEYS: Record<CalcPeriod, string> = {
+  today: 'hasaplama.periodToday',
+  week: 'hasaplama.periodWeek',
+  month: 'hasaplama.periodMonth',
+  lastMonth: 'hasaplama.periodLastMonth',
+  quarter: 'hasaplama.periodQuarter',
+  year: 'hasaplama.periodYear',
+  custom: 'hasaplama.periodCustom',
+};
+
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }

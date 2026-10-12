@@ -1,9 +1,10 @@
 import React from 'react';
 import { Check, Eye, Inbox, X } from 'lucide-react';
 import type { InvoiceRecord, LanguageCode, Targow, TargowRegion } from '../../types';
-import { DRAFT_STATUS_LABELS, DRAFT_STATUS_STYLES, regionName } from '../../db/targowService';
+import { DRAFT_STATUS_STYLES, regionName } from '../../db/targowService';
 import { formatDraftDate } from '../../db/draftService';
 import { formatMoney } from '../../utils/money';
+import { useT } from '../../locales/LanguageContext';
 
 interface GaralamaTableProps {
   language: LanguageCode;
@@ -17,6 +18,13 @@ interface GaralamaTableProps {
 
 const HEAD =
   'text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 select-none';
+
+/** Taslak durumu → çeviri anahtarı (db'deki tm etiketler yerine). */
+const STATUS_KEYS: Record<string, string> = {
+  pending: 'faktura.statusPending',
+  accepted: 'faktura.statusAccepted',
+  rejected: 'faktura.statusRejected',
+};
 
 function sender(invoice: InvoiceRecord, targows: readonly Targow[]): string {
   const targow = targows.find((item) => item.id === invoice.targowId);
@@ -32,19 +40,21 @@ export const GaralamaTable: React.FC<GaralamaTableProps> = ({
   onOpen,
   onAccept,
   onReject,
-}) => (
+}) => {
+  const t = useT();
+  return (
   <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
     <table className="w-full text-left text-xs">
       <thead>
         <tr className={HEAD}>
-          <th className="py-3 px-3">Sene / Wagt</th>
-          <th className="py-3 px-3">Kim iberdi</th>
-          <th className="py-3 px-3">Müşderi</th>
-          <th className="py-3 px-3">Etrap</th>
-          <th className="py-3 px-3 text-center">Haryt</th>
-          <th className="py-3 px-3 text-right">Jemi</th>
-          <th className="py-3 px-3 text-center">Status</th>
-          <th className="py-3 px-3 text-center">Amal</th>
+          <th className="py-3 px-3">{t('faktura.colDate')}</th>
+          <th className="py-3 px-3">{t('faktura.colSender')}</th>
+          <th className="py-3 px-3">{t('faktura.colCustomer')}</th>
+          <th className="py-3 px-3">{t('faktura.colRegion')}</th>
+          <th className="py-3 px-3 text-center">{t('faktura.colProduct')}</th>
+          <th className="py-3 px-3 text-right">{t('faktura.colTotal')}</th>
+          <th className="py-3 px-3 text-center">{t('faktura.colStatus')}</th>
+          <th className="py-3 px-3 text-center">{t('faktura.colAction')}</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-50">
@@ -54,7 +64,7 @@ export const GaralamaTable: React.FC<GaralamaTableProps> = ({
               <div className="flex flex-col items-center gap-2">
                 <Inbox className="w-10 h-10 text-gray-200" />
                 <span className="font-semibold text-gray-400 text-xs">
-                  {language === 'tm' ? 'Garalama faktura ýok' : 'Taslak fatura yok'}
+                  {t('faktura.noDrafts')}
                 </span>
               </div>
             </td>
@@ -68,10 +78,10 @@ export const GaralamaTable: React.FC<GaralamaTableProps> = ({
                 key={invoice.id}
                 onClick={() => onOpen(invoice)}
                 className="hover:bg-gray-50/60 transition-colors cursor-pointer"
-                title={language === 'tm' ? 'Faktura ekranynda aç' : 'Fatura ekranında aç'}
+                title={t('faktura.openInInvoice')}
               >
                 <td className="py-3 px-3 whitespace-nowrap">
-                  <div className="font-semibold text-gray-800">{formatDraftDate(invoice.createdAt)}</div>
+                  <div className="font-semibold text-gray-800">{formatDraftDate(invoice.createdAt, language)}</div>
                   <div className="text-[10px] text-gray-400 font-mono">
                     {invoice.device ?? '—'}
                   </div>
@@ -107,7 +117,7 @@ export const GaralamaTable: React.FC<GaralamaTableProps> = ({
                   <span
                     className={`inline-flex px-2 py-0.5 rounded-lg text-[10px] font-bold ${DRAFT_STATUS_STYLES[status]}`}
                   >
-                    {DRAFT_STATUS_LABELS[status]}
+                    {t(STATUS_KEYS[status] ?? status)}
                   </span>
                 </td>
 
@@ -117,7 +127,7 @@ export const GaralamaTable: React.FC<GaralamaTableProps> = ({
                       type="button"
                       onClick={() => onOpen(invoice)}
                       className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-[#0B1F3A] hover:text-white text-gray-500 transition-colors"
-                      title={language === 'tm' ? 'Aç' : 'Aç'}
+                      title={t('faktura.openLabel')}
                     >
                       <Eye className="w-3.5 h-3.5" />
                     </button>
@@ -127,7 +137,7 @@ export const GaralamaTable: React.FC<GaralamaTableProps> = ({
                           type="button"
                           onClick={() => onAccept(invoice)}
                           className="w-8 h-8 flex items-center justify-center rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-colors"
-                          title="Kabul et"
+                          title={t('faktura.acceptTip')}
                         >
                           <Check className="w-3.5 h-3.5" />
                         </button>
@@ -135,7 +145,7 @@ export const GaralamaTable: React.FC<GaralamaTableProps> = ({
                           type="button"
                           onClick={() => onReject(invoice)}
                           className="w-8 h-8 flex items-center justify-center rounded-xl bg-rose-500 hover:bg-rose-600 text-white transition-colors"
-                          title="Ret et"
+                          title={t('faktura.rejectTip')}
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -150,4 +160,5 @@ export const GaralamaTable: React.FC<GaralamaTableProps> = ({
       </tbody>
     </table>
   </div>
-);
+  );
+};

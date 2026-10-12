@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Download, FileSpreadsheet, Loader2, Upload, X } from 'lucide-react';
 import type { Customer, LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 import { describeReadError } from '../../utils/excelIO';
 import {
   customerConflictKeys,
@@ -11,12 +12,21 @@ import {
   type CustomerDraft,
 } from '../../utils/customerExcel';
 import { exportCustomerTemplateStyled } from '../../utils/styledExports';
+import { saveImportErrorReport, type ImportErrorRow } from '../../utils/importErrorReport';
 import { CustomerImportPreviewTable } from './CustomerImportPreviewTable';
 
-interface ImportSummary {
+export interface ImportSummary {
   added: number;
   updated: number;
   skipped: number;
+  /** Maglumat bazasyna ýazylmadyk setirler (setir № + sebäp). */
+  failed: ImportErrorRow[];
+}
+
+/** Geçerli bir parse setiri — garalama + hakyky Excel setir belgisi. */
+export interface CustomerImportEntry {
+  readonly draft: CustomerDraft;
+  readonly rowNumber: number;
 }
 
 interface CustomerExcelImportModalProps {
@@ -24,7 +34,10 @@ interface CustomerExcelImportModalProps {
   customers: readonly Customer[];
   accountName: string;
   onClose: () => void;
-  onImport: (drafts: readonly CustomerDraft[], mode: 'overwrite' | 'skip') => ImportSummary;
+  onImport: (
+    entries: readonly CustomerImportEntry[],
+    mode: 'overwrite' | 'skip'
+  ) => ImportSummary | Promise<ImportSummary>;
 }
 
 export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> = ({
@@ -34,11 +47,12 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
   onClose,
   onImport,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState<ParsedCustomerRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState<'overwrite' | 'skip'>('overwrite');
   const [summary, setSummary] = useState<ImportSummary | null>(null);
@@ -68,12 +82,31 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
     (row) => row.draft && isCustomerConflict(row.draft, conflictKeys)
   ).length;
 
-  const handleImport = () => {
-    const drafts = validRows
-      .map((row) => row.draft)
-      .filter((draft): draft is CustomerDraft => draft !== null);
-    if (drafts.length === 0) return;
-    setSummary(onImport(drafts, mode));
+  const handleImport = async () => {
+    const entries: CustomerImportEntry[] = validRows
+      .map((row) => ({ draft: row.draft, rowNumber: row.rowNumber }))
+      .filter((entry): entry is CustomerImportEntry => entry.draft !== null);
+    if (entries.length === 0) return;
+    setIsImporting(true);
+    try {
+      setSummary(await onImport(entries, mode));
+    } catch (err) {
+      // Toplu ýazgy şowsuzlygy — setirler aýratyn ýalňyşlyk hökmünde görkezilýär.
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleDownloadErrorReport = () => {
+    if (!summary || summary.failed.length === 0) return;
+    void saveImportErrorReport({
+      accountName,
+      fileName: 'musderi-import-yalnyslyklar.xlsx',
+      title: t('excel.errorReportTitleCustomers'),
+      detailHeader: t('excel.detailHeaderPhone'),
+      rows: summary.failed,
+    });
   };
 
   return (
@@ -82,7 +115,7 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
         <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
           <span className="font-bold text-sm tracking-wide flex items-center gap-2">
             <Upload className="w-4 h-4" />
-            {isTm ? 'Excel-den getir (Import)' : "Excel'den içe aktar"}
+            {t('excel.importModalTitleCustomers')}
           </span>
           <button
             type="button"
@@ -101,7 +134,7 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
               className="h-10 px-4 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs flex items-center gap-2"
             >
               <FileSpreadsheet className="w-4 h-4" />
-              {isTm ? 'Excel faýl saýla' : 'Excel dosyası seç'}
+              {t('excel.selectFile')}
             </button>
             <button
               type="button"
@@ -109,7 +142,7 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
               className="h-10 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
-              {isTm ? 'Nusga faýly ýükle' : 'Örnek şablon indir'}
+              {t('excel.downloadTemplate')}
             </button>
             {fileName && (
               <span className="text-[11px] font-semibold text-gray-500 font-mono truncate">
@@ -131,7 +164,7 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
           {isLoading && (
             <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
               <Loader2 className="w-4 h-4 animate-spin" />
-              {isTm ? 'Faýl okalýar...' : 'Dosya okunuyor...'}
+              {t('excel.readingFile')}
             </div>
           )}
 
@@ -143,11 +176,59 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
           )}
 
           {summary && (
-            <div className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 space-y-0.5">
-              <div className="font-bold">{isTm ? 'Import tamamlandy' : 'İçe aktarma tamamlandı'}</div>
+            <div
+              className={`text-xs font-semibold rounded-xl px-3 py-2 space-y-0.5 border ${
+                summary.failed.length > 0
+                  ? 'text-rose-700 bg-rose-50 border-rose-200'
+                  : 'text-emerald-700 bg-emerald-50 border-emerald-100'
+              }`}
+            >
+              <div className="font-bold">{t('excel.importDone')}</div>
               <div>
-                {summary.added} {isTm ? 'goşuldy' : 'eklendi'} · {summary.updated}{' '}
-                {isTm ? 'täzelendi' : 'güncellendi'} · {summary.skipped} {isTm ? 'geçildi' : 'atlandı'}
+                {summary.added} {t('excel.importAdded')} · {summary.updated}{' '}
+                {t('excel.importUpdated')} · {summary.skipped} {t('excel.importSkipped')}
+              </div>
+              {summary.failed.length > 0 && (
+                <div className="font-bold">
+                  {t('excel.failedSummary', {
+                    total: summary.added + summary.updated + summary.failed.length,
+                    written: summary.added + summary.updated,
+                    failed: summary.failed.length,
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {summary && summary.failed.length > 0 && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50/60 px-3 py-2 space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-[11px] font-bold text-rose-700">
+                  {t('excel.failedRows')}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleDownloadErrorReport}
+                  className="h-8 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] flex items-center gap-1.5 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {t('excel.errorReport')}
+                </button>
+              </div>
+              <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
+                {summary.failed.map((failure, index) => (
+                  <div
+                    key={index}
+                    className="text-[11px] font-semibold text-rose-600 flex items-baseline gap-2"
+                  >
+                    <span className="font-mono font-bold shrink-0">#{failure.row}</span>
+                    <span className="truncate">
+                      {failure.name}
+                      {failure.detail ? ` · ${failure.detail}` : ''}
+                    </span>
+                    <span className="text-rose-400 shrink-0">— {failure.reason}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -157,19 +238,19 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-xl border border-gray-200 bg-[#F8FAFC] px-3 py-2">
                   <div className="text-[10px] font-bold text-gray-400 uppercase">
-                    {isTm ? 'Dogry setir' : 'Geçerli satır'}
+                    {t('excel.validRow')}
                   </div>
                   <div className="font-mono font-bold text-emerald-600">{validRows.length}</div>
                 </div>
                 <div className="rounded-xl border border-gray-200 bg-[#F8FAFC] px-3 py-2">
                   <div className="text-[10px] font-bold text-gray-400 uppercase">
-                    {isTm ? 'Bar bolan' : 'Mevcut'}
+                    {t('excel.existing')}
                   </div>
                   <div className="font-mono font-bold text-amber-600">{conflictCount}</div>
                 </div>
                 <div className="rounded-xl border border-gray-200 bg-[#F8FAFC] px-3 py-2">
                   <div className="text-[10px] font-bold text-gray-400 uppercase">
-                    {isTm ? 'Hataly setir' : 'Hatalı satır'}
+                    {t('excel.errorRow')}
                   </div>
                   <div className="font-mono font-bold text-rose-600">{errorRows.length}</div>
                 </div>
@@ -178,14 +259,12 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
               {conflictCount > 0 && (
                 <div className="flex items-center gap-3 flex-wrap rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
                   <span className="text-[11px] font-bold text-amber-800">
-                    {isTm
-                      ? 'Bar bolan müşderiler üçin (at/telefon gabat gelýär):'
-                      : 'Mevcut müşteriler için (ad/telefon eşleşiyor):'}
+                    {t('excel.existingCustomers')}
                   </span>
                   {(
                     [
-                      { id: 'overwrite', label: isTm ? 'Hemmesini üstüne ýaz' : 'Tümünü güncelle' },
-                      { id: 'skip', label: isTm ? 'Hemmesini geç' : 'Tümünü atla' },
+                      { id: 'overwrite', label: t('excel.overwriteAll') },
+                      { id: 'skip', label: t('excel.skipAll') },
                     ] as const
                   ).map((option) => (
                     <button
@@ -210,9 +289,7 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
 
           {rows.length === 0 && !error && !isLoading && (
             <div className="text-[11px] font-semibold text-gray-400 text-center py-6">
-              {isTm
-                ? 'Excel faýly saýlaň — setirler şu ýerde görkeziler.'
-                : 'Excel dosyası seçin — satırlar burada görünecek.'}
+              {t('excel.selectFileHint')}
             </div>
           )}
         </div>
@@ -223,16 +300,19 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
             onClick={onClose}
             className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
           >
-            {summary ? (isTm ? 'Ýap' : 'Kapat') : isTm ? 'Ýatyr' : 'İptal'}
+            {summary ? t('excel.closeBtn') : t('cancel')}
           </button>
           {rows.length > 0 && !summary && (
             <button
               type="button"
-              onClick={handleImport}
-              disabled={validRows.length === 0}
-              className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] disabled:opacity-40 text-white font-bold text-xs"
+              onClick={() => void handleImport()}
+              disabled={validRows.length === 0 || isImporting}
+              className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-2"
             >
-              {isTm ? `Import et (${validRows.length})` : `İçe aktar (${validRows.length})`}
+              {isImporting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isImporting
+                ? t('excel.writing')
+                : t('excel.importBtn', { count: validRows.length })}
             </button>
           )}
         </div>

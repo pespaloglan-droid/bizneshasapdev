@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import type { AppUser, LanguageCode, Targow, TargowRegion } from '../../types';
 import { generateTargowId } from '../../db/targowService';
+import { useT } from '../../locales/LanguageContext';
 
 interface TargowFormModalProps {
   language: LanguageCode;
@@ -60,6 +61,7 @@ export const TargowFormModal: React.FC<TargowFormModalProps> = ({
   onSave,
   onClose,
 }) => {
+  const t = useT();
   const [form, setForm] = useState<TargowFormState>(() =>
     editingTargow ? stateFromTargow(editingTargow) : emptyState()
   );
@@ -82,15 +84,15 @@ export const TargowFormModal: React.FC<TargowFormModalProps> = ({
     const phone = form.phone.trim();
 
     if (!fullName) {
-      setError(language === 'tm' ? 'Ady Familiýasy hökmanydyr.' : 'Ad Soyad zorunludur.');
+      setError(t('targowy.fullNameRequired'));
       return;
     }
     if (!phone) {
-      setError(language === 'tm' ? 'Telefon belgisi hökmanydyr.' : 'Telefon numarası zorunludur.');
+      setError(t('targowy.phoneRequired'));
       return;
     }
     if (targows.some((t) => t.fullName.trim().toLowerCase() === fullName.toLowerCase() && t.id !== editingTargow?.id)) {
-      setError(language === 'tm' ? 'Bu targowçy eýýäm bar.' : 'Bu targowçı zaten var.');
+      setError(t('targowy.targowExists'));
       return;
     }
 
@@ -115,7 +117,7 @@ export const TargowFormModal: React.FC<TargowFormModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]">
         <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
           <span className="font-bold text-sm tracking-wide">
-            {editingTargow ? 'Targowçyny redaktirle' : 'Täze targowçy'}
+            {editingTargow ? t('targowy.editTitle') : t('targowy.newTitle')}
           </span>
           <button
             type="button"
@@ -129,7 +131,7 @@ export const TargowFormModal: React.FC<TargowFormModalProps> = ({
         <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-5 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className={LABEL}>Ady Familiýasy *</label>
+              <label className={LABEL}>{t('targowy.fullNameLabel')}</label>
               <input
                 type="text"
                 value={form.fullName}
@@ -152,7 +154,7 @@ export const TargowFormModal: React.FC<TargowFormModalProps> = ({
 
             <div>
               <label className={LABEL}>
-                Ulanyjy hasaby ({language === 'tm' ? 'islege görä' : 'opsiyonel'})
+                Ulanyjy hasaby ({t('targowy.optional')})
               </label>
               <select
                 value={form.appUserId}
@@ -206,7 +208,7 @@ export const TargowFormModal: React.FC<TargowFormModalProps> = ({
                     : 'bg-white text-gray-500 border-gray-200'
                 }`}
               >
-                {form.isActive ? 'Işjeň' : 'Işjeň däl'}
+                {form.isActive ? t('targowy.activeLabel') : t('targowy.inactiveLabel')}
               </button>
             </div>
           </div>
@@ -215,9 +217,7 @@ export const TargowFormModal: React.FC<TargowFormModalProps> = ({
             <label className={LABEL}>Berkidilen etraplar</label>
             {regions.length === 0 ? (
               <p className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-                {language === 'tm'
-                  ? 'Etraplar ýok. "Etraplar" bölüminden goşuň.'
-                  : 'Etrap yok. "Etraplar" bölümünden ekleyin.'}
+                {t('targowy.noRegionsHint')}
               </p>
             ) : (
               <div className="flex flex-wrap gap-1.5">

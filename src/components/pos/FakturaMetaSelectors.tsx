@@ -1,6 +1,7 @@
 import React from 'react';
 import { Boxes, Package } from 'lucide-react';
 import type { InvoiceType, LanguageCode, Warehouse } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface FakturaMetaSelectorsProps {
   language: LanguageCode;
@@ -37,6 +38,7 @@ export const FakturaMetaSelectors: React.FC<FakturaMetaSelectorsProps> = ({
   onTargetWarehouseChange,
   dateTimeSlot,
 }) => {
+  const t = useT();
   const isTransfer = invoiceType === 'warehouse_move';
 
   return (
@@ -50,10 +52,10 @@ export const FakturaMetaSelectors: React.FC<FakturaMetaSelectorsProps> = ({
             <select
               value={warehouseId}
               onChange={(e) => onWarehouseChange(e.target.value)}
-              title={language === 'tm' ? 'Ammar saýla' : 'Ambar seç'}
+              title={t('pos.msWarehouseTip')}
               className={selectClass(true)}
             >
-              <option value="">Ammar</option>
+              <option value="">{t('pos.msWarehouse')}</option>
               {warehouses.map((warehouse) => (
                 <option key={warehouse.id} value={warehouse.id}>
                   {warehouse.name}
@@ -75,16 +77,12 @@ export const FakturaMetaSelectors: React.FC<FakturaMetaSelectorsProps> = ({
               disabled={!isTransfer}
               title={
                 isTransfer
-                  ? language === 'tm'
-                    ? 'Hedef ammary saýla'
-                    : 'Hedef ambarı seç'
-                  : language === 'tm'
-                  ? 'Diňe "Ammarlar arasyndaky hereket" üçin işjeň'
-                  : 'Sadece "Ambarlar arası hareket" için aktif'
+                  ? t('pos.msTargetTip')
+                  : t('pos.msTargetDisabledTip')
               }
               className={selectClass(isTransfer)}
             >
-              <option value="">Ammar 2</option>
+              <option value="">{t('pos.msWarehouse2')}</option>
               {warehouses.map((warehouse) => (
                 <option key={warehouse.id} value={warehouse.id}>
                   {warehouse.name}
@@ -100,9 +98,7 @@ export const FakturaMetaSelectors: React.FC<FakturaMetaSelectorsProps> = ({
 
       {isTransfer && (
         <div className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 text-center">
-          {language === 'tm'
-            ? 'Ammarlar arasyndaky geçirim: 1-nji ammardan 2-nji ammara'
-            : 'Ambarlar arası transfer: 1. ambardan 2. ambara'}
+          {t('pos.msTransferNote')}
         </div>
       )}
     </div>

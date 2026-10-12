@@ -21,6 +21,7 @@ import { BASE_CURRENCY_CODE } from '../../db/currencyService';
 import { isCountedInvoice } from '../../db/targowService';
 import { formatMoney } from '../../utils/money';
 import { KassaTable } from './KassaTable';
+import { useT } from '../../locales/LanguageContext';
 
 interface MoneySearchModalProps {
   transactions: readonly MoneyTransaction[];
@@ -65,7 +66,7 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
   canEdit = true,
   canDelete = true,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
   const [note, setNote] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -171,11 +172,11 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
             <SlidersHorizontal className="w-5 h-5" />
             <div>
               <h3 className="text-sm font-bold tracking-wide">
-                {isTm ? 'Kassa hereketi gözle' : 'Kasa Hareketi Ara'}
+                {t('kassa.searchTitle')}
               </h3>
               <p className="text-[11px] text-gray-300">
-                {isTm ? 'Tapylan: ' : 'Bulunan: '}
-                {filtered.length} {isTm ? 'hereket' : 'hareket'}
+                {t('kassa.foundPrefix')}
+                {filtered.length} {t('kassa.txSuffix')}
               </p>
             </div>
           </div>
@@ -193,7 +194,7 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
           <div className="w-[270px] flex-shrink-0 border-r border-gray-100 bg-gray-50/60 p-3 space-y-3 overflow-y-auto">
             <div>
               <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                {isTm ? 'Bellik' : 'Açıklama'}
+                {t('kassa.noteLabel')}
               </label>
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600 pointer-events-none" />
@@ -202,7 +203,7 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
                   type="text"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder={isTm ? 'Bellik / müşderi / faktura...' : 'Açıklama / müşteri / fatura...'}
+                  placeholder={t('kassa.notePlaceholder')}
                   className="w-full h-9 pl-9 pr-3 bg-white border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl text-xs font-semibold text-gray-800 outline-none"
                 />
               </div>
@@ -210,7 +211,7 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
 
             <div>
               <label className="flex items-center gap-1 text-[10px] font-bold text-gray-500 uppercase mb-1">
-                <CalendarDays className="w-3 h-3" /> {isTm ? 'Haçankylar' : 'Tarih aralığı'}
+                <CalendarDays className="w-3 h-3" /> {t('kassa.dateRange')}
               </label>
               <div className="flex items-center gap-1.5">
                 <input
@@ -231,18 +232,18 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
 
             <div>
               <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                {isTm ? 'Görnüşi' : 'Tür'}
+                {t('kassa.colType')}
               </label>
               <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1">
                 {(
                   [
-                    { id: '', tm: 'Hemmesi', tr: 'Tümü' },
-                    { id: 'income', tm: 'Girdeji', tr: 'Gelir' },
-                    { id: 'expense', tm: 'Çykdajy', tr: 'Gider' },
-                  ] as { id: MoneyTxType | ''; tm: string; tr: string }[]
+                    { id: '', key: 'allShort' },
+                    { id: 'income', key: 'income' },
+                    { id: 'expense', key: 'expense' },
+                  ] as { id: MoneyTxType | ''; key: string }[]
                 ).map((o) => (
                   <button key={o.id} type="button" onClick={() => setType(o.id)} className={`flex-1 ${segBtn(type === o.id)}`}>
-                    {isTm ? o.tm : o.tr}
+                    {t(`kassa.${o.key}`)}
                   </button>
                 ))}
               </div>
@@ -251,7 +252,7 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-[10px] font-bold text-gray-500 uppercase">
-                  {isTm ? 'Kategoriýa' : 'Kategori'}
+                  {t('kassa.colCategory')}
                 </label>
                 <button
                   type="button"
@@ -262,7 +263,7 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
                   }
                   className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700"
                 >
-                  {categories.size === ALL_CATEGORIES.length ? (isTm ? 'Hiç biri' : 'Hiçbiri') : isTm ? 'Hemmesi' : 'Tümü'}
+                  {categories.size === ALL_CATEGORIES.length ? t('kassa.none') : t('kassa.allShort')}
                 </button>
               </div>
               <div className="max-h-32 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 space-y-0.5">
@@ -282,16 +283,16 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
 
             <div>
               <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                {isTm ? 'Töleg görnüşi' : 'Ödeme türü'}
+                {t('kassa.colPayment')}
               </label>
               <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1">
                 {(
                   [
-                    { id: '', label: isTm ? 'Hemmesi' : 'Tümü' },
-                    { id: 'cash', label: isTm ? 'Nagt' : 'Nakit' },
-                    { id: 'card', label: isTm ? 'Karta' : 'Kart' },
-                    { id: 'transfer', label: isTm ? 'Geçirme' : 'Havale' },
-                  ] as { id: MoneyPaymentMethod | ''; label: string }[]
+                    { id: '', key: 'allShort' },
+                    { id: 'cash', key: 'cashLabel' },
+                    { id: 'card', key: 'payCard' },
+                    { id: 'transfer', key: 'payTransfer' },
+                  ] as { id: MoneyPaymentMethod | ''; key: string }[]
                 ).map((o) => (
                   <button
                     key={o.id}
@@ -299,7 +300,7 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
                     onClick={() => setPaymentMethod(o.id)}
                     className={`flex-1 ${segBtn(paymentMethod === o.id)}`}
                   >
-                    {o.label}
+                    {t(`kassa.${o.key}`)}
                   </button>
                 ))}
               </div>
@@ -307,10 +308,10 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
 
             <div>
               <label className="flex items-center gap-1 text-[10px] font-bold text-gray-500 uppercase mb-1">
-                <User className="w-3 h-3" /> {isTm ? 'Müşderi' : 'Müşteri'}
+                <User className="w-3 h-3" /> {t('kassa.customerLabel')}
               </label>
               <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className={FIELD}>
-                <option value="">{isTm ? 'Hemmesi' : 'Tümü'}</option>
+                <option value="">{t('kassa.allShort')}</option>
                 {customers.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -321,10 +322,10 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
 
             <div>
               <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                {isTm ? 'Ulanyjy' : 'Kullanıcı'}
+                {t('kassa.userLabel')}
               </label>
               <select value={staffUserId} onChange={(e) => setStaffUserId(e.target.value)} className={FIELD}>
-                <option value="">{isTm ? 'Hemmesi' : 'Tümü'}</option>
+                <option value="">{t('kassa.allShort')}</option>
                 {appUsers.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.fullName}
@@ -335,10 +336,10 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
 
             <div>
               <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                {isTm ? 'Depder' : 'Defter'}
+                {t('kassa.ledgerLabel')}
               </label>
               <select value={ledgerId} onChange={(e) => setLedgerId(e.target.value)} className={FIELD}>
-                <option value="">{isTm ? 'Hemmesi' : 'Tümü'}</option>
+                <option value="">{t('kassa.allShort')}</option>
                 {ledgers.map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.name}
@@ -349,10 +350,10 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
 
             <div>
               <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                {isTm ? 'Walýuta' : 'Para birimi'}
+                {t('kassa.currencyLabel')}
               </label>
               <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={FIELD}>
-                <option value="">{isTm ? 'Hemmesi' : 'Tümü'}</option>
+                <option value="">{t('kassa.allShort')}</option>
                 <option value={BASE_CURRENCY_CODE}>{BASE_CURRENCY_CODE}</option>
                 {currencies
                   .filter((c) => c.code !== BASE_CURRENCY_CODE)
@@ -372,7 +373,7 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
                 className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
               <span className="text-[11px] font-semibold text-gray-600">
-                {isTm ? 'Diňe möhleti bar bolan (Nesiýe) hereketler' : 'Sadece vadeli (veresiye) hareketler'}
+                {t('kassa.onlyDue')}
               </span>
             </label>
           </div>
@@ -397,8 +398,8 @@ export const MoneySearchModal: React.FC<MoneySearchModalProps> = ({
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between flex-wrap gap-2 flex-shrink-0">
           <div className="flex items-center gap-4 text-[11px] font-bold">
             <span className="text-gray-500">
-              {isTm ? 'Tapylan: ' : 'Bulunan: '}
-              <span className="text-emerald-600 font-mono">{filtered.length}</span> {isTm ? 'hereket' : 'hareket'}
+              {t('kassa.foundPrefix')}
+              <span className="text-emerald-600 font-mono">{filtered.length}</span> {t('kassa.txSuffix')}
             </span>
             <span className="text-emerald-700 font-mono">↑ {formatMoney(incomeTotal)}</span>
             <span className="text-rose-700 font-mono">↓ {formatMoney(expenseTotal)}</span>

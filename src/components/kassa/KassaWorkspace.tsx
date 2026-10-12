@@ -9,6 +9,7 @@ import { DeleteMoneyDialog } from './KassaDialogs';
 import { onMobileAdd } from '../../utils/mobileEvents';
 import { PageScroll } from '../common/PageScroll';
 import { MoneySearchModal } from './MoneySearchModal';
+import { useT } from '../../locales/LanguageContext';
 
 /** Kassa moduly üçin inçe rugsatlar (WorkspaceRouter-den gelýär). */
 export interface KassaExtras {
@@ -102,6 +103,7 @@ export const KassaWorkspace: React.FC<KassaWorkspaceProps> = ({
   const [editingTransaction, setEditingTransaction] = useState<MoneyTransaction | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MoneyTransaction | null>(null);
   const [saveError, setSaveError] = useState('');
+  const t = useT();
 
   const canAddIncome = kassaExtras.addIncome;
   const canAddExpense = kassaExtras.addExpense;
@@ -141,34 +143,26 @@ export const KassaWorkspace: React.FC<KassaWorkspaceProps> = ({
       const start = operationRules.operationStartDate;
       const end = operationRules.operationEndDate;
       if (start && transaction.date < start) {
-        setSaveError(
-          language === 'tm'
-            ? `Bu sene operasiýa açylmady (başlangyç: ${start}).`
-            : `Bu tarihte işlem açılmadı (başlangıç: ${start}).`
-        );
+        setSaveError(t('pos.dateBeforeStart', { date: start }));
         return;
       }
       if (end && transaction.date > end) {
-        setSaveError(
-          language === 'tm'
-            ? `Operasiýa döwri gutardy (soňky: ${end}).`
-            : `İşlem dönemi bitti (son: ${end}).`
-        );
+        setSaveError(t('pos.dateAfterEnd', { date: end }));
         return;
       }
     }
     if (transaction.type === 'expense' && !canAddExpense) {
-      setSaveError(language === 'tm' ? 'Çykdajy goşmaga rugsadyňyz ýok.' : 'Gider ekleme yetkiniz yok.');
+      setSaveError(t('kassa.noExpensePerm'));
       return;
     }
     if (transaction.type === 'income' && !canAddIncome) {
-      setSaveError(language === 'tm' ? 'Girdeji goşmaga rugsadyňyz ýok.' : 'Gelir ekleme yetkiniz yok.');
+      setSaveError(t('kassa.noIncomePerm'));
       return;
     }
     if (transaction.type === 'income') {
       const allowed = kassaExtras.incomeCategories;
       if (allowed !== undefined && !allowed.includes(transaction.category)) {
-        setSaveError(language === 'tm' ? 'Bu kategoriýa üçin rugsat ýok.' : 'Bu kategori için yetkiniz yok.');
+        setSaveError(t('kassa.noCategoryPerm'));
         return;
       }
     }
@@ -212,7 +206,7 @@ export const KassaWorkspace: React.FC<KassaWorkspaceProps> = ({
         />
         {isFilterActive(filters) && (
           <div className="mt-2 text-[11px] font-bold text-gray-500 px-1">
-            {visibleTransactions.length} hereket görkezilýär
+            {t('kassa.shownCount', { count: visibleTransactions.length })}
           </div>
         )}
       </div>

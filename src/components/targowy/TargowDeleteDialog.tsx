@@ -1,5 +1,6 @@
 import React from 'react';
 import type { LanguageCode, Targow } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface TargowDeleteDialogProps {
   targow: Targow;
@@ -17,20 +18,18 @@ export const TargowDeleteDialog: React.FC<TargowDeleteDialogProps> = ({
   onCancel,
   onConfirmDelete,
   onDeactivate,
-}) => (
+}) => {
+  const t = useT();
+  return (
   <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 text-center space-y-4">
       <p className="font-bold text-gray-800 text-sm">
-        {language === 'tm'
-          ? `"${targow.fullName}" targowçyny pozmak isleýärsiňizmi?`
-          : `"${targow.fullName}" targowçısını silmek istiyor musunuz?`}
+        {t('targowy.deleteConfirm', { name: targow.fullName })}
       </p>
 
       {orderCount > 0 && (
         <p className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-          {language === 'tm'
-            ? `Bu targowçynyň ${orderCount} sargydy bar. Pozmak ýerine Işjeň däl etmek maslahat berilýär.`
-            : `Bu targowçının ${orderCount} siparişi var. Silmek yerine Pasif yapmanız önerilir.`}
+          {t('targowy.deleteHasOrders', { count: orderCount })}
         </p>
       )}
 
@@ -62,4 +61,5 @@ export const TargowDeleteDialog: React.FC<TargowDeleteDialogProps> = ({
       </div>
     </div>
   </div>
-);
+  );
+};

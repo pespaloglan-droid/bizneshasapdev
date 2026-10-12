@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import type { LanguageCode, Product } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 import {
   deleteComposition,
   getComposition,
@@ -36,7 +37,7 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
   onClose,
   onUpdatePrice,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
   const [query, setQuery] = useState('');
   const [parts, setParts] = useState<{ productId: string; qty: number }[]>([]);
   const [newPrice, setNewPrice] = useState<number>(mainProduct.price);
@@ -113,7 +114,7 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
     if (newPrice !== mainProduct.price && newPrice > 0) {
       onUpdatePrice(mainProduct.id, newPrice);
     }
-    setNotice(isTm ? 'Ýatda saklandy.' : 'Kaydedildi.');
+    setNotice(t('products.compSaved'));
     setTimeout(onClose, 700);
   };
 
@@ -122,7 +123,7 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]">
         <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
           <span className="font-bold text-sm tracking-wide">
-            {isTm ? `Haryt düzümi — ${mainProduct.name}` : `Ürün Kompozisyonu — ${mainProduct.name}`}
+            {t('products.compositionTitle', { name: mainProduct.name })}
           </span>
           <button
             type="button"
@@ -141,14 +142,14 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={isTm ? 'Düzüme haryt goşmak üçin gözle...' : 'Kompozisyona ürün eklemek için ara...'}
+              placeholder={t('products.compositionSearchPlaceholder')}
               className="w-full pl-9 pr-4 h-10 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             <div className="px-3 py-1.5 bg-gray-50/80 text-[10.5px] font-bold text-gray-500 flex items-center justify-between">
-              <span>{isTm ? 'Haryt saýla' : 'Ürün seç'}</span>
+              <span>{t('products.selectProduct')}</span>
               <span className="font-semibold text-gray-400">{available.length}</span>
             </div>
             <div className="max-h-56 overflow-y-auto divide-y divide-gray-50">
@@ -189,13 +190,13 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
                           ? 'bg-emerald-50 text-emerald-700'
                           : 'bg-rose-50 text-rose-600'
                       }`}
-                      title={isTm ? 'Stok mukdary' : 'Stok miktarı'}
+                      title={t('products.stockAmount')}
                     >
-                      {isTm ? 'S:' : 'St:'} {product.stock}
+                      {t('products.stockPrefix')} {product.stock}
                     </span>
                     <span className="text-right flex-shrink-0 w-[74px]">
                       <span className="block text-[9.5px] text-gray-400 leading-none">
-                        {isTm ? 'alş' : 'alış'}
+                        {t('products.purchaseShort')}
                       </span>
                       <span className="block text-[10.5px] font-mono font-bold text-sky-700 leading-tight">
                         {(product.purchasePrice ?? 0).toFixed(2)}
@@ -203,7 +204,7 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
                     </span>
                     <span className="text-right flex-shrink-0 w-[74px]">
                       <span className="block text-[9.5px] text-gray-400 leading-none">
-                        {isTm ? 'satyş' : 'satış'}
+                        {t('products.saleShort')}
                       </span>
                       <span className="block text-[10.5px] font-mono font-bold text-emerald-700 leading-tight">
                         {product.price.toFixed(2)}
@@ -223,7 +224,7 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
               })}
               {available.length === 0 && (
                 <div className="px-3 py-4 text-center text-[10.5px] text-gray-400 italic">
-                  {isTm ? 'Haryt tapylmady' : 'Ürün bulunamadı'}
+                  {t('products.notFound')}
                 </div>
               )}
             </div>
@@ -232,11 +233,11 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
           {/* Saýlanan bölekler + mukdar */}
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <div className="px-3 py-2 bg-gray-50/80 text-[11px] font-bold text-gray-600">
-              {isTm ? 'Düzüm bölekleri' : 'Bileşenler'}
+              {t('products.components')}
             </div>
             {selectedParts.length === 0 ? (
               <div className="py-6 text-center text-[11px] text-gray-400">
-                {isTm ? 'Entek bölek saýlanmady.' : 'Henüz bileşen seçilmedi.'}
+                {t('products.noComponents')}
               </div>
             ) : (
               <div className="divide-y divide-gray-50 max-h-60 overflow-y-auto">
@@ -272,19 +273,15 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
                         }`}
                         title={
                           notEnough
-                            ? isTm
-                              ? 'Stok ýeterlik däl'
-                              : 'Stok yetersiz'
-                            : isTm
-                            ? 'Stok mukdary'
-                            : 'Stok miktarı'
+                            ? t('products.stockInsufficient')
+                            : t('products.stockAmount')
                         }
                       >
-                        {isTm ? 'S:' : 'St:'} {product.stock}
+                        {t('products.stockPrefix')} {product.stock}
                       </span>
                       <span className="text-right flex-shrink-0 w-[72px]">
                         <span className="block text-[9.5px] text-gray-400 leading-none">
-                          {isTm ? 'birim' : 'birim'}
+                          {t('products.unitShort')}
                         </span>
                         <span className="block text-[10.5px] font-mono font-bold text-gray-700 leading-tight">
                           {(product.purchasePrice ?? 0).toFixed(2)}
@@ -302,20 +299,20 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
                       />
                       <span className="text-right flex-shrink-0 w-[92px]">
                         <span className="block text-[9.5px] text-gray-400 leading-none">
-                          {isTm ? 'jemi' : 'toplam'}
+                          {t('products.totalShort')}
                         </span>
                         <span className="block text-[10.5px] font-mono font-bold text-emerald-700 leading-tight">
                           {lineSale.toFixed(2)}
                         </span>
                         <span className="block text-[9px] font-mono text-sky-600 leading-tight">
-                          {isTm ? 'alş' : 'alış'} {linePurchase.toFixed(2)}
+                          {t('products.purchaseShort')} {linePurchase.toFixed(2)}
                         </span>
                       </span>
                       <button
                         type="button"
                         onClick={() => setQty(product.id, 0)}
                         className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-rose-500 hover:text-white text-gray-500 flex items-center justify-center flex-shrink-0 transition-colors"
-                        title={isTm ? 'Aýyr' : 'Kaldır'}
+                        title={t('products.removeTooltip')}
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -330,19 +327,19 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-sky-50 border border-sky-100 rounded-xl p-2.5 text-center">
               <div className="text-[9px] font-bold text-sky-600 uppercase tracking-wider">
-                {isTm ? 'Jemi alş' : 'Toplam Alış'}
+                {t('products.totalPurchase')}
               </div>
               <div className="text-sm font-black font-mono text-sky-700">{suggestion.purchase.toFixed(2)}</div>
             </div>
             <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2.5 text-center">
               <div className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">
-                {isTm ? 'Jemi satyş' : 'Toplam Satış'}
+                {t('products.totalSale')}
               </div>
               <div className="text-sm font-black font-mono text-emerald-700">{suggestion.sale.toFixed(2)}</div>
             </div>
             <div className="bg-amber-50 border border-amber-100 rounded-xl p-2.5 text-center">
               <div className="text-[9px] font-bold text-amber-600 uppercase tracking-wider">
-                {isTm ? 'Peýda (marj)' : 'Kâr (Marj)'}
+                {t('products.profit')}
               </div>
               <div className={`text-sm font-black font-mono ${suggestion.margin >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
                 {suggestion.margin >= 0 ? '+' : ''}{suggestion.margin.toFixed(2)}
@@ -353,7 +350,7 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
           {/* Esasy haryt bahasy */}
           <div className="bg-[#F8FAFC] border border-gray-200 rounded-xl p-3">
             <label className="block text-[10.5px] font-bold text-gray-600 mb-1">
-              {isTm ? 'Esasy harydyň satyş bahasy' : 'Ana ürünün satış fiyatı'}
+              {t('products.mainPriceLabel')}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -368,9 +365,9 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
                 type="button"
                 onClick={() => setNewPrice(suggestion.sale)}
                 className="h-9 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[10.5px] font-bold flex-shrink-0"
-                title={isTm ? 'Jemi satyş bahasyny ulanyň' : 'Toplam satış fiyatını kullan'}
+                title={t('products.useSuggestedTooltip')}
               >
-                {isTm ? 'Önerileni ulanyň' : 'Önerileni kullan'}
+                {t('products.useSuggested')}
               </button>
             </div>
           </div>
@@ -388,14 +385,14 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
             onClick={onClose}
             className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
           >
-            {isTm ? 'Ýatyr' : 'İptal'}
+            {t('cancel')}
           </button>
           <button
             type="button"
             onClick={() => void handleSave()}
             className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
           >
-            {isTm ? 'Ýatda sakla' : 'Kaydet'}
+            {t('save')}
           </button>
         </div>
       </div>

@@ -2,16 +2,18 @@ import React from 'react';
 import { Loader2, Printer, Sheet } from 'lucide-react';
 import { writeExcelFile } from '../../utils/excelIO';
 import { saveFileAs } from '../../utils/electron';
+import { useT } from '../../locales/LanguageContext';
 
 interface FlowTrendChartProps {
   points: readonly { label: string; income: number; expense: number }[];
 }
 
 export const FlowTrendChart: React.FC<FlowTrendChartProps> = ({ points }) => {
+  const t = useT();
   const peak = Math.max(1, ...points.flatMap((point) => [point.income, point.expense]));
 
   if (points.length === 0) {
-    return <EmptyState text="Döwür üçin maglumat ýok" />;
+    return <EmptyState text={t('hasaplama.noDataPeriod')} />;
   }
 
   return (
@@ -23,12 +25,12 @@ export const FlowTrendChart: React.FC<FlowTrendChartProps> = ({ points }) => {
               <div
                 className="flex-1 bg-emerald-500 rounded-t transition-all"
                 style={{ height: `${Math.max(2, (point.income / peak) * 100)}%` }}
-                title={`Girdeji: ${point.income.toFixed(2)}`}
+                title={`${t('hasaplama.income')}: ${point.income.toFixed(2)}`}
               />
               <div
                 className="flex-1 bg-rose-500 rounded-t transition-all"
                 style={{ height: `${Math.max(2, (point.expense / peak) * 100)}%` }}
-                title={`Çykdajy: ${point.expense.toFixed(2)}`}
+                title={`${t('hasaplama.expense')}: ${point.expense.toFixed(2)}`}
               />
             </div>
             <span className="text-[8px] text-gray-400 font-semibold truncate w-full text-center">
@@ -39,10 +41,10 @@ export const FlowTrendChart: React.FC<FlowTrendChartProps> = ({ points }) => {
       </div>
       <div className="flex items-center justify-center gap-4 mt-2">
         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-gray-600">
-          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> Girdeji
+          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> {t('hasaplama.income')}
         </span>
         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-gray-600">
-          <span className="w-2.5 h-2.5 rounded-sm bg-rose-500" /> Çykdajy
+          <span className="w-2.5 h-2.5 rounded-sm bg-rose-500" /> {t('hasaplama.expense')}
         </span>
       </div>
     </div>
@@ -54,6 +56,7 @@ interface DonutChartProps {
 }
 
 export const DonutChart: React.FC<DonutChartProps> = ({ slices }) => {
+  const t = useT();
   const total = slices.reduce((sum, slice) => sum + slice.total, 0);
   const radius = 46;
   const circumference = 2 * Math.PI * radius;
@@ -67,7 +70,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({ slices }) => {
   });
 
   if (total === 0) {
-    return <EmptyState text="Döwür üçin maglumat ýok" />;
+    return <EmptyState text={t('hasaplama.noDataPeriod')} />;
   }
 
   return (
@@ -128,6 +131,7 @@ export const ReportActions: React.FC<ReportActionsProps> = ({
   rows,
   disabled,
 }) => {
+  const t = useT();
   const [busy, setBusy] = React.useState(false);
 
   // Hasabatlar hakyky .xlsx faýly hökmünde çykarylýar (CSV däl).
@@ -144,7 +148,7 @@ export const ReportActions: React.FC<ReportActionsProps> = ({
       let binary = '';
       for (const b of bytes) binary += String.fromCharCode(b);
       await saveFileAs({
-        title: 'Excel-e eksport et',
+        title: t('hasaplama.excelBtn'),
         defaultName: `${csvName}.xlsx`,
         data: btoa(binary),
         filters: [{ name: 'Excel (.xlsx)', extensions: ['xlsx'] }],
@@ -169,7 +173,7 @@ export const ReportActions: React.FC<ReportActionsProps> = ({
         ) : (
           <Printer className="w-3.5 h-3.5" />
         )}
-        Çap et
+        {t('hasaplama.printBtn')}
       </button>
       <button
         type="button"
@@ -178,7 +182,7 @@ export const ReportActions: React.FC<ReportActionsProps> = ({
         className="h-9 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold text-[11px] flex items-center gap-1.5"
       >
         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sheet className="w-3.5 h-3.5" />}
-        Excel-e eksport et
+        {t('hasaplama.excelBtn')}
       </button>
     </div>
   );

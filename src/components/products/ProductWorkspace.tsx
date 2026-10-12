@@ -16,17 +16,19 @@ import {
   GitBranch,
 } from 'lucide-react';
 import { Product, LanguageCode } from '../../types';
-import { translations } from '../../locales/i18n';
+import { useT } from '../../locales/LanguageContext';
 import { ProductImage } from '../pos/ProductImage';
 import { CurrencyLabel } from '../pos/CurrencyLabel';
 import { UnitSelect } from './UnitSelect';
 import { unitLabel, type MeasurementUnit } from '../../db/unitService';
 import { ProductExcelImportModal } from './ProductExcelImportModal';
+import type { ImportSummary, ProductImportEntry } from './ProductExcelImportModal';
 import { ProductExcelExportModal } from './ProductExcelExportModal';
 import { ProductBulkEditModal } from './ProductBulkEditModal';
 import { CompositionModal } from './CompositionModal';
 import { getComposedProductIds } from '../../db/compositionService';
-import type { ProductDraft } from '../../utils/productExcel';
+import type { BatchWriteResult } from '../../db/pouch';
+import type { ImportErrorRow } from '../../utils/importErrorReport';
 import { onMobileAdd } from '../../utils/mobileEvents';
 import { compressImage } from '../../utils/imageCompress';
 import { PageScroll } from '../common/PageScroll';
@@ -39,6 +41,14 @@ interface ProductWorkspaceProps {
   onUpdateProduct: (p: Product) => void;
   onDeleteProduct: (id: string) => void;
   onCreateUnit: (unit: MeasurementUnit) => void;
+  /**
+   * Excel importynyň toplu ýazgy prosesi: çykyşy tassyklanan harytlaryň
+   * hemmesini BIR batch-de ýazýar we şowsuzlary aýratynlykda hasaba alýar.
+   * Berlen bolsa tekil onAddProduct/onUpdateProduct ýerine şu ulanylýar.
+   */
+  onImportProducts?: (
+    items: ReadonlyArray<{ product: Product; rowNumber: number }>
+  ) => Promise<BatchWriteResult>;
   /** Duýduryş panelinden gelýän fokus — degişli harydy açýar. */
   focusProductId?: string | null;
   /** Ýörite rugsatlar: täze haryt formasynda deslapky ölçeg bahalary. */
@@ -85,13 +95,14 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
   onUpdateProduct,
   onDeleteProduct,
   onCreateUnit,
+  onImportProducts,
   focusProductId = null,
   defaultUnit,
   defaultUnit2,
   storeDb,
   accountName = 'Biznes Hasap',
 }) => {
-  const t = translations[language] || translations.en;
+  const t = useT();
 
   // List state
   const [searchQuery, setSearchQuery] = useState('');
@@ -129,19 +140,31 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
 
-  /** Excel import: bar bolanlary täzeläp ýa-da geçip, täzelerini goşýar. */
-  const handleExcelImport = (
-    drafts: readonly ProductDraft[],
+  /**
+   * Excel import: bar bolanlary täzeläp ýa-da geçip, täzelerini goşýar.
+   *
+   * Çykyşy tassyklanan harytlar ýeke-ýeke däl-de mümkin bolsa BIR batch-de
+   * ýazylýar (onImportProducts); ýazylmadyklar `failed` sanawyna setir belgisi
+   * we sebäbi bilen düşýär. onImportProducts berlen bolmasa öňki tekil akym
+   * ulanylýar (onAddProduct/onUpdateProduct).
+   */
+  const handleExcelImport = async (
+    entries: readonly ProductImportEntry[],
     mode: 'overwrite' | 'skip'
-  ): { added: number; updated: number; skipped: number } => {
+  ): Promise<ImportSummary> => {
     const byBarcode = new Map(products.map((p) => [p.barcode.trim().toLowerCase(), p]));
     const byName = new Map(products.map((p) => [p.name.trim().toLowerCase(), p]));
     const handled = new Set<string>();
     let added = 0;
     let updated = 0;
     let skipped = 0;
+    const planned: Array<{
+      product: Product;
+      rowNumber: number;
+      action: 'add' | 'update';
+    }> = [];
 
-    for (const draft of drafts) {
+    for (const { draft, rowNumber } of entries) {
       const keyBarcode = draft.barcode.trim().toLowerCase();
       const keyName = draft.name.trim().toLowerCase();
       if (handled.has(keyBarcode) || handled.has(keyName)) {
@@ -158,47 +181,82 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
           skipped += 1;
           continue;
         }
-        onUpdateProduct({
-          ...existing,
-          name: draft.name,
-          category: draft.category,
-          barcode: draft.barcode,
-          sku: draft.sku,
-          unit: draft.unit,
-          unit2: draft.unit2 || undefined,
-          unit2Qty: draft.unit2 ? draft.unit2Qty : undefined,
-          purchasePrice: draft.purchasePrice,
-          price: draft.price,
-          stock: draft.stock,
-          criticalStock: draft.criticalStock,
-          expiryDate: draft.expiryDate || undefined,
+        planned.push({
+          product: {
+            ...existing,
+            name: draft.name,
+            category: draft.category,
+            barcode: draft.barcode,
+            sku: draft.sku,
+            unit: draft.unit,
+            unit2: draft.unit2 || undefined,
+            unit2Qty: draft.unit2 ? draft.unit2Qty : undefined,
+            purchasePrice: draft.purchasePrice,
+            price: draft.price,
+            stock: draft.stock,
+            criticalStock: draft.criticalStock,
+            expiryDate: draft.expiryDate || undefined,
+          },
+          rowNumber,
+          action: 'update',
         });
         updated += 1;
       } else {
-        onAddProduct({
-          id: `prod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-          name: draft.name,
-          category: draft.category,
-          barcode: draft.barcode,
-          sku: draft.sku,
-          extraBarcodes: [],
-          unit: draft.unit,
-          unit2: draft.unit2 || undefined,
-          unit2Qty: draft.unit2 ? draft.unit2Qty : undefined,
-          purchasePrice: draft.purchasePrice,
-          price: draft.price,
-          stock: draft.stock,
-          allowNegativeStock: false,
-          criticalStock: draft.criticalStock,
-          expiryDate: draft.expiryDate || undefined,
-          imageType: 'default',
-          imageUrl: '',
+        planned.push({
+          product: {
+            id: `prod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            name: draft.name,
+            category: draft.category,
+            barcode: draft.barcode,
+            sku: draft.sku,
+            extraBarcodes: [],
+            unit: draft.unit,
+            unit2: draft.unit2 || undefined,
+            unit2Qty: draft.unit2 ? draft.unit2Qty : undefined,
+            purchasePrice: draft.purchasePrice,
+            price: draft.price,
+            stock: draft.stock,
+            allowNegativeStock: false,
+            criticalStock: draft.criticalStock,
+            expiryDate: draft.expiryDate || undefined,
+            imageType: 'default',
+            imageUrl: '',
+          },
+          rowNumber,
+          action: 'add',
         });
         added += 1;
       }
     }
 
-    return { added, updated, skipped };
+    const failed: ImportErrorRow[] = [];
+    if (onImportProducts) {
+      if (planned.length > 0) {
+        const result = await onImportProducts(
+          planned.map((item) => ({ product: item.product, rowNumber: item.rowNumber }))
+        );
+        const failureById = new Map(result.failed.map((f) => [f.id, f.error]));
+        for (const item of planned) {
+          const reason = failureById.get(item.product.id);
+          if (reason === undefined) continue;
+          failed.push({
+            row: item.rowNumber,
+            name: item.product.name,
+            detail: item.product.barcode,
+            reason,
+          });
+          if (item.action === 'add') added -= 1;
+          else updated -= 1;
+        }
+      }
+    } else {
+      for (const item of planned) {
+        if (item.action === 'add') onAddProduct(item.product);
+        else onUpdateProduct(item.product);
+      }
+    }
+
+    return { added, updated, skipped, failed };
   };
 
   /** Birbada üýtgedilen harytlaryň hemmesini ýazýar. */
@@ -335,7 +393,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
             <input
               type="text"
               id="bh-product-search"
-              placeholder={language === 'tm' ? 'Haryt ady ýa-da barkod boýunça gözle...' : 'Ürün adı veya barkod ile ara...'}
+              placeholder={t('products.searchPlaceholder')}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 h-10 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
@@ -347,10 +405,10 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
             type="button"
             onClick={() => setIsBulkOpen(true)}
             className="h-10 px-3 bg-white border border-gray-200 hover:border-violet-400 hover:bg-violet-50/60 text-gray-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors flex-shrink-0"
-            title={language === 'tm' ? 'Birbada köp harydy üýtget' : 'Toplu düzenleme'}
+            title={t('products.bulkEditTitle')}
           >
             <ListChecks className="w-4 h-4 text-violet-600" />
-            {language === 'tm' ? 'Birbada Uýtgetmek' : 'Toplu Düzenle'}
+            {t('products.bulkEdit')}
           </button>
 
           {/* Excel-den getir / Excel-e çykar */}
@@ -358,19 +416,19 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
             type="button"
             onClick={() => setIsImportOpen(true)}
             className="h-10 px-3 bg-white border border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/60 text-gray-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors flex-shrink-0"
-            title={language === 'tm' ? 'Excel-den getir' : "Excel'den içe aktar"}
+            title={t('products.importExcelTitle')}
           >
             <Upload className="w-4 h-4 text-emerald-600" />
-            {language === 'tm' ? 'Excelden getir' : "Excel'den getir"}
+            {t('products.importExcel')}
           </button>
           <button
             type="button"
             onClick={() => setIsExportOpen(true)}
             className="h-10 px-3 bg-white border border-gray-200 hover:border-sky-400 hover:bg-sky-50/60 text-gray-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors flex-shrink-0"
-            title={language === 'tm' ? 'Excel-e çykar' : "Excel'e aktar"}
+            title={t('products.exportExcelTitle')}
           >
             <Download className="w-4 h-4 text-sky-600" />
-            {language === 'tm' ? 'Excel-e çykar' : "Excel'e çykar"}
+            {t('products.exportExcel')}
           </button>
 
           {/* Kategori filtresi */}
@@ -380,7 +438,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
               onChange={e => setCategoryFilter(e.target.value)}
               className="appearance-none h-10 pl-3 pr-8 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm text-gray-700 outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
             >
-              <option value="">{language === 'tm' ? 'Ählisi' : 'Tümü'}</option>
+              <option value="">{t('products.allCategoriesOption')}</option>
               {allCategories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
@@ -395,7 +453,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
             className="h-10 px-5 bg-[#10b981] hover:bg-[#059669] text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-colors shadow-sm flex-shrink-0"
           >
             <Plus className="w-4 h-4" />
-            {language === 'tm' ? 'Täze Haryt' : 'New Product'}
+            {t('products.newProduct')}
           </button>
         </div>
       </div>
@@ -407,11 +465,11 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 select-none">
-                <th className="py-3 px-4">{language === 'tm' ? 'Haryt Ady / Kategoriýa' : 'Ürün Adı / Kategori'}</th>
-                <th className="py-3 px-4">{language === 'tm' ? 'Barkod' : 'Barkod'}</th>
-                <th className="py-3 px-4 text-right">{language === 'tm' ? 'Alys / Satyş' : 'Alış / Satış'}</th>
-                <th className="py-3 px-4 text-right">{language === 'tm' ? 'Bar Stok' : 'Mevcut Stok'}</th>
-                <th className="py-3 px-4 text-center">{language === 'tm' ? 'Amallar' : 'İşlemler'}</th>
+                <th className="py-3 px-4">{t('products.colNameCategory')}</th>
+                <th className="py-3 px-4">{t('products.colBarcode')}</th>
+                <th className="py-3 px-4 text-right">{t('products.colPurchaseSale')}</th>
+                <th className="py-3 px-4 text-right">{t('products.colStock')}</th>
+                <th className="py-3 px-4 text-center">{t('products.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -421,7 +479,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                     <div className="flex flex-col items-center gap-2">
                       <Package className="w-10 h-10 text-gray-200" />
                       <span className="font-semibold text-gray-400 text-xs">
-                        {language === 'tm' ? 'Haryt tapylmady' : 'Ürün bulunamadı'}
+                        {t('products.notFound')}
                       </span>
                     </div>
                   </td>
@@ -432,7 +490,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                   <td
                     className="py-3 px-4 cursor-pointer"
                     onClick={() => handleOpenEdit(p)}
-                    title={language === 'tm' ? 'Düzeltmek üçin basyň' : 'Düzenlemek için tıklayın'}
+                    title={t('products.clickToEdit')}
                   >
                     <div className="flex items-center gap-3 group/row">
                       <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
@@ -452,14 +510,10 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                             {composedIds.has(p.id) && (
                               <span
                                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[9px] font-bold"
-                                title={
-                                  language === 'tm'
-                                    ? 'Bu harydyň düzümi bar'
-                                    : 'Bu ürünün kompozisyonu var'
-                                }
+                                title={t('products.composedTooltip')}
                               >
                                 <GitBranch className="w-2.5 h-2.5" />
-                                {language === 'tm' ? 'Düzüm' : 'Set'}
+                                {t('products.composedBadge')}
                               </span>
                             )}
                           </div>
@@ -503,7 +557,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                       {unitLabel(units, p.unit || 'adet', language)}
                     </span>
                     {p.allowNegativeStock && (
-                      <span title={language === 'tm' ? 'Minus stok rugsat' : 'Eksi stok izinli'}>
+                      <span title={t('products.negativeStockAllowed')}>
                         <MinusCircle className="inline w-3.5 h-3.5 text-amber-500 ml-1 -mt-0.5" />
                       </span>
                     )}
@@ -525,12 +579,8 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                         }`}
                         title={
                           composedIds.has(p.id)
-                            ? (language === 'tm'
-                              ? 'Haryt düzümi: düzümi görmek/redaktirlemek üçin'
-                              : 'Ürün kompozisyonu: görmek/düzenlemek için')
-                            : (language === 'tm'
-                              ? 'Haryt düzümi (kompozisyýa) goş'
-                              : 'Ürün kompozisyonu ekle')
+                            ? t('products.compositionEditTooltip')
+                            : t('products.compositionAddTooltip')
                         }
                       >
                         <GitBranch className="w-3.5 h-3.5" />
@@ -542,7 +592,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                         type="button"
                         onClick={() => handleOpenEdit(p)}
                         className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-[#0B1F3A] hover:text-white text-gray-500 transition-colors"
-                        title={language === 'tm' ? 'Üýtget' : 'Düzenle'}
+                        title={t('products.editAction')}
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
@@ -550,7 +600,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                         type="button"
                         onClick={() => setDeleteConfirmId(p.id)}
                         className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-rose-500 hover:text-white text-gray-500 transition-colors"
-                        title={language === 'tm' ? 'Poz' : 'Sil'}
+                        title={t('delete')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -572,20 +622,20 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
               <Trash2 className="w-5 h-5 text-rose-500" />
             </div>
             <p className="font-bold text-gray-800 text-sm">
-              {language === 'tm' ? 'Bu harydy pozmak isleýärsiňizmi?' : 'Bu ürünü silmek istiyor musunuz?'}
+              {t('products.deleteConfirm')}
             </p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setDeleteConfirmId(null)}
                 className="px-6 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-colors"
               >
-                {language === 'tm' ? 'Ýok' : 'İptal'}
+                {t('products.noBtn')}
               </button>
               <button
                 onClick={() => { onDeleteProduct(deleteConfirmId); setDeleteConfirmId(null); }}
                 className="px-6 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs transition-colors"
               >
-                {language === 'tm' ? 'Poz' : 'Sil'}
+                {t('delete')}
               </button>
             </div>
           </div>
@@ -616,9 +666,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
             {/* Modal Başlık */}
             <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
               <span className="font-bold text-sm tracking-wide">
-                {editingProduct
-                  ? (language === 'tm' ? 'Harydy Üýtget' : 'Ürünü Düzenle')
-                  : (language === 'tm' ? 'Täze Haryt Goş' : 'Yeni Ürün Ekle')}
+                {editingProduct ? t('products.editTitle') : t('products.addTitle')}
               </span>
               <button
                 type="button"
@@ -640,7 +688,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="relative w-[88px] h-[88px] rounded-2xl border-2 border-dashed border-gray-300 hover:border-emerald-500 bg-gray-50 overflow-hidden transition-all group"
-                    title={language === 'tm' ? 'Surat üýtgetmek üçin basyň' : 'Resmi değiştirmek için tıklayın'}
+                    title={t('products.imageChangeTitle')}
                   >
                     {/* Mevcut görsel — previewUrl (yeni yüklenen) ya da SVG ikon */}
                     {previewUrl ? (
@@ -655,13 +703,13 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
                       {imageBusy ? (
                         <span className="text-[9px] text-white font-bold leading-tight text-center drop-shadow">
-                          {language === 'tm' ? 'Gysdyrylýar…' : 'Sıkıştırılıyor…'}
+                          {t('products.compressing')}
                         </span>
                       ) : (
                         <>
                           <Camera className="w-6 h-6 text-white drop-shadow" />
                           <span className="text-[9px] text-white font-bold leading-tight text-center drop-shadow">
-                            {language === 'tm' ? 'Üýtget' : 'Değiştir'}
+                            {t('products.changeBtn')}
                           </span>
                         </>
                       )}
@@ -670,7 +718,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                       <div className="absolute inset-0 bg-white/60" />
                     )}
                   </button>
-                  <span className="text-[10px] text-gray-400">{language === 'tm' ? 'Surat (Isleg)' : 'Görsel (Opsiyonel)'}</span>
+                  <span className="text-[10px] text-gray-400">{t('products.imageOptional')}</span>
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                 </div>
 
@@ -678,12 +726,12 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                 <div className="flex-1 space-y-3">
                   <div>
                     <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                      {language === 'tm' ? 'Haryt Ady *' : 'Ürün Adı (Haryt Ady) *'}
+                      {t('products.nameLabel')}
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder={language === 'tm' ? 'Mysal: Coca Cola 1L' : 'Örn: Coca Cola 1L'}
+                      placeholder={t('products.namePlaceholder')}
                       value={form.name}
                       onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                       className="w-full h-9 px-3 border border-gray-200 rounded-xl text-sm bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition"
@@ -691,11 +739,11 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                      {language === 'tm' ? 'Kategoriýa' : 'Kategori'}
+                      {t('products.categoryLabel')}
                     </label>
                     <input
                       type="text"
-                      placeholder={language === 'tm' ? 'Mysal: Içgiler' : 'Örn: Genel'}
+                      placeholder={t('products.categoryPlaceholder')}
                       list="category-list"
                       value={form.category}
                       onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
@@ -712,7 +760,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                    {language === 'tm' ? 'Ana Barkod *' : 'Ana Barkod *'}
+                    {t('products.barcodeLabel')}
                   </label>
                   <input
                     type="text"
@@ -725,7 +773,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                    {language === 'tm' ? 'Ölçeg Birligi 1' : 'Ölçü Birimi 1'}
+                    {t('products.unit1Label')}
                   </label>
                   <UnitSelect
                     language={language}
@@ -738,7 +786,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                    {language === 'tm' ? 'Satyş Bahasy (Bölek) *' : 'Satış Fiyatı (Perakende) *'}
+                    {t('products.priceLabel')}
                   </label>
                   <input
                     type="number"
@@ -768,7 +816,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                   }`}
                 >
                   <span className="text-[13px] leading-none">{form.unit2 ? '✓' : '+'}</span>
-                  {language === 'tm' ? 'Ölçeg Birligi 2-ni işjet' : 'Ölçü Birimi 2\'yi Etkinleştir'}
+                  {t('products.unit2Enable')}
                 </button>
 
                 {form.unit2 && (
@@ -776,7 +824,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                     {/* Birim 2 seçici */}
                     <div>
                       <label className="block text-[11px] font-bold text-blue-600 mb-1">
-                        {language === 'tm' ? 'Ölçeg Birligi 2' : 'Ölçü Birimi 2'}
+                        {t('products.unit2Label')}
                       </label>
                       <UnitSelect
                         language={language}
@@ -791,10 +839,10 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                     {/* Kaç adet içeriyor */}
                     <div>
                       <label className="block text-[11px] font-bold text-blue-600 mb-1">
-                        {language === 'tm'
-                          ? `1 ${unitLabel(units, form.unit2, language)} = kaç ${unitLabel(units, form.unit || 'adet', language)}`
-                          : `1 ${unitLabel(units, form.unit2, language)} içinde kaç ${unitLabel(units, form.unit || 'adet', language)}`
-                        }
+                        {t('products.unit2QtyLabel', {
+                          unit2: unitLabel(units, form.unit2, language),
+                          unit1: unitLabel(units, form.unit || 'adet', language),
+                        })}
                       </label>
                       <input
                         type="number"
@@ -809,9 +857,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                           const u1 = unitLabel(units, form.unit || 'adet', language);
                           const u2 = unitLabel(units, form.unit2, language);
                           const qty = form.unit2Qty ?? 1;
-                          return language === 'tm'
-                            ? `Mysal: 1 ${u2} = ${qty} ${u1}`
-                            : `Örn: 1 ${u2} = ${qty} ${u1}`;
+                          return t('products.unit2Example', { unit2: u2, qty, unit1: u1 });
                         })()}
                       </p>
                     </div>
@@ -824,7 +870,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                    {language === 'tm' ? 'Alyş Bahasy (Maliýet)' : 'Alış Fiyatı (Maliyet)'}
+                    {t('products.purchasePriceLabel')}
                   </label>
                   <input
                     type="number"
@@ -837,7 +883,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                    {language === 'tm' ? 'Lomaý Bahasy' : 'Toptan Fiyat'}
+                    {t('products.wholesalePriceLabel')}
                   </label>
                   <input
                     type="number"
@@ -851,7 +897,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-[11px] font-bold text-gray-500">
-                      {language === 'tm' ? 'Bar Stok Mukdary' : 'Mevcut Stok Miktarı'}
+                      {t('products.stockLabel')}
                     </label>
                     <button
                       type="button"
@@ -861,12 +907,10 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                           ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
                           : 'bg-white text-gray-400 border-gray-200 hover:border-amber-400 hover:text-amber-600'
                       }`}
-                      title={language === 'tm'
-                        ? 'Açykda stok 0 bolsa-da satylyp, minus gidip biler'
-                        : 'Açıkken stok olmasa da satış yapılır, stok eksiye iner'}
+                      title={t('products.negativeStockTooltip')}
                     >
                       <MinusCircle className="w-3.5 h-3.5" />
-                      <span>{language === 'tm' ? '− gidip biler' : '− gidebilir'}</span>
+                      <span>{t('products.negativeAllowedShort')}</span>
                     </button>
                   </div>
                   <input
@@ -891,16 +935,12 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                       ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
                       : 'bg-white text-gray-400 border-gray-200 hover:border-rose-400 hover:text-rose-600'
                   }`}
-                  title={language === 'tm'
-                    ? 'Passiw haryt sazlamalara görä sepete goşulyp bilinmeýär'
-                    : 'Pasif ürün ayarlara göre sepete eklenemez'}
+                  title={t('products.inactiveTooltip')}
                 >
-                  <span>{(form.isActive ?? true) ? (language === 'tm' ? 'Aktiw' : 'Aktif') : (language === 'tm' ? 'Passiw' : 'Pasif')}</span>
+                  <span>{(form.isActive ?? true) ? t('products.activeBtn') : t('products.inactiveBtn')}</span>
                 </button>
                 <span className="text-[10px] text-gray-400">
-                  {language === 'tm'
-                    ? 'Passiw haryt faktura/sepete goşulyp bilinmeýär (sazlamalara bagly).'
-                    : 'Pasif ürün fatura/sepete eklenemez (ayarlara bağlı).'}
+                  {t('products.inactiveNote')}
                 </span>
                 {/* Haryt düzümi — diňe ýatda saklanan harytda (täzede ID ýok) */}
                 {editingProduct && storeDb && (
@@ -912,14 +952,10 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                         ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
                         : 'bg-white text-gray-500 border-gray-200 hover:border-emerald-400 hover:text-emerald-600'
                     }`}
-                    title={
-                      language === 'tm'
-                        ? 'Düzümi açmak/redaktirlemek'
-                        : 'Kompozisyonu aç/düzenle'
-                    }
+                    title={t('products.compositionOpenTooltip')}
                   >
                     <GitBranch className="w-3.5 h-3.5" />
-                    {language === 'tm' ? 'Haryt düzümi' : 'Kompozisyon'}
+                    {t('products.compositionBtn')}
                   </button>
                 )}
               </div>
@@ -928,7 +964,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                    {language === 'tm' ? 'Kritik Stok Duýduryşy' : 'Kritik Stok Uyarısı'}
+                    {t('products.criticalStockLabel')}
                   </label>
                   <input
                     type="number"
@@ -940,7 +976,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                    {language === 'tm' ? 'Ýaramlylyk Möhleti (SKT)' : 'Son Kullanma Tarihi (SKT)'}
+                    {t('products.expiryLabel')}
                   </label>
                   <input
                     type="date"
@@ -954,12 +990,12 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
               {/* Ek Barkodlar */}
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 mb-1">
-                  {language === 'tm' ? 'Goşmaça Barkodlar (Köp Barkod / Koli Barkody)' : 'Ek Barkodlar (Çoklu Barkod / Koli Barkodu)'}
+                  {t('products.extraBarcodesLabel')}
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder={language === 'tm' ? 'Ikinji ýa-da üçünji barkod...' : 'İkinci veya üçüncü barkod...'}
+                    placeholder={t('products.extraBarcodePlaceholder')}
                     value={extraBarcodeInput}
                     onChange={e => setExtraBarcodeInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddExtraBarcode(); } }}
@@ -970,7 +1006,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                     onClick={handleAddExtraBarcode}
                     className="h-9 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 transition-colors whitespace-nowrap"
                   >
-                    + {language === 'tm' ? 'Goş' : 'Ekle'}
+                    + {t('products.addShort')}
                   </button>
                 </div>
                 {(form.extraBarcodes || []).length > 0 && (
@@ -995,7 +1031,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                 onClick={handleCloseForm}
                 className="px-6 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs transition-colors"
               >
-                {language === 'tm' ? 'Ýatyr' : 'Cancel'}
+                {t('products.cancelBtn')}
               </button>
               <button
                 type="submit"
@@ -1003,7 +1039,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                 onClick={handleSave}
                 className="px-8 py-2 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs transition-colors shadow-sm"
               >
-                {language === 'tm' ? 'Sakla' : 'Save'}
+                {t('products.saveBtn')}
               </button>
             </div>
           </div>

@@ -1,9 +1,10 @@
 /**
  * Haryt we müşderi aktarma tablalary — ORTAK STİL (excelWriter) arkaly.
  *
- * Sütun başlyklary PRODUCT_EXCEL_COLUMNS / CUSTOMER_EXCEL_COLUMNS bilen
- * birmeňzeş — şoňa görä eksport → içe aktarma aýlanyşy bozulmaýar
- * (import tarapy başlýan setiriň ýerini özi tapýar, bkz. findHeaderRowIndex).
+ * Sütun başlyklary PRODUCT_EXCEL_COLUMNS / CUSTOMER_EXCEL_COLUMNS-den
+ * öndürilýär (productHeader/customerHeader) — şoňa görä eksport → içe aktarma
+ * aýlanyşy bozulmaýar (import tarapy başlýan setiriň ýerini özi tapýar,
+ * bkz. findHeaderRowIndex).
  */
 
 import type { Customer, LanguageCode, Product } from '../types';
@@ -11,6 +12,17 @@ import type { MeasurementUnit } from '../db/unitService';
 import { makeUnitCode, unitLabel } from '../db/unitService';
 import { createAndSaveStyledWorkbook } from './excelWriter';
 import type { ExcelColumn } from './excelStyle';
+import { PRODUCT_EXCEL_COLUMNS, type ProductDraft } from './productExcel';
+import { CUSTOMER_EXCEL_COLUMNS, customerTypeText, type CustomerDraft } from './customerExcel';
+
+/** Başlyklaryň TEK ÇEŞMESI — import tarapyndaky kolon tanamalary. */
+function productHeader(key: keyof ProductDraft): string {
+  return PRODUCT_EXCEL_COLUMNS.find((column) => column.key === key)?.header ?? key;
+}
+
+function customerHeader(key: keyof CustomerDraft): string {
+  return CUSTOMER_EXCEL_COLUMNS.find((column) => column.key === key)?.header ?? key;
+}
 
 // ── Haryt ──────────────────────────────────────────────────────────────────
 
@@ -33,36 +45,48 @@ export function buildProductColumns(
   options: ProductExportOptions
 ): readonly ExcelColumn<Product>[] {
   const columns: ExcelColumn<Product>[] = [
-    { header: 'Haryt Ady', get: (p) => p.name, width: 30 },
-    { header: 'Kategoriýa', get: (p) => p.category ?? '' },
-    { header: 'Ana Barkod', get: (p) => p.barcode, width: 16 },
-    { header: 'SKU', get: (p) => p.sku ?? '', width: 14 },
-    { header: 'Ölçeg Birligi 1', get: (p) => unitLabel(units, p.unit ?? 'adet', options.language) },
+    { header: productHeader('name'), get: (p) => p.name, width: 30 },
+    { header: productHeader('category'), get: (p) => p.category ?? '' },
+    { header: productHeader('barcode'), get: (p) => p.barcode, width: 16 },
+    { header: productHeader('sku'), get: (p) => p.sku ?? '', width: 14 },
+    {
+      header: productHeader('unit'),
+      get: (p) => unitLabel(units, p.unit ?? 'adet', options.language),
+    },
+    {
+      header: productHeader('unit2'),
+      get: (p) => (p.unit2 ? unitLabel(units, p.unit2, options.language) : ''),
+    },
+    {
+      header: productHeader('unit2Qty'),
+      get: (p) => (p.unit2 ? Number(p.unit2Qty ?? 1) : ''),
+      kind: 'qty',
+    },
   ];
 
   if (options.includeCost) {
     columns.push({
-      header: 'Alýyş Bahasy',
+      header: productHeader('purchasePrice'),
       get: (p) => Number(p.purchasePrice ?? 0),
       kind: 'money',
     });
   }
 
   columns.push({
-    header: 'Satyş Bahasy',
+    header: productHeader('price'),
     get: (p) => Number(p.price ?? 0),
     kind: 'money',
   });
 
   if (options.includeStock) {
     columns.push({
-      header: 'Bar Stok Mukdary',
+      header: productHeader('stock'),
       get: (p) => Number(p.stock ?? 0),
       kind: 'qty',
       total: 'sum',
     });
     columns.push({
-      header: 'Kritik Stok Derejesi',
+      header: productHeader('criticalStock'),
       get: (p) => Number(p.criticalStock ?? 0),
       kind: 'qty',
       // Düşük stok → gyzyl vurgu.
@@ -74,7 +98,7 @@ export function buildProductColumns(
   }
 
   columns.push({
-    header: 'Söndürilme (SKT)',
+    header: productHeader('expiryDate'),
     get: (p) => p.expiryDate ?? '',
     kind: 'date',
   });
@@ -177,21 +201,21 @@ export function buildCustomerColumns(
   options: CustomerExportOptions
 ): readonly ExcelColumn<Customer>[] {
   const columns: ExcelColumn<Customer>[] = [
-    { header: 'Ady Familiýasy', get: (c) => c.name, width: 30 },
-    { header: 'Telefon belgisi', get: (c) => c.phone ?? '', width: 18 },
-    { header: 'Görnüşi', get: (c) => c.type ?? '' },
-    { header: 'Salgy / Bellik', get: (c) => c.addressNote ?? '', width: 30 },
+    { header: customerHeader('name'), get: (c) => c.name, width: 30 },
+    { header: customerHeader('phone'), get: (c) => c.phone ?? '', width: 18 },
+    { header: customerHeader('type'), get: (c) => customerTypeText(c.type) },
+    { header: customerHeader('addressNote'), get: (c) => c.addressNote ?? '', width: 30 },
   ];
 
   if (options.includeBalance) {
     columns.push({
-      header: 'Algy (TMT)',
+      header: customerHeader('algy'),
       get: (c) => (Number(c.balance ?? 0) > 0 ? Number(c.balance) : 0),
       kind: 'money',
       total: 'sum',
     });
     columns.push({
-      header: 'Bergi (TMT)',
+      header: customerHeader('bergi'),
       get: (c) => (Number(c.balance ?? 0) < 0 ? Math.abs(Number(c.balance)) : 0),
       kind: 'money',
       total: 'sum',
@@ -206,7 +230,7 @@ export function buildCustomerColumns(
   }
 
   columns.push({
-    header: 'Möhlet (gün)',
+    header: customerHeader('dueDateDays'),
     get: (c) => Number(c.dueDateDays ?? 0),
     kind: 'qty',
   });

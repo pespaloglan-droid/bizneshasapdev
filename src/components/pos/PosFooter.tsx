@@ -4,6 +4,7 @@ import { LanguageCode, PrinterMode } from '../../types';
 import { FlagIcon } from '../common/FlagIcon';
 import { LanguageMenu } from '../menus/LanguageMenu';
 import { PrinterMenu } from '../menus/PrinterMenu';
+import { useT } from '../../locales/LanguageContext';
 
 interface PosFooterProps {
   language: LanguageCode;
@@ -25,6 +26,7 @@ export const PosFooter: React.FC<PosFooterProps> = ({
   onOpenAlerts,
   alertCount = 0
 }) => {
+  const t = useT();
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isPrinterOpen, setIsPrinterOpen] = useState(false);
 
@@ -55,7 +57,7 @@ export const PosFooter: React.FC<PosFooterProps> = ({
             type="button"
             onClick={() => setIsPrinterOpen(!isPrinterOpen)}
             className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            title="Yazıcı Ayarları"
+            title={t('pos.printerSettingsTip')}
           >
             <Printer className="w-4 h-4" />
           </button>
@@ -78,7 +80,7 @@ export const PosFooter: React.FC<PosFooterProps> = ({
               ? 'text-amber-400 hover:text-amber-300 hover:bg-white/10'
               : 'text-gray-300 hover:text-white hover:bg-white/10'
           }`}
-          title={alertCount > 0 ? `${alertCount} duýduryş` : 'Duýduryşlar'}
+          title={alertCount > 0 ? t('pos.alertsCount', { count: alertCount }) : t('pos.alertsTitle')}
         >
           <AlertTriangle className="w-4 h-4" />
           {alertCount > 0 && (
@@ -93,7 +95,7 @@ export const PosFooter: React.FC<PosFooterProps> = ({
           type="button"
           onClick={onOpenSearch}
           className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-          title="Genel Arama"
+          title={t('pos.generalSearchTip')}
         >
           <Search className="w-4 h-4" />
         </button>

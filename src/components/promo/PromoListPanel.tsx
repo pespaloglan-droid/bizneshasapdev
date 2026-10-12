@@ -4,10 +4,10 @@ import type { Product } from '../../types';
 import {
   calcPromo,
   formatPromoMoney,
-  promoDiscountLabel,
   productById,
   type PromoRecord,
 } from '../../db/promoService';
+import { useT } from '../../locales/LanguageContext';
 
 interface PromoListPanelProps {
   promos: readonly PromoRecord[];
@@ -24,12 +24,21 @@ export const PromoListPanel: React.FC<PromoListPanelProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const t = useT();
+
+  /** db'deki tm etiket fonksiyonu yerine çeviri bazlı etiket. */
+  const discountLabel = (promo: PromoRecord): string => {
+    if (promo.discountMode === 'free') return t('promo.modeFree');
+    if (promo.discountMode === 'percent') return t('promo.modePercentLabel', { pct: promo.percent || 0 });
+    return t('promo.modeFixedLabel', { amount: formatPromoMoney(promo.fixed || 0, currencyCode) });
+  };
+
   if (promos.length === 0) {
     return (
       <div className="py-14 flex flex-col items-center justify-center text-gray-400">
         <Gift className="w-10 h-10 text-gray-200 mb-2 stroke-1" />
-        <span className="text-xs font-semibold text-gray-500">Işjeň promo ýok</span>
-        <p className="text-[11px] text-gray-400 mt-1">"Täze Promo" bölüminden dörediň.</p>
+        <span className="text-xs font-semibold text-gray-500">{t('promo.listEmpty')}</span>
+        <p className="text-[11px] text-gray-400 mt-1">{t('promo.listEmptyHint')}</p>
       </div>
     );
   }
@@ -47,7 +56,7 @@ export const PromoListPanel: React.FC<PromoListPanelProps> = ({
           >
             <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="min-w-0">
-                <div className="text-[10px] font-bold text-blue-500 uppercase">Satuw</div>
+                <div className="text-[10px] font-bold text-blue-500 uppercase">{t('promo.saleLabel')}</div>
                 <div className="text-xs font-bold text-gray-800 truncate">
                   {promo.saleQty}x {sale?.name ?? '—'}
                 </div>
@@ -56,21 +65,21 @@ export const PromoListPanel: React.FC<PromoListPanelProps> = ({
                 </div>
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-bold text-emerald-600 uppercase">Promo</div>
+                <div className="text-[10px] font-bold text-emerald-600 uppercase">{t('promo.promoLabel')}</div>
                 <div className="text-xs font-bold text-gray-800 truncate">
                   {promo.promoQty}x {promoProduct?.name ?? '—'}
                 </div>
                 <div className="font-mono text-[11px] text-gray-500">
-                  {promoDiscountLabel(promo, currencyCode)}
+                  {discountLabel(promo)}
                 </div>
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-bold text-violet-600 uppercase">Kassa girdejisi</div>
+                <div className="text-[10px] font-bold text-violet-600 uppercase">{t('promo.kassaIncome')}</div>
                 <div className="font-mono font-black text-violet-700">
                   {formatPromoMoney(calc.kasaIncome, currencyCode)}
                 </div>
                 <div className="text-[10px] text-gray-400">
-                  ýeňillik {formatPromoMoney(calc.discount, currencyCode)}
+                  {t('promo.discountWord')} {formatPromoMoney(calc.discount, currencyCode)}
                 </div>
               </div>
             </div>
@@ -79,7 +88,7 @@ export const PromoListPanel: React.FC<PromoListPanelProps> = ({
                 type="button"
                 onClick={() => onEdit(promo)}
                 className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-[#0B1F3A] hover:text-white text-gray-500 transition-colors"
-                title="Redaktirle"
+                title={t('promo.editTip')}
               >
                 <Pencil className="w-3.5 h-3.5" />
               </button>
@@ -87,7 +96,7 @@ export const PromoListPanel: React.FC<PromoListPanelProps> = ({
                 type="button"
                 onClick={() => onDelete(promo.id)}
                 className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-rose-500 hover:text-white text-gray-500 transition-colors"
-                title="Poz"
+                title={t('promo.deleteTip')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

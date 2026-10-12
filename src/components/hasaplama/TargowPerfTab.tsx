@@ -5,6 +5,7 @@ import type { DateWindow } from '../../utils/calcPeriods';
 import { statsFor } from '../../db/targowService';
 import { formatMoney } from '../../utils/money';
 import { updatedStamp, useReport } from '../../utils/report';
+import { useT } from '../../locales/LanguageContext';
 import { EmptyState, ReportActions } from './charts';
 
 interface TargowPerfTabProps {
@@ -26,6 +27,7 @@ export const TargowPerfTab: React.FC<TargowPerfTabProps> = ({
   paperWidth,
   onGoToTargow,
 }) => {
+  const t = useT();
   const rows = targows
     .map((targow) => ({ targow, stats: statsFor(invoices, targow.id, window) }))
     .sort((a, b) => b.stats.totalAmount - a.stats.totalAmount);
@@ -43,22 +45,22 @@ export const TargowPerfTab: React.FC<TargowPerfTabProps> = ({
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
           <Trophy className="w-3.5 h-3.5 text-amber-500" />
-          Targowçy netijeleri · {rangeLabel}
+          {t('hasaplama.tabTargow')} · {rangeLabel}
         </span>
         <div className="flex items-center gap-2">
           <ReportActions
             isPrinting={report.isPrinting}
             onPrint={() =>
               void report.print({
-                title: 'Targowçy netijeleri',
+                title: t('hasaplama.tabTargow'),
                 subtitle: rangeLabel,
-                columns: ['Targowçy', 'Sargyt sany', 'Jemi tutar (TMT)', 'Täze müşderi'],
+                columns: [t('hasaplama.colTargow'), t('hasaplama.colOrderCount'), t('hasaplama.colTotalAmount'), t('hasaplama.colNewCustomer')],
                 rows: csvRows,
-                footer: `Jemi: ${formatRowsTotal(rows)} TMT`,
+                footer: t('hasaplama.totalFooter', { amount: formatRowsTotal(rows) }),
               })
             }
             csvName="targowcy-netijeleri"
-            headers={['Targowçy', 'Sargyt sany', 'Jemi tutar (TMT)', 'Täze müşderi']}
+            headers={[t('hasaplama.colTargow'), t('hasaplama.colOrderCount'), t('hasaplama.colTotalAmount'), t('hasaplama.colNewCustomer')]}
             rows={csvRows}
             disabled={rows.length === 0}
           />
@@ -68,7 +70,7 @@ export const TargowPerfTab: React.FC<TargowPerfTabProps> = ({
             className="h-9 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] flex items-center gap-1.5"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            Doly görnüşi Targowy bölüminde
+            {t('hasaplama.fullViewInTargow')}
           </button>
         </div>
       </div>
@@ -81,16 +83,16 @@ export const TargowPerfTab: React.FC<TargowPerfTabProps> = ({
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {rows.length === 0 ? (
-          <EmptyState text="Targowçy ýok" />
+          <EmptyState text={t('hasaplama.noTargows')} />
         ) : (
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                <th className="py-2 px-4 w-14 text-center">Sıra</th>
-                <th className="py-2 px-4">Targowçy</th>
-                <th className="py-2 px-4 text-right">Sargyt sany</th>
-                <th className="py-2 px-4 text-right">Jemi tutar</th>
-                <th className="py-2 px-4 text-right">Täze müşderi</th>
+                <th className="py-2 px-4 w-14 text-center">{t('hasaplama.colRank')}</th>
+                <th className="py-2 px-4">{t('hasaplama.colTargow')}</th>
+                <th className="py-2 px-4 text-right">{t('hasaplama.colOrderCount')}</th>
+                <th className="py-2 px-4 text-right">{t('hasaplama.colTotalAmountShort')}</th>
+                <th className="py-2 px-4 text-right">{t('hasaplama.colNewCustomer')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -124,7 +126,7 @@ export const TargowPerfTab: React.FC<TargowPerfTabProps> = ({
       </div>
 
       <div className="text-[10px] text-gray-400 font-semibold text-right">
-        Taýýarlanyldy: {updatedStamp()}
+        {t('hasaplama.preparedAt')} {updatedStamp()}
       </div>
     </div>
   );

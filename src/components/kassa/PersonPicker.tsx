@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import type { Customer, LanguageCode } from '../../types';
 import { formatMoney } from '../../utils/money';
+import { useT } from '../../locales/LanguageContext';
 
 interface PersonPickerProps {
   customers: readonly Customer[];
@@ -26,6 +27,7 @@ export const PersonPicker: React.FC<PersonPickerProps> = ({
   onClear,
   onQuickAdd,
 }) => {
+  const t = useT();
   const selectedCustomer = customers.find((customer) => customer.id === value) ?? null;
   const selectedName = selectedCustomer?.name ?? '';
   const [query, setQuery] = useState(selectedName);
@@ -83,7 +85,7 @@ export const PersonPicker: React.FC<PersonPickerProps> = ({
           }}
           onFocus={() => setIsOpen(true)}
           onBlur={() => window.setTimeout(() => setIsOpen(false), 150)}
-          placeholder={language === 'tm' ? 'Gözle ýa-da ýaz...' : 'Ara veya yaz...'}
+          placeholder={t('kassa.searchOrType')}
           className="w-full h-10 pl-9 pr-8 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm text-gray-800 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
         />
         {(query || selectedCustomer) && (
@@ -125,7 +127,7 @@ export const PersonPicker: React.FC<PersonPickerProps> = ({
               }}
               className="w-full text-left px-3 py-2 bg-emerald-50/60 hover:bg-emerald-100 transition-colors text-xs font-bold text-emerald-700 border-t border-gray-100"
             >
-              Ýazgyda ýok — täze goş: "{trimmed}"
+              {t('kassa.quickAdd', { name: trimmed })}
             </button>
           )}
         </div>
@@ -134,13 +136,13 @@ export const PersonPicker: React.FC<PersonPickerProps> = ({
       {selectedCustomer && selectedBalance !== undefined && (
         <div className="mt-1.5 bg-[#F8FAFC] border border-gray-200 rounded-xl px-3 py-2 text-[11px] font-bold">
           {selectedBalance > 0 ? (
-            <span className="text-rose-600">Bergi: {formatMoney(Math.abs(selectedBalance))}</span>
+            <span className="text-rose-600">{t('kassa.debtLabel')}: {formatMoney(Math.abs(selectedBalance))}</span>
           ) : selectedBalance < 0 ? (
             <span className="text-emerald-600">
-              Aljy (kredit): {formatMoney(Math.abs(selectedBalance))}
+              {t('kassa.creditLabel')}: {formatMoney(Math.abs(selectedBalance))}
             </span>
           ) : (
-            <span className="text-gray-500">Hasaby arassa</span>
+            <span className="text-gray-500">{t('kassa.settledLabel')}</span>
           )}
         </div>
       )}

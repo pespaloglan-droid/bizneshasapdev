@@ -13,12 +13,14 @@ import { PosWorkspace } from './components/pos/PosWorkspace';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import LicenseScreen from './components/LicenseScreen';
 import { Account, LanguageCode, PrinterMode, User } from './types';
-import { loadStoredState, saveAccountsState } from './store/accountStore';
+import { AppState, loadStoredState, saveAccountsState } from './store/accountStore';
 import { destroyLocalDatabase, getAccountStoreKey } from './db/pouch';
 import type { LicenseInfo } from './types/license';
 import { setLicenseId } from './utils/gateMiddleware';
 import { prepareEncryption } from './init/prepareEncryption';
 import { setAuditEnabled, setAuditUser } from './db/auditLog';
+import { syncLanguageToDb } from './db/settingsService';
+import { LanguageProvider } from './locales/LanguageContext';
 
 /**
  * Açılış akışı (spec v3 §2):
@@ -34,6 +36,33 @@ const LICENSE_ID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-H
 
 export const App: React.FC = () => {
   const [state, setState] = useState(() => loadStoredState());
+
+  /**
+   * Tek dil kaynağı: localStorage (accountStore effect'i) hızlı önbellek,
+   * AppSettings (PouchDB) kalıcı kayıt — değişimde ikisi de güncellenir.
+   */
+  const handleLanguageChange = (lang: LanguageCode) => {
+    setState(prev => ({ ...prev, language: lang }));
+    const account = state.accounts.find(a => a.id === state.selectedAccountId) || state.accounts[0];
+    if (account) {
+      syncLanguageToDb(getAccountStoreKey(account), lang).catch(() => {});
+    }
+  };
+
+  return (
+    <LanguageProvider language={state.language} onLanguageChange={handleLanguageChange}>
+      <AppContent state={state} setState={setState} onLanguageChange={handleLanguageChange} />
+    </LanguageProvider>
+  );
+};
+
+interface AppContentProps {
+  state: AppState;
+  setState: React.Dispatch<React.SetStateAction<AppState>>;
+  onLanguageChange: (lang: LanguageCode) => void;
+}
+
+const AppContent: React.FC<AppContentProps> = ({ state, setState, onLanguageChange }) => {
   // Şifreleme açılış hazırlığı (FAZ 1.1): UI render edilmeden önce DB parolası
   // lisanstan türetilip önbelleğe alınır — getLocalDatabase senkron kaldığı için
   // bu adım atlanamaz. Hata olsa bile uygulama açılır (hazırlık içinde loglanır).
@@ -141,6 +170,9 @@ export const App: React.FC = () => {
     // Giriş tamamlandı → HEMEN lisans kontrolü (ara ekran yok)
     const account = activeAccount;
     if (!account) return;
+
+    // Dil uyumu: cihazdaki son seçim kazanır, hesabın DB ayarına yazılır.
+    syncLanguageToDb(getAccountStoreKey(account), state.language).catch(() => {});
 
     setLicenseTarget(account);
     const info = await checkAccountLicense(account);
@@ -253,7 +285,7 @@ export const App: React.FC = () => {
   };
 
   const handleLanguageChange = (lang: LanguageCode) => {
-    setState(prev => ({ ...prev, language: lang }));
+    onLanguageChange(lang);
   };
 
   const handlePrinterChange = (mode: PrinterMode) => {

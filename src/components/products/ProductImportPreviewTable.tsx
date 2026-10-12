@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Check } from 'lucide-react';
 import type { LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 import type { ParsedRow, ProductDraft } from '../../utils/productExcel';
 import { formatMoney } from '../../utils/money';
 
@@ -23,9 +24,8 @@ export function isConflictDraft(
 export const ProductImportPreviewTable: React.FC<ProductImportPreviewTableProps> = ({
   rows,
   conflictKeys,
-  language,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -33,10 +33,10 @@ export const ProductImportPreviewTable: React.FC<ProductImportPreviewTableProps>
         <thead>
           <tr className="bg-gray-50/80 text-[10px] font-bold text-gray-500 uppercase border-b border-gray-100">
             <th className="py-2 px-3 w-12 text-center">#</th>
-            <th className="py-2 px-3">Haryt Ady</th>
-            <th className="py-2 px-3">Barkod</th>
-            <th className="py-2 px-3 text-right">Satyş</th>
-            <th className="py-2 px-3">Ýagdaý</th>
+            <th className="py-2 px-3">{t('excel.colName')}</th>
+            <th className="py-2 px-3">{t('products.colBarcode')}</th>
+            <th className="py-2 px-3 text-right">{t('products.colSale')}</th>
+            <th className="py-2 px-3">{t('excel.colStatus')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
@@ -64,12 +64,12 @@ export const ProductImportPreviewTable: React.FC<ProductImportPreviewTableProps>
                     </span>
                   ) : conflict ? (
                     <span className="text-[10px] font-bold text-amber-600">
-                      {isTm ? 'Bar bolan' : 'Mevcut'}
+                      {t('excel.existing')}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600">
                       <Check className="w-3 h-3" />
-                      {isTm ? 'Täze' : 'Yeni'}
+                      {t('excel.statusNew')}
                     </span>
                   )}
                 </td>

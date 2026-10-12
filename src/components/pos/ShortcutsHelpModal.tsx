@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Command, X } from 'lucide-react';
 import type { LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 import { ShortcutGroups } from '../common/ShortcutGroups';
 
 interface ShortcutsHelpModalProps {
@@ -9,7 +10,7 @@ interface ShortcutsHelpModalProps {
 }
 
 export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({ language, onClose }) => {
-  const isTm = language === 'tm';
+  const t = useT();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -31,10 +32,10 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({ language
             </div>
             <div>
               <h3 className="text-sm font-bold tracking-wide">
-                {isTm ? 'Klawiatura gysgaltmalary' : 'Klavye Kısayolları'}
+                {t('pos.shortcutsTitle')}
               </h3>
               <p className="text-[10px] text-gray-300">
-                {isTm ? 'ESC ýa-da daşyna basyp ýapyň' : 'ESC veya dışına tıklayarak kapatın'}
+                {t('pos.shortcutsHint')}
               </p>
             </div>
           </div>

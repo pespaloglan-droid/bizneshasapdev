@@ -11,7 +11,9 @@ import {
   statsFor,
 } from '../../db/targowService';
 import { formatMoney } from '../../utils/money';
+import { localeFor } from '../../utils/locale';
 import { PageScroll } from '../common/PageScroll';
+import { useT } from '../../locales/LanguageContext';
 
 interface TargowDetailProps {
   targow: Targow;
@@ -28,6 +30,7 @@ export const TargowDetail: React.FC<TargowDetailProps> = ({
   language,
   onBack,
 }) => {
+  const t = useT();
   const todayStats = statsFor(invoices, targow.id, currentWindow('today'));
   const weekStats = statsFor(invoices, targow.id, currentWindow('week'));
   const monthStats = statsFor(invoices, targow.id, currentWindow('month'));
@@ -42,9 +45,9 @@ export const TargowDetail: React.FC<TargowDetailProps> = ({
       : 0;
 
   const perf = [
-    { key: 'today', label: language === 'tm' ? 'Şu gün' : 'Bugün', stats: todayStats },
-    { key: 'week', label: language === 'tm' ? 'Şu hepde' : 'Bu hafta', stats: weekStats },
-    { key: 'month', label: language === 'tm' ? 'Şu aý' : 'Bu ay', stats: monthStats },
+    { key: 'today', label: t('targowy.today'), stats: todayStats },
+    { key: 'week', label: t('targowy.thisWeek'), stats: weekStats },
+    { key: 'month', label: t('targowy.thisMonth'), stats: monthStats },
   ];
 
   return (
@@ -71,7 +74,7 @@ export const TargowDetail: React.FC<TargowDetailProps> = ({
               {targow.phone}
               <span className="text-gray-300">·</span>
               <span className="text-emerald-600 font-bold">
-                {targow.commissionRate}% {language === 'tm' ? 'komissiýa' : 'komisyon'}
+                {targow.commissionRate}% {t('targowy.commission')}
               </span>
             </div>
             <div className="flex flex-wrap gap-1 mt-1.5">
@@ -91,7 +94,7 @@ export const TargowDetail: React.FC<TargowDetailProps> = ({
               targow.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
             }`}
           >
-            {targow.isActive ? 'Işjeň' : 'Işjeň däl'}
+            {targow.isActive ? t('targowy.activeLabel') : t('targowy.inactiveLabel')}
           </span>
         </div>
 
@@ -106,7 +109,7 @@ export const TargowDetail: React.FC<TargowDetailProps> = ({
                   {formatMoney(item.stats.totalAmount)}
                 </span>
                 <span className="text-[11px] font-bold text-gray-400">
-                  {item.stats.orderCount} {language === 'tm' ? 'sargyt' : 'sipariş'}
+                  {item.stats.orderCount} {t('targowy.ordersUnit')}
                 </span>
               </div>
             </div>
@@ -118,7 +121,7 @@ export const TargowDetail: React.FC<TargowDetailProps> = ({
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider inline-flex items-center gap-1.5">
                 <Award className="w-3.5 h-3.5 text-amber-500" />
-                {language === 'tm' ? 'Aýlyk meýilnama' : 'Aylık hedef'}
+                {t('targowy.monthlyTarget')}
               </span>
               <span className="text-[11px] font-bold text-gray-700 font-mono">
                 {formatMoney(monthStats.totalAmount)} / {formatMoney(targow.monthlyTarget)} · {progress}%
@@ -137,7 +140,7 @@ export const TargowDetail: React.FC<TargowDetailProps> = ({
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
-            {language === 'tm' ? 'Soňky 14 gün' : 'Son 14 gün'}
+            {t('targowy.last14Days')}
           </div>
           <div className="flex items-end gap-1 h-16">
             {sparkline.map((value, index) => (
@@ -157,7 +160,7 @@ export const TargowDetail: React.FC<TargowDetailProps> = ({
             <thead>
               <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 select-none">
                 <th className="py-3 px-4">Sene</th>
-                <th className="py-3 px-4">Müşderi</th>
+                <th className="py-3 px-4">{t('targowy.colCustomer')}</th>
                 <th className="py-3 px-4">Etrap</th>
                 <th className="py-3 px-4 text-center">Haryt</th>
                 <th className="py-3 px-4 text-right">Tutar</th>
@@ -169,14 +172,14 @@ export const TargowDetail: React.FC<TargowDetailProps> = ({
               {orders.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-16 text-center text-gray-400 font-semibold text-xs">
-                    {language === 'tm' ? 'Sargyt ýok' : 'Sipariş yok'}
+                    {t('targowy.noOrders')}
                   </td>
                 </tr>
               ) : (
                 orders.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-gray-50/60 transition-colors">
                     <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
-                      {new Date(invoice.createdAt).toLocaleString('tr-TR', {
+                      {new Date(invoice.createdAt).toLocaleString(localeFor(language), {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',

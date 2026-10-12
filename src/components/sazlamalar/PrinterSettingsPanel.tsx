@@ -13,6 +13,7 @@ import {
   type BlePrinterDevice
 } from '../../services/bluetoothPrinterService';
 import { Field, INPUT, Notice, SaveBar, SettingsCard, StatusDot } from './settingsUi';
+import { useT } from '../../locales/LanguageContext';
 
 interface PrinterSettingsPanelProps {
   value: PrinterSettings;
@@ -23,9 +24,9 @@ interface PrinterSettingsPanelProps {
   onReset: () => void;
 }
 
-const KINDS: { id: PrinterSettings['kind']; label: string }[] = [
-  { id: 'standard', label: 'Adaty printer' },
-  { id: 'receipt', label: 'Çek printeri' },
+const KINDS: { id: PrinterSettings['kind']; labelKey: string }[] = [
+  { id: 'standard', labelKey: 'sazlamalar.prKindStandard' },
+  { id: 'receipt', labelKey: 'sazlamalar.prKindReceipt' },
 ];
 
 export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
@@ -36,6 +37,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
   onSave,
   onReset,
 }) => {
+  const t = useT();
   const [printers, setPrinters] = useState<SystemPrinter[]>([]);
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -53,9 +55,9 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
     try {
       const dev = await scanAndConnectBlePrinter();
       setBtName(dev.name);
-      setNotice({ tone: 'success', text: `Bluetooth yazıcı bağlandı: ${dev.name}` });
+      setNotice({ tone: 'success', text: t('sazlamalar.prBtConnected', { name: dev.name }) });
     } catch (err) {
-      setNotice({ tone: 'error', text: `Bluetooth bağlanamadı: ${err instanceof Error ? err.message : String(err)}` });
+      setNotice({ tone: 'error', text: t('sazlamalar.prBtFailed', { error: err instanceof Error ? err.message : String(err) }) });
     } finally {
       setBtBusy(false);
     }
@@ -66,9 +68,9 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
     setBtDevices([]);
     try {
       await scanBleDevices((devices) => setBtDevices(devices));
-      setNotice({ tone: 'info', text: 'Tarama bitti — listeden yazıcını seç.' });
+      setNotice({ tone: 'info', text: t('sazlamalar.prBtScanDone') });
     } catch (err) {
-      setNotice({ tone: 'error', text: `Tarama başarısız: ${err instanceof Error ? err.message : String(err)}` });
+      setNotice({ tone: 'error', text: t('sazlamalar.prBtScanFailed', { error: err instanceof Error ? err.message : String(err) }) });
     } finally {
       setBtScanning(false);
     }
@@ -79,9 +81,9 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
     try {
       const dev = await connectBleDevice(device.deviceId, device.name);
       setBtName(dev.name);
-      setNotice({ tone: 'success', text: `Bağlandı: ${dev.name} — deneme baskısı yap.` });
+      setNotice({ tone: 'success', text: t('sazlamalar.prBtPicked', { name: dev.name }) });
     } catch (err) {
-      setNotice({ tone: 'error', text: `Bağlanamadı: ${err instanceof Error ? err.message : String(err)}` });
+      setNotice({ tone: 'error', text: t('sazlamalar.prBtPickFailed', { error: err instanceof Error ? err.message : String(err) }) });
     } finally {
       setBtBusy(false);
     }
@@ -92,8 +94,8 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
     try {
       const ok = await printBtTestPage(companyName);
       setNotice(ok
-        ? { tone: 'success', text: 'Deneme fişi gönderildi — yazıcıya bak.' }
-        : { tone: 'error', text: 'Yazıcı bağlı değil. Önce bağlan.' });
+        ? { tone: 'success', text: t('sazlamalar.prBtTestSent') }
+        : { tone: 'error', text: t('sazlamalar.prBtNotConnected') });
     } finally {
       setBtTesting(false);
     }
@@ -109,7 +111,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
   const refreshPrinters = useCallback(async () => {
     const bridge = electronBridge();
     if (!bridge.listPrinters) {
-      setNotice({ tone: 'info', text: 'Printerleri diňe masaüstü (Electron) programmada görmek bolýar.' });
+      setNotice({ tone: 'info', text: t('sazlamalar.prDesktopOnly') });
       return;
     }
     setLoading(true);
@@ -117,7 +119,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
       const list = await bridge.listPrinters();
       setPrinters(list);
       if (list.length === 0) {
-        setNotice({ tone: 'error', text: 'Hiç printer tapylmady. Windows-da printer goşuň.' });
+        setNotice({ tone: 'error', text: t('sazlamalar.prNone') });
       } else {
         setNotice(null);
       }
@@ -133,7 +135,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
   const handleTestPrint = async () => {
     const bridge = electronBridge();
     if (!bridge.printTestPage) {
-      setNotice({ tone: 'info', text: 'Synag çap diňe masaüstü programmada elýeterli.' });
+      setNotice({ tone: 'info', text: t('sazlamalar.prTestDesktopOnly') });
       return;
     }
     setTesting(true);
@@ -147,8 +149,8 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
       });
       setNotice(
         result.success
-          ? { tone: 'success', text: 'Synag çap iberildi — printeri barlaň.' }
-          : { tone: 'error', text: `Çap başartmady: ${result.failureReason || 'näbelli säwlik'}` }
+          ? { tone: 'success', text: t('sazlamalar.prTestSent') }
+          : { tone: 'error', text: t('sazlamalar.prTestFailed', { reason: result.failureReason || t('sazlamalar.prUnknownError') }) }
       );
     } finally {
       setTesting(false);
@@ -160,9 +162,9 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
   return (
     <div className="space-y-3">
       <SettingsCard
-        title="Printer agdaýy"
-        description="Sistemada tapylan printerler we baglanyşyk ýagdaýy"
-        aside={<StatusDot connected={connected} connectedText="Birikdi" disconnectedText="Birikmedi" />}
+        title={t('sazlamalar.prStatusTitle')}
+        description={t('sazlamalar.prStatusDesc')}
+        aside={<StatusDot connected={connected} connectedText={t('sazlamalar.statusConnected')} disconnectedText={t('sazlamalar.statusDisconnected')} />}
       >
         <div className="flex items-center gap-2">
           <button
@@ -172,14 +174,14 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
             className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-bold text-xs flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Printerleri täzele
+            {t('sazlamalar.prRefresh')}
           </button>
           <span className="text-[11px] font-semibold text-gray-500">
-            {printers.length} printer tapyldy
+            {t('sazlamalar.prFound', { count: printers.length })}
           </span>
           {!isElectron() && (
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2 py-0.5">
-              Brauzer režimi
+              {t('sazlamalar.prBrowserMode')}
             </span>
           )}
         </div>
@@ -197,7 +199,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
                 </span>
                 {printer.isDefault && (
                   <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 rounded px-1.5 py-0.5">
-                    Esasy
+                    {t('sazlamalar.prDefault')}
                   </span>
                 )}
               </div>
@@ -206,18 +208,18 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
         )}
       </SettingsCard>
 
-      <SettingsCard title="Printer sazlamalary" description="Esasy printer we çap görnüşi">
+      <SettingsCard title={t('sazlamalar.secPrinter')} description={t('sazlamalar.prSettingsDesc')}>
         {isNative() && (
           <div className="mb-3 rounded-2xl border border-sky-200 bg-sky-50/60 p-3 space-y-2.5">
             <div className="flex items-center gap-2">
               <Bluetooth className="w-4 h-4 text-sky-700 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-bold text-sky-900">
-                  {btName ? `Bluetooth: ${btName}` : 'Bluetooth termal yazıcı'}
+                  {btName ? `Bluetooth: ${btName}` : t('sazlamalar.prBtName')}
                 </div>
-                <div className="text-[11px] text-sky-800/80">58/80mm mobil yazıcı (XPrinter uyumlu)</div>
+                <div className="text-[11px] text-sky-800/80">{t('sazlamalar.prBtSub')}</div>
               </div>
-              <StatusDot connected={Boolean(btName)} connectedText="Bağlı" disconnectedText="Yok" />
+              <StatusDot connected={Boolean(btName)} connectedText={t('sazlamalar.btConnected')} disconnectedText={t('sazlamalar.btNone')} />
             </div>
 
             <div className="flex gap-2">
@@ -228,7 +230,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
                 className="flex-1 h-11 rounded-xl bg-white border border-sky-200 text-sky-800 text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50 active:bg-sky-100"
               >
                 <Search className="w-4 h-4" />
-                {btScanning ? 'Taranıyor...' : 'Cihazları tara'}
+                {btScanning ? t('sazlamalar.btScanning') : t('sazlamalar.btScan')}
               </button>
               {btName ? (
                 <button
@@ -236,7 +238,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
                   onClick={() => void handleBtDisconnect()}
                   className="h-11 px-4 rounded-xl bg-white border border-sky-200 text-sky-800 text-xs font-bold active:bg-sky-100"
                 >
-                  Kes
+                  {t('sazlamalar.btDisconnect')}
                 </button>
               ) : (
                 <button
@@ -245,14 +247,14 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
                   disabled={btBusy || btScanning}
                   className="h-11 px-4 rounded-xl bg-sky-700 text-white text-xs font-bold disabled:opacity-50 active:bg-sky-800"
                 >
-                  {btBusy ? '...' : 'Seç-bağlan'}
+                  {btBusy ? '...' : t('sazlamalar.btPickConnect')}
                 </button>
               )}
             </div>
 
             {btScanning && btDevices.length === 0 && (
               <div className="text-[11px] font-semibold text-sky-800/80 text-center py-1">
-                Yakındaki Bluetooth cihazlar aranıyor... yazıcıyı açıp eşleşme moduna al.
+                {t('sazlamalar.btScanHint')}
               </div>
             )}
 
@@ -271,7 +273,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
                       <span className="block text-xs font-bold text-gray-800 truncate">{d.name}</span>
                       <span className="block text-[10px] text-gray-400 font-mono truncate">{d.deviceId}</span>
                     </span>
-                    <span className="text-[11px] font-bold text-sky-700 flex-shrink-0">Bağlan ›</span>
+                    <span className="text-[11px] font-bold text-sky-700 flex-shrink-0">{t('sazlamalar.btConnect')}</span>
                   </button>
                 ))}
               </div>
@@ -285,33 +287,33 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
                 className="w-full h-11 rounded-xl bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50 active:bg-emerald-600"
               >
                 <TestTube2 className="w-4 h-4" />
-                {btTesting ? 'Basılıyor...' : 'Deneme fişi bas'}
+                {btTesting ? t('sazlamalar.btPrinting') : t('sazlamalar.btTestPrint')}
               </button>
             )}
 
             <div className="space-y-1.5 text-[11px] text-sky-900/80 font-medium">
               <div className="flex items-start gap-1.5">
                 <Usb className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                <span>USB yazıcı: OTG kablosuyla tak, Android sistem penceresinden izin ver — fiş yine bu uygulamadan basılır.</span>
+                <span>{t('sazlamalar.btUsbHint')}</span>
               </div>
               <div className="flex items-start gap-1.5">
                 <Wifi className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                <span>Ağ (WiFi) yazıcı: aynı ağda ol, IP'yi Bağlantı → Tor bölümüne yaz.</span>
+                <span>{t('sazlamalar.btWifiHint')}</span>
               </div>
               <div className="flex items-start gap-1.5">
                 <XCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                <span>Eski tip (klasik) Bluetooth yazıcılar listede görünmez — BLE destekli termal yazıcı gerekir.</span>
+                <span>{t('sazlamalar.btClassicHint')}</span>
               </div>
             </div>
           </div>
         )}
-        <Field label="Esasy printer">
+        <Field label={t('sazlamalar.prDefaultPrinter')}>
           <select
             value={value.defaultPrinter}
             onChange={(e) => patch({ defaultPrinter: e.target.value })}
             className={`${INPUT} cursor-pointer font-medium text-gray-800`}
           >
-            <option value="">— Saýla —</option>
+            <option value="">{t('sazlamalar.selectOption')}</option>
             {printers.map((printer) => (
               <option key={printer.name} value={printer.name}>
                 {printer.displayName ?? printer.name}
@@ -320,7 +322,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
           </select>
         </Field>
 
-        <Field label="Printer görnüşi">
+        <Field label={t('sazlamalar.prKindLabel')}>
           <div className="flex items-center gap-2">
             {KINDS.map((kind) => (
               <button
@@ -333,14 +335,14 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
                     : 'bg-white text-gray-600 border border-gray-200'
                 }`}
               >
-                {kind.label}
+                {t(kind.labelKey)}
               </button>
             ))}
           </div>
         </Field>
 
         {value.kind === 'receipt' && (
-          <Field label="Kagyz ini" hint="Termal çek printerleri üçin">
+          <Field label={t('sazlamalar.prPaperWidth')} hint={t('sazlamalar.prPaperWidthHint')}>
             <div className="flex items-center gap-2">
               {(['58mm', '80mm'] as const).map((width) => (
                 <button
@@ -360,12 +362,12 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
           </Field>
         )}
 
-        <Field label="Baglanyşyk görnüşi">
+        <Field label={t('sazlamalar.prConnection')}>
           <div className="flex items-center gap-2">
             {(
               [
                 { id: 'usb', label: 'USB' },
-                { id: 'network', label: 'Tor (IP)' },
+                { id: 'network', label: t('sazlamalar.prNetwork') },
               ] as const
             ).map((option) => (
               <button
@@ -386,7 +388,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
 
         {value.connection === 'network' && (
           <div className="grid grid-cols-2 gap-3">
-            <Field label="IP adres">
+            <Field label={t('sazlamalar.prIp')}>
               <input
                 type="text"
                 value={value.ipAddress}
@@ -395,7 +397,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
                 className={`${INPUT} font-mono font-medium text-gray-800`}
               />
             </Field>
-            <Field label="Port">
+            <Field label={t('sazlamalar.prPort')}>
               <input
                 type="text"
                 value={value.port}
@@ -414,7 +416,7 @@ export const PrinterSettingsPanel: React.FC<PrinterSettingsPanelProps> = ({
             disabled={testing}
             className="h-9 px-4 rounded-xl bg-[#0B1F3A] hover:bg-[#163864] disabled:opacity-50 text-white font-bold text-xs"
           >
-            {testing ? 'Çap edilýär...' : 'Synag çap et'}
+            {testing ? t('sazlamalar.prTesting') : t('sazlamalar.prTest')}
           </button>
         </div>
 

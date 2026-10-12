@@ -466,3 +466,83 @@ araç çubuğunda. Ortadaki 4 buton kaldırıldı; alttaki bayraklı seçici kal
   "User / Password / Login" oldu
 - versionName 1.3.5, versionCode 22 → `bizneshasap-apk/BiznesHasap-v1.3.5.apk` (16.82 MB)
 - `aapt2`: `versionCode='22' versionName='1.3.5'`
+
+## 2026-10-09 — v1.3.6: FAZ A kritik düzeltmeler (Excel + çeviri)
+
+### Yapılanlar (özet)
+- **A1 — APK export düzeltmesi:** `src/utils/electron.ts`'teki `Buffer.from` WebView'de
+  tanımsızdı → tüm Excel export'lar APK'da sessizce başarısız oluyordu. Artık
+  `atob`/`Uint8Array` tabanlı dönüşüm + native'de `@capacitor/filesystem` ile
+  Documents klasörüne kayıt. Export modalleri hata/başarı bandı gösteriyor.
+  Bonus: `licenseGuard.ts`'teki `Buffer` sorunu da giderildi (PC'de şifreli V2
+  yedeğin sessizce V1'e düşme riski vardı).
+- **A2 — Export↔import roundtrip:** kolon başlıkları tek kaynaktan üretiliyor;
+  alış fiyatı, kritik stok, SKT ve 2. birim (unit2/unit2Qty) artık kaybolmuyor.
+  Şablon indirme import ile birebir uyumlu. "Jemi" toplam satırı import'ta
+  atlanıyor; hata satır numaraları gerçek Excel satırıyla eşleşiyor.
+- **A5 — Sanitize:** export'ta formula injection escape (`= + - @` → `'`);
+  import'ta kontrol karakteri temizliği, 500 kr. metin limiti, `=` başlangıcı
+  temizliği, 10 MB dosya / 50.000 satır limiti.
+- **A3 — Toplu import:** tekil fire-and-forget yerine `upsertDocsBatch`
+  (BatchWriteResult: written + failed[{id,error}]). Modallarda `failed` sayacı,
+  hatalı satır listesi ve indirilebilir .xlsx hata raporu. UI state'ine yalnızca
+  gerçekten yazılan belgeler giriyor.
+- **A4 — Çeviri düzeltmeleri (i18n.ts):** en `tabKassa` "Faktura"→"Register",
+  tr Türkmen kalıntıları ("Targowy / Kurye"→"Kurye", "Bellik yaz..."→"Not yaz...",
+  bozuk import ifadesi→"İçeri aktar", tabKassa "Faktura"→"Kasa"), tm Türkçe
+  kırması ("Çevrimdasty"→"Oflaýn", "sunucu"→"serwer" ×4, soru eki ayrımı,
+  "Açary"→"Açar", parola tutarlılığı). `version` artık package.json'dan dinamik
+  (hardcoded "v2.1.0 • 22 May 2025" kaldırıldı); `windowTitle` "Test versiyon"→
+  "Biznes Hasap" (4 dil). `connectionStore.ts:331` mojibake yorum düzeltildi.
+
+### Doğrulama
+- `npm test -- --run` → 17 dosya / 305 test geçti
+- `npm run build` (tsc + vite) → başarılı
+- `npx cap sync android` → `@capacitor/filesystem@6.0.4` Android projesine eklendi
+- `android/local.properties` oluşturuldu (sdk.dir) — Gradle SDK'yı bulamıyordu
+- `gradlew assembleDebug` BUILD SUCCESSFUL (2m 56s)
+
+### Sürüm
+- versionName 1.3.6, versionCode 23 → `bizneshasap-apk/BiznesHasap-v1.3.6.apk` (~17.3 MB)
+- `aapt2`: `versionCode='23' versionName='1.3.6'`
+- Not: KALAN — APK'da Excel export'un gerçek cihazda bir kez denenmesi önerilir
+  (Documents'a yazma doğrulaması).
+
+## 2026-10-12 — v1.3.7: FAZ B dil sistemi konsolidasyonu
+
+### Yapılanlar (özet)
+- **B1 — LanguageContext + hook'lar:** `src/locales/LanguageContext.tsx`
+  (`LanguageProvider`, `useLanguage()`, `useTranslation()`, `useT()`);
+  App.tsx Provider'a bağlandı, mevcut `language` prop'ları kırılmadan korundu.
+- **B2 — Tek dil kaynağı:** localStorage (önbellek, kazanan taraf) ↔ AppSettings
+  (PouchDB) senkron (`syncLanguageToDb`); varsayılan tutarsızlığı giderildi
+  (ikisi de artık `detectInitialLanguage()` kullanıyor — `navigator.language`'tan
+  tr/tk/ru/en türetme).
+- **B3 — Locale haritası:** `src/utils/locale.ts` — LOCALE_MAP
+  (tr-TR/tk-TM/en-US/ru-RU), `localeFor`, dil-parametreli formatMoney/formatDate;
+  ~20 dosyadaki sabit `'tr-TR'`/`'tk-TM'` çağrıları geçirildi.
+- **B4 — Ad alanları + interpolasyon:** `{placeholder}` değiştiricisi
+  (`interpolate`/`translate`/`useT`), 7 yeni ad alanı; string birleştirmeleri
+  düzeltildi (productNotFoundToast, conn.docsReceived/Sent).
+- **B5 — Ternary taşıma (5 parti):** products/ (124 anahtar), customers/ (90),
+  pos/ (248), kassa+users+payment (153), uzun kuyruk targowy/walyuta/faktura/
+  depder/warehouses/modals/mobile/sazlamalar (157). paymentLabels görüntüleme
+  anında çevriliyor (DB'ye enum yazılıyor, risk yok).
+- **B6 — Hardcoded modüller:** hasaplama (128 anahtar), sazlamalar (~215),
+  license.* (52, yeni), receipt.* (+35, termal + A4 fiş), promo.* (44, yeni),
+  ErrorBoundary, depder/faktura/targowy ekleri.
+
+### Toplam
+~770 yeni çeviri anahtarı × 4 dil; 60+ dosya; src/ genelinde UI metni ternary'si
+kalmadı (kalan 11 eşleşme meşru veri-etiketi seçimi). Excel başlıkları bilinçli
+Türkmençe bırakıldı (FAZ A roundtrip uyumluluğu).
+
+### Doğrulama
+- `npm test -- --run` → 17 dosya / 305 test geçti
+- `npm run build` (tsc + vite) → başarılı
+- `npx cap sync android` → OK
+- `gradlew assembleDebug` BUILD SUCCESSFUL (55s)
+
+### Sürüm
+- versionName 1.3.7, versionCode 24 → `bizneshasap-apk/BiznesHasap-v1.3.7.apk` (~17.3 MB)
+- `aapt2`: `versionCode='24' versionName='1.3.7'`

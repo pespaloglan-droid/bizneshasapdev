@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { FlowTotals } from '../../utils/calcFlow';
 import { formatMoney } from '../../utils/money';
+import { useT } from '../../locales/LanguageContext';
 
 interface SummaryCardsProps {
   totals: FlowTotals;
@@ -40,10 +41,11 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
   stockValue,
   ledgerTotal,
 }) => {
+  const t = useT();
   const cards: CardSpec[] = [
     {
       key: 'income',
-      label: 'Umumy girdeji',
+      label: t('hasaplama.totalIncome'),
       value: formatMoney(totals.income),
       valueClass: 'text-emerald-600',
       icon: <TrendingUp className="w-4 h-4" />,
@@ -51,7 +53,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
     },
     {
       key: 'expense',
-      label: 'Umumy çykdajy',
+      label: t('hasaplama.totalExpense'),
       value: formatMoney(totals.expense),
       valueClass: 'text-rose-600',
       icon: <TrendingDown className="w-4 h-4" />,
@@ -60,7 +62,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
     },
     {
       key: 'net',
-      label: 'Arassa peýda',
+      label: t('hasaplama.netProfit'),
       value: formatMoney(totals.net),
       valueClass: totals.net >= 0 ? 'text-emerald-600' : 'text-rose-600',
       icon: <Coins className="w-4 h-4" />,
@@ -70,7 +72,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
     },
     {
       key: 'receivable',
-      label: 'Müşderilerden alynmaly',
+      label: t('hasaplama.totalReceivable'),
       value: formatMoney(receivableTotal),
       valueClass: 'text-amber-600',
       icon: <HandCoins className="w-4 h-4" />,
@@ -78,7 +80,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
     },
     {
       key: 'supplier',
-      label: 'Üpjün edijilere bergi',
+      label: t('hasaplama.supplierDebt'),
       value: formatMoney(supplierDebtTotal),
       valueClass: 'text-rose-600',
       icon: <Wallet className="w-4 h-4" />,
@@ -87,7 +89,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
     },
     {
       key: 'stock',
-      label: 'Ambardaky harytlaryň bahasy',
+      label: t('hasaplama.stockValue'),
       value: formatMoney(stockValue),
       valueClass: 'text-sky-600',
       icon: <Package className="w-4 h-4" />,
@@ -95,7 +97,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
     },
     {
       key: 'ledger',
-      label: 'Kassadaky / Depderdäki galyndy',
+      label: t('hasaplama.ledgerBalance'),
       value: formatMoney(ledgerTotal),
       valueClass: ledgerTotal >= 0 ? 'text-emerald-600' : 'text-rose-600',
       icon: <PiggyBank className="w-4 h-4" />,

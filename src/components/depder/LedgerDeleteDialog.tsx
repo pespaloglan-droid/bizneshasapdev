@@ -1,5 +1,6 @@
 import React from 'react';
 import type { LanguageCode, Ledger } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface LedgerDeleteDialogProps {
   ledger: Ledger;
@@ -17,20 +18,18 @@ export const LedgerDeleteDialog: React.FC<LedgerDeleteDialogProps> = ({
   onCancel,
   onConfirmDelete,
   onDeactivate,
-}) => (
+}) => {
+  const t = useT();
+  return (
   <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 text-center space-y-4">
       <p className="font-bold text-gray-800 text-sm">
-        {language === 'tm'
-          ? `"${ledger.name}" depderini pozmak isleýärsiňizmi?`
-          : `"${ledger.name}" defterini silmek istiyor musunuz?`}
+        {t('depder.deleteConfirm', { name: ledger.name })}
       </p>
 
       {hasTransactions && (
         <p className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-          {language === 'tm'
-            ? 'Bu depderde iş hereketleri bar. Pozmak ýerine Passiw etmek maslahat berilýär — taryhy maglumatlar saklanar.'
-            : 'Bu defterde işlem geçmişi var. Silmek yerine Pasif yapmanız önerilir — geçmiş kayıtlar korunur.'}
+          {t('depder.deleteHasTx')}
         </p>
       )}
 
@@ -62,4 +61,5 @@ export const LedgerDeleteDialog: React.FC<LedgerDeleteDialogProps> = ({
       </div>
     </div>
   </div>
-);
+  );
+};

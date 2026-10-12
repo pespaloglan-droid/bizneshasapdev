@@ -2,6 +2,8 @@ import React from 'react';
 import type { InvoiceRecord, ReceiptSettings } from '../../types';
 import { formatMoney } from '../../utils/money';
 import { invoicePaymentLabel } from '../../utils/paymentLabels';
+import { localeFor } from '../../utils/locale';
+import { useLanguage, useT } from '../../locales/LanguageContext';
 
 interface StandardInvoicePreviewProps {
   settings: ReceiptSettings;
@@ -33,6 +35,8 @@ const FS: Record<string, { body: number; title: number; small: number }> = {
 };
 
 export const StandardInvoicePreview: React.FC<StandardInvoicePreviewProps> = ({ settings, invoice, ledgerName }) => {
+  const { language } = useLanguage();
+  const t = useT();
   const std = settings.standard;
   const f = settings.fields;
   const cols = std.columns;
@@ -55,7 +59,7 @@ export const StandardInvoicePreview: React.FC<StandardInvoicePreviewProps> = ({ 
   const grand = invoice ? invoice.amountDue : subtotal;
   const isCredit = invoice?.paymentMethod === 'credit';
   const metaNo = invoice ? invoice.invoiceNo : 'SAT.09/26-343';
-  const metaDate = invoice ? new Date(invoice.createdAt).toLocaleDateString('tr-TR') : '20.09.2026';
+  const metaDate = invoice ? new Date(invoice.createdAt).toLocaleDateString(localeFor(language)) : '20.09.2026';
   const metaCustomer = invoice ? invoice.customerName : 'Umumy Müşderi';
   const metaCashier = invoice ? invoice.cashierName : 'Administrator';
 
@@ -86,23 +90,23 @@ export const StandardInvoicePreview: React.FC<StandardInvoicePreviewProps> = ({ 
         )}
 
         <div className="text-center font-bold mb-2" style={{ fontSize: `${fs.title}px` }}>
-          FAKTURA
+          {t('receipt.invTitle')}
         </div>
 
         <div className="flex justify-between text-gray-600 mb-2">
           <div>
-            Faktura: {metaNo}
+            {t('receipt.invNo')} {metaNo}
             <br />
-            Sene: {metaDate}
+            {t('receipt.invDate')} {metaDate}
           </div>
           <div className="text-right">
             {info.customer && (
               <>
-                Müşderi: {metaCustomer}
+                {t('receipt.invCustomer')} {metaCustomer}
                 <br />
               </>
             )}
-            {f.cashier && <>Kassir: {metaCashier}</>}
+            {f.cashier && <>{t('receipt.invCashier')} {metaCashier}</>}
           </div>
         </div>
 
@@ -110,13 +114,13 @@ export const StandardInvoicePreview: React.FC<StandardInvoicePreviewProps> = ({ 
           <thead>
             <tr className="bg-gray-100" style={{ fontSize: `${fs.small}px` }}>
               <th className="text-left py-1 px-1 border-b border-gray-200">#</th>
-              <th className="text-left py-1 px-1 border-b border-gray-200">Haryt</th>
-              {cols.barcode && <th className="text-left py-1 px-1 border-b border-gray-200">Barkod</th>}
-              <th className="text-right py-1 px-1 border-b border-gray-200">Sany</th>
-              {cols.unit && <th className="text-left py-1 px-1 border-b border-gray-200">Birlik</th>}
-              {cols.unitPrice && <th className="text-right py-1 px-1 border-b border-gray-200">Baha</th>}
-              {cols.discount && <th className="text-right py-1 px-1 border-b border-gray-200">Ýeň.</th>}
-              <th className="text-right py-1 px-1 border-b border-gray-200">Jemi</th>
+              <th className="text-left py-1 px-1 border-b border-gray-200">{t('receipt.colProduct')}</th>
+              {cols.barcode && <th className="text-left py-1 px-1 border-b border-gray-200">{t('receipt.colBarcode')}</th>}
+              <th className="text-right py-1 px-1 border-b border-gray-200">{t('receipt.colQty')}</th>
+              {cols.unit && <th className="text-left py-1 px-1 border-b border-gray-200">{t('receipt.colUnit')}</th>}
+              {cols.unitPrice && <th className="text-right py-1 px-1 border-b border-gray-200">{t('receipt.colPrice')}</th>}
+              {cols.discount && <th className="text-right py-1 px-1 border-b border-gray-200">{t('receipt.colDiscountShort')}</th>}
+              <th className="text-right py-1 px-1 border-b border-gray-200">{t('receipt.colLineTotal')}</th>
             </tr>
           </thead>
           <tbody>
@@ -150,50 +154,50 @@ export const StandardInvoicePreview: React.FC<StandardInvoicePreviewProps> = ({ 
         <div className="mt-2 ml-auto w-44">
           {cols.subtotal && (
             <div className="flex justify-between py-0.5">
-              <span>Aralyk jemi:</span>
+              <span>{t('receipt.subtotalLabel')}</span>
               <span className="font-mono">{formatMoney(subtotal)}{cur}</span>
             </div>
           )}
           {cols.tax && (
             <div className="flex justify-between py-0.5">
-              <span>Salgyt:</span>
+              <span>{t('receipt.taxShort')}</span>
               <span className="font-mono">{formatMoney(invoice?.taxTotal ?? 0)}{cur}</span>
             </div>
           )}
           {info.ledger && ledgerName && (
             <div className="flex justify-between py-0.5">
-              <span>Depder:</span>
+              <span>{t('receipt.ledgerLabel')}</span>
               <span>{ledgerName}</span>
             </div>
           )}
           <div className="flex justify-between py-1 mt-1 border-t-2 border-gray-900 font-bold" style={{ fontSize: `${fs.title}px` }}>
-            <span>Jemi:</span>
+            <span>{t('receipt.grandTotal')}</span>
             <span className="font-mono">{formatMoney(grand)}{cur}</span>
           </div>
           {isCredit && invoice && (
             <>
               <div className="flex justify-between py-0.5">
-                <span>Tölendi:</span>
+                <span>{t('receipt.paidLabel')}</span>
                 <span className="font-mono">{formatMoney(invoice.paidAmount ?? 0)}{cur}</span>
               </div>
               <div className="flex justify-between py-0.5 text-rose-700 font-bold">
-                <span>Galan bergi:</span>
+                <span>{t('receipt.remainingLabel')}</span>
                 <span className="font-mono">{formatMoney(invoice.remainingDebt ?? invoice.amountDue)}{cur}</span>
               </div>
             </>
           )}
           {info.payment && invoice && (
             <div className="flex justify-between py-0.5">
-              <span>Töleg:</span>
-              <span>{invoicePaymentLabel(invoice.paymentMethod)}</span>
+              <span>{t('receipt.paymentShort')}</span>
+              <span>{invoicePaymentLabel(invoice.paymentMethod, language)}</span>
             </div>
           )}
         </div>
 
         {std.signature && (
           <div className="flex justify-between mt-8 gap-6">
-            <div className="flex-1 border-t border-gray-900 pt-1 text-center">Satyjy</div>
-            <div className="flex-1 border-t border-gray-900 pt-1 text-center">Alyjy</div>
+            <div className="flex-1 border-t border-gray-900 pt-1 text-center">{t('receipt.seller')}</div>
+            <div className="flex-1 border-t border-gray-900 pt-1 text-center">{t('receipt.buyer')}</div>
           </div>
         )}
 
@@ -201,7 +205,7 @@ export const StandardInvoicePreview: React.FC<StandardInvoicePreviewProps> = ({ 
 
         {std.pageNumbers && (
           <div className="mt-4 text-center text-gray-400" style={{ fontSize: `${fs.small}px` }}>
-            {settings.companyName || 'BIZNES HASAP'} · Sahypa 1
+            {settings.companyName || 'BIZNES HASAP'} · {t('receipt.pageOne')}
           </div>
         )}
       </div>

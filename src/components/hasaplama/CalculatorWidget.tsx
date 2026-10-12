@@ -3,6 +3,7 @@ import { Calculator, ChevronDown, ChevronUp, Repeat } from 'lucide-react';
 import type { CurrencyRate } from '../../types';
 import { BASE_CURRENCY_CODE, rateForCode } from '../../db/currencyService';
 import { formatMoney } from '../../utils/money';
+import { useT } from '../../locales/LanguageContext';
 
 type Operator = '+' | '-' | '*' | '/';
 
@@ -49,6 +50,7 @@ const BUTTONS: { label: string; kind: 'digit' | 'op' | 'action' }[] = [
 const OP_MAP: Record<string, Operator> = { '+': '+', '−': '-', '×': '*', '÷': '/' };
 
 export const CalculatorWidget: React.FC<CalculatorWidgetProps> = ({ currencies }) => {
+  const t = useT();
   const [isOpen, setIsOpen] = useState(false);
   const [tab, setTab] = useState<'calc' | 'convert'>('calc');
   const [display, setDisplay] = useState('0');
@@ -127,7 +129,7 @@ export const CalculatorWidget: React.FC<CalculatorWidgetProps> = ({ currencies }
         >
           <span className="flex items-center gap-2 text-xs font-bold">
             <Calculator className="w-4 h-4" />
-            Hasaplaýjy
+            {t('hasaplama.calculator')}
           </span>
           {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
         </button>
@@ -142,7 +144,7 @@ export const CalculatorWidget: React.FC<CalculatorWidgetProps> = ({ currencies }
                   tab === 'calc' ? 'bg-[#10b981] text-white' : 'bg-gray-100 text-gray-600'
                 }`}
               >
-                Hasaplaýjy
+                {t('hasaplama.calculator')}
               </button>
               <button
                 type="button"
@@ -152,7 +154,7 @@ export const CalculatorWidget: React.FC<CalculatorWidgetProps> = ({ currencies }
                 }`}
               >
                 <Repeat className="w-3 h-3" />
-                Walýuta
+                {t('hasaplama.currencyLabel')}
               </button>
             </div>
 

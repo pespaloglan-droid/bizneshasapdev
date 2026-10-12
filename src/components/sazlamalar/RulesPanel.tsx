@@ -1,6 +1,7 @@
 import React from 'react';
 import type { BarcodeReaderSettings, FirmSettings, OperationSettings } from '../../types';
 import { Field, INPUT, SaveBar, SettingsCard, Toggle } from './settingsUi';
+import { useT } from '../../locales/LanguageContext';
 
 interface RulesPanelProps {
   firm: FirmSettings;
@@ -21,6 +22,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
   onSave,
   onReset,
 }) => {
+  const t = useT();
   const patchFirm = (partial: Partial<FirmSettings>) =>
     onChange({ firm: { ...firm, ...partial }, operations, barcode });
   const patchOps = (partial: Partial<OperationSettings>) =>
@@ -31,9 +33,9 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
   return (
     <div className="space-y-3">
       {/* ── Firma maglumatlary ─────────────────────────────────────────────── */}
-      <SettingsCard title="Firma maglumatlary" description="Ad, kod, başlyk, telefon, faks, salgy we salgyt göterimi">
+      <SettingsCard title={t('sazlamalar.firmTitle')} description={t('sazlamalar.firmDesc')}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Firma ady">
+          <Field label={t('sazlamalar.firmName')}>
             <input
               type="text"
               value={firm.name}
@@ -41,7 +43,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
               className={`${INPUT} font-medium text-gray-800`}
             />
           </Field>
-          <Field label="Firma kody">
+          <Field label={t('sazlamalar.firmCode')}>
             <input
               type="text"
               value={firm.code}
@@ -49,7 +51,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
               className={`${INPUT} font-mono font-medium text-gray-800`}
             />
           </Field>
-          <Field label="Başlyk (beýany)">
+          <Field label={t('sazlamalar.firmTitleField')}>
             <input
               type="text"
               value={firm.title}
@@ -57,7 +59,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
               className={`${INPUT} font-medium text-gray-800`}
             />
           </Field>
-          <Field label="Telefon">
+          <Field label={t('sazlamalar.firmPhone')}>
             <input
               type="text"
               value={firm.phone}
@@ -65,7 +67,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
               className={`${INPUT} font-medium text-gray-800`}
             />
           </Field>
-          <Field label="Faks">
+          <Field label={t('sazlamalar.firmFax')}>
             <input
               type="text"
               value={firm.fax}
@@ -73,7 +75,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
               className={`${INPUT} font-medium text-gray-800`}
             />
           </Field>
-          <Field label="Salgy">
+          <Field label={t('sazlamalar.firmAddress')}>
             <input
               type="text"
               value={firm.address}
@@ -81,7 +83,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
               className={`${INPUT} font-medium text-gray-800`}
             />
           </Field>
-          <Field label="Salgyt göterimi (%)">
+          <Field label={t('sazlamalar.firmTax')}>
             <input
               type="number"
               min="0"
@@ -95,26 +97,26 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
       </SettingsCard>
 
       {/* ── Operasiýa düzgünleri ───────────────────────────────────────────── */}
-      <SettingsCard title="Operasiýa düzgünleri" description="Pasif ýazgylar, alş bahasy, nesiýe möhleti we seneler">
+      <SettingsCard title={t('sazlamalar.opsTitle')} description={t('sazlamalar.opsDesc')}>
         <div className="space-y-2.5">
           <Toggle
-            label="Passiw müşderini faktura/kassada ulan"
+            label={t('sazlamalar.opsInactiveCustomer')}
             checked={operations.allowInactiveCustomer}
             onChange={(checked) => patchOps({ allowInactiveCustomer: checked })}
           />
           <Toggle
-            label="Passiw harydy sepete goş"
+            label={t('sazlamalar.opsInactiveProduct')}
             checked={operations.allowInactiveProduct}
             onChange={(checked) => patchOps({ allowInactiveProduct: checked })}
           />
           <Toggle
-            label="Alş bahasynyň aşagyna sat"
+            label={t('sazlamalar.opsBelowCost')}
             checked={operations.allowBelowCostSale}
             onChange={(checked) => patchOps({ allowBelowCostSale: checked })}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-            <Field label="Nesiýä möhleti (iň kiçi gün)">
+            <Field label={t('sazlamalar.creditMin')}>
               <input
                 type="number"
                 min="1"
@@ -123,7 +125,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
                 className={`${INPUT} font-mono font-bold text-gray-800`}
               />
             </Field>
-            <Field label="Nesiýä möhleti (iň uly gün)">
+            <Field label={t('sazlamalar.creditMax')}>
               <input
                 type="number"
                 min="1"
@@ -132,7 +134,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
                 className={`${INPUT} font-mono font-bold text-gray-800`}
               />
             </Field>
-            <Field label="Nesiýä möhleti (deslapky gün)">
+            <Field label={t('sazlamalar.creditDefault')}>
               <input
                 type="number"
                 min="1"
@@ -144,7 +146,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-            <Field label="Operasiýa başlangyç senesi (boş = açyk)">
+            <Field label={t('sazlamalar.opStart')}>
               <input
                 type="date"
                 value={operations.operationStartDate}
@@ -152,7 +154,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
                 className={`${INPUT} font-mono font-medium text-gray-800`}
               />
             </Field>
-            <Field label="Operasiýa soňky senesi (boş = açyk)">
+            <Field label={t('sazlamalar.opEnd')}>
               <input
                 type="date"
                 value={operations.operationEndDate}
@@ -165,9 +167,9 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
       </SettingsCard>
 
       {/* ── Barkod okaýjy ──────────────────────────────────────────────────── */}
-      <SettingsCard title="Barkod okaýjy" description="Tarapyzdaky okaýjynyň goşýan prefix/suffix belgilerini arassala">
+      <SettingsCard title={t('sazlamalar.barcodeTitle')} description={t('sazlamalar.barcodeDesc')}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Prefix (başdaky belgiler)">
+          <Field label={t('sazlamalar.barcodePrefix')}>
             <input
               type="text"
               value={barcode.prefix}
@@ -176,7 +178,7 @@ export const RulesPanel: React.FC<RulesPanelProps> = ({
               className={`${INPUT} font-mono font-medium text-gray-800`}
             />
           </Field>
-          <Field label="Suffix (soňky belgiler)">
+          <Field label={t('sazlamalar.barcodeSuffix')}>
             <input
               type="text"
               value={barcode.suffix}

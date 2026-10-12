@@ -3,6 +3,7 @@ import { MapPin, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import type { InvoiceRecord, LanguageCode, Targow, TargowRegion } from '../../types';
 import { currentWindow, generateRegionId, targowsOnRegion } from '../../db/targowService';
 import { formatMoney } from '../../utils/money';
+import { useT } from '../../locales/LanguageContext';
 
 interface RegionManagerProps {
   regions: readonly TargowRegion[];
@@ -36,6 +37,7 @@ export const RegionManager: React.FC<RegionManagerProps> = ({
   onSaveRegion,
   onDeleteRegion,
 }) => {
+  const t = useT();
   const [name, setName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -49,7 +51,7 @@ export const RegionManager: React.FC<RegionManagerProps> = ({
     const trimmed = name.trim();
     if (!trimmed) return;
     if (regions.some((region) => region.name.trim().toLowerCase() === trimmed.toLowerCase())) {
-      setError(language === 'tm' ? 'Bu etrap eýýäm bar.' : 'Bu etrap zaten var.');
+      setError(t('targowy.regionExists'));
       return;
     }
     onSaveRegion({ id: generateRegionId(), name: trimmed, createdAt: new Date().toISOString() });
@@ -79,9 +81,7 @@ export const RegionManager: React.FC<RegionManagerProps> = ({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={
-                language === 'tm' ? 'Täze etrap ady (Aşgabat - Berkararlyk)' : 'Yeni etrap adı'
-              }
+              placeholder={t('targowy.newRegionPh')}
               className="w-full pl-9 pr-4 h-10 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
@@ -90,7 +90,7 @@ export const RegionManager: React.FC<RegionManagerProps> = ({
             className="h-10 px-5 bg-[#10b981] hover:bg-[#059669] text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-colors shadow-sm flex-shrink-0"
           >
             <Plus className="w-4 h-4" />
-            {language === 'tm' ? 'Etrap goş' : 'Etrap ekle'}
+            {t('targowy.addRegion')}
           </button>
         </form>
         {error && (
@@ -108,7 +108,7 @@ export const RegionManager: React.FC<RegionManagerProps> = ({
                 <MapPin className="w-8 h-8 text-gray-300" />
               </div>
               <p className="font-bold text-gray-500 text-sm">
-                {language === 'tm' ? 'Etrap ýok' : 'Etrap yok'}
+                {t('targowy.noRegions')}
               </p>
             </div>
           </div>
@@ -144,7 +144,7 @@ export const RegionManager: React.FC<RegionManagerProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      {language === 'tm' ? 'Şu gün' : 'Bugün'}
+                      {t('targowy.today')}
                     </div>
                     <div className="text-xs font-mono font-bold text-emerald-600">
                       {formatMoney(
@@ -154,7 +154,7 @@ export const RegionManager: React.FC<RegionManagerProps> = ({
                   </div>
                   <div>
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      {language === 'tm' ? 'Şu aý' : 'Bu ay'}
+                      {t('targowy.thisMonth')}
                     </div>
                     <div className="text-xs font-mono font-bold text-gray-800">
                       {formatMoney(

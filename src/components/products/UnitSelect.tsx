@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import type { LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 import {
   isUnitNameUnique,
   makeCustomUnit,
@@ -31,6 +32,7 @@ export const UnitSelect: React.FC<UnitSelectProps> = ({
   onSelect,
   onCreate,
 }) => {
+  const t = useT();
   const [isAdding, setIsAdding] = useState(false);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
@@ -48,11 +50,11 @@ export const UnitSelect: React.FC<UnitSelectProps> = ({
   const handleAdd = () => {
     const name = draft.trim();
     if (!name) {
-      setError(language === 'tm' ? 'At giriziň.' : 'Ad girin.');
+      setError(t('products.unitNameRequired'));
       return;
     }
     if (!isUnitNameUnique(name, units)) {
-      setError(language === 'tm' ? 'Bu ölçeg birligi eýýäm bar.' : 'Bu ölçü birimi zaten var.');
+      setError(t('products.unitExists'));
       return;
     }
     const unit = makeCustomUnit(name);
@@ -74,7 +76,7 @@ export const UnitSelect: React.FC<UnitSelectProps> = ({
         {value && !units.some((unit) => unit.code === value) && (
           <option value={value}>{value.toUpperCase()}</option>
         )}
-        <option value={CUSTOM_VALUE}>+ Öz ölçeg birligiňi goş</option>
+        <option value={CUSTOM_VALUE}>{t('products.customUnitOption')}</option>
       </select>
 
       {isAdding && (
@@ -92,14 +94,14 @@ export const UnitSelect: React.FC<UnitSelectProps> = ({
                 }
                 if (e.key === 'Escape') setIsAdding(false);
               }}
-              placeholder={language === 'tm' ? 'Meselem: RULON' : 'Örn: RULON'}
+              placeholder={t('products.customUnitPlaceholder')}
               className="flex-1 min-w-0 h-8 px-2.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-800 bg-white outline-none focus:ring-2 focus:ring-emerald-500"
             />
             <button
               type="button"
               onClick={handleAdd}
               className="h-8 w-8 flex items-center justify-center rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex-shrink-0"
-              title={language === 'tm' ? 'Goş' : 'Ekle'}
+              title={t('products.addShort')}
             >
               <Check className="w-3.5 h-3.5" />
             </button>
@@ -107,7 +109,7 @@ export const UnitSelect: React.FC<UnitSelectProps> = ({
               type="button"
               onClick={() => setIsAdding(false)}
               className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-gray-200 hover:bg-gray-100 text-gray-500 flex-shrink-0"
-              title="Ýatyr"
+              title={t('cancel')}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -117,9 +119,7 @@ export const UnitSelect: React.FC<UnitSelectProps> = ({
           ) : (
             <div className="text-[10px] font-semibold text-emerald-700 flex items-center gap-1">
               <Plus className="w-3 h-3" />
-              {language === 'tm'
-                ? 'Täze birlik sanawa goşulýar we saýlanýar'
-                : 'Yeni birim listeye eklenir ve seçilir'}
+              {t('products.unitAddedHint')}
             </div>
           )}
         </div>

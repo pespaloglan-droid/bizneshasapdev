@@ -10,6 +10,7 @@ import {
   type MeasurementUnit,
 } from '../../db/unitService';
 import { Notice, SettingsCard } from './settingsUi';
+import { useT } from '../../locales/LanguageContext';
 
 interface UnitsPanelProps {
   units: readonly MeasurementUnit[];
@@ -26,7 +27,7 @@ export const UnitsPanel: React.FC<UnitsPanelProps> = ({
   onSaveUnit,
   onDeleteUnit,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
   const [draft, setDraft] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -37,11 +38,11 @@ export const UnitsPanel: React.FC<UnitsPanelProps> = ({
   const handleAdd = () => {
     const name = draft.trim();
     if (!name) {
-      setError(isTm ? 'At giriziň.' : 'Ad giriniň.');
+      setError(t('sazlamalar.unitNameRequired'));
       return;
     }
     if (!isUnitNameUnique(name, units)) {
-      setError(isTm ? 'Bu ölçeg birligi eýýäm bar.' : 'Bu ölçü birimi zaten var.');
+      setError(t('sazlamalar.unitExists'));
       return;
     }
     onSaveUnit(makeCustomUnit(name));
@@ -52,11 +53,11 @@ export const UnitsPanel: React.FC<UnitsPanelProps> = ({
   const commitEdit = (unit: MeasurementUnit) => {
     const name = editingName.trim();
     if (!name) {
-      setError(isTm ? 'At giriziň.' : 'Ad girin.');
+      setError(t('sazlamalar.unitNameRequiredEdit'));
       return;
     }
     if (!isUnitNameUnique(name, units, unit.id)) {
-      setError(isTm ? 'Bu ölçeg birligi eýýäm bar.' : 'Bu ölçü birimi zaten var.');
+      setError(t('sazlamalar.unitExists'));
       return;
     }
     const label = name.toUpperCase();
@@ -68,11 +69,7 @@ export const UnitsPanel: React.FC<UnitsPanelProps> = ({
 
   const handleDelete = (unit: MeasurementUnit) => {
     if (isUnitInUse(unit.code, products)) {
-      setError(
-        isTm
-          ? `"${unit.labelTm}" ulanylýar, pozup bolmaýar.`
-          : `"${unit.labelTm}" kullanılıyor, silinemez.`
-      );
+      setError(t('sazlamalar.unitInUse', { name: unit.labelTm }));
       return;
     }
     onDeleteUnit(unit);
@@ -82,8 +79,8 @@ export const UnitsPanel: React.FC<UnitsPanelProps> = ({
   return (
     <div className="space-y-3">
       <SettingsCard
-        title="Ölçeg birlikleri"
-        description="Önüm goşanda saýlanýan birlikler. Sabit gelenler pozulmaýar, üstüne goşup bilersiňiz."
+        title={t('sazlamalar.secUnits')}
+        description={t('sazlamalar.unitsDesc')}
       >
         <div className="flex items-center gap-2">
           <input
@@ -93,7 +90,7 @@ export const UnitsPanel: React.FC<UnitsPanelProps> = ({
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleAdd();
             }}
-            placeholder={isTm ? 'Täze birlik (meselem: RULON)' : 'Yeni birim (örn: RULON)'}
+            placeholder={t('sazlamalar.unitNewPh')}
             className="flex-1 h-9 px-3 border border-gray-200 rounded-xl text-sm bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 outline-none font-medium text-gray-800"
           />
           <button
@@ -102,7 +99,7 @@ export const UnitsPanel: React.FC<UnitsPanelProps> = ({
             className="h-9 px-4 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
-            {isTm ? 'Birlik goş' : 'Birim ekle'}
+            {t('sazlamalar.unitAdd')}
           </button>
         </div>
 
@@ -112,10 +109,10 @@ export const UnitsPanel: React.FC<UnitsPanelProps> = ({
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="bg-gray-50/80 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                <th className="py-2 px-3">{isTm ? 'At' : 'Ad'}</th>
-                <th className="py-2 px-3">Kod</th>
-                <th className="py-2 px-3 text-center">{isTm ? 'Ulanýan haryt' : 'Kullanan ürün'}</th>
-                <th className="py-2 px-3 text-center">{isTm ? 'Amal' : 'İşlem'}</th>
+                <th className="py-2 px-3">{t('sazlamalar.unitColName')}</th>
+                <th className="py-2 px-3">{t('sazlamalar.unitColCode')}</th>
+                <th className="py-2 px-3 text-center">{t('sazlamalar.unitColUsedBy')}</th>
+                <th className="py-2 px-3 text-center">{t('sazlamalar.unitColAction')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -174,7 +171,7 @@ export const UnitsPanel: React.FC<UnitsPanelProps> = ({
                               setError('');
                             }}
                             className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-[#0B1F3A] hover:text-white text-gray-500 transition-colors"
-                            title={isTm ? 'Redaktirle' : 'Düzenle'}
+                            title={t('sazlamalar.unitEditTitle')}
                           >
                             <Pencil className="w-3 h-3" />
                           </button>
@@ -186,12 +183,8 @@ export const UnitsPanel: React.FC<UnitsPanelProps> = ({
                           className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-rose-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed text-gray-500 transition-colors"
                           title={
                             defaultIds.has(unit.id)
-                              ? isTm
-                                ? 'Sabit birlik pozulmaýar'
-                                : 'Sabit birim silinemez'
-                              : isTm
-                              ? 'Poz'
-                              : 'Sil'
+                              ? t('sazlamalar.unitFixedNoDelete')
+                              : t('delete')
                           }
                         >
                           <Trash2 className="w-3 h-3" />
@@ -208,9 +201,7 @@ export const UnitsPanel: React.FC<UnitsPanelProps> = ({
         <div className="flex items-start gap-2 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
           <span>
-            {isTm
-              ? 'Bir birlik harytlarda ulanylýan bolsa pozup bolmaýar. Sabit birlikler hem pozulmaýar.'
-              : 'Bir birim ürünlerde kullanılıyorsa silinemez. Sabit birimler de silinemez.'}
+            {t('sazlamalar.unitRuleHint')}
           </span>
         </div>
       </SettingsCard>

@@ -10,6 +10,7 @@ import { CurrencyDeleteDialog } from './CurrencyDeleteDialog';
 import { CurrencyBaseConfirmDialog } from './CurrencyBaseConfirmDialog';
 import { onMobileAdd } from '../../utils/mobileEvents';
 import { PageScroll } from '../common/PageScroll';
+import { useT } from '../../locales/LanguageContext';
 
 interface WalyutaWorkspaceProps {
   currencies: readonly CurrencyRate[];
@@ -28,6 +29,7 @@ export const WalyutaWorkspace: React.FC<WalyutaWorkspaceProps> = ({
   onSaveCurrency,
   onDeleteCurrency,
 }) => {
+  const t = useT();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCurrency, setEditingCurrency] = useState<CurrencyRate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CurrencyRate | null>(null);
@@ -55,17 +57,9 @@ export const WalyutaWorkspace: React.FC<WalyutaWorkspaceProps> = ({
     try {
       await saveBaseCurrency(storeDb, currency);
       setBaseCode(currency.code);
-      setNotice(
-        language === 'tm'
-          ? `Esas walýuta: ${currency.code}`
-          : `Esas para birimi: ${currency.code}`
-      );
+      setNotice(t('walyuta.baseSetNotice', { code: currency.code }));
     } catch {
-      setNotice(
-        language === 'tm'
-          ? 'Esas walýuta üýtgedilmedi.'
-          : 'Esas para birimi değiştirilemedi.'
-      );
+      setNotice(t('walyuta.baseSetFailed'));
     }
   };
 
@@ -93,12 +87,7 @@ export const WalyutaWorkspace: React.FC<WalyutaWorkspaceProps> = ({
             onPickBase={() => {
               const first = baseCandidates[0];
               if (first) setBasePickTarget(first);
-              else
-                setNotice(
-                  language === 'tm'
-                    ? 'Öň başga walýuta goşuň.'
-                    : 'Önce başka bir para birimi ekleyin.'
-                );
+              else setNotice(t('walyuta.addOtherFirst'));
             }}
           />
 
@@ -110,7 +99,7 @@ export const WalyutaWorkspace: React.FC<WalyutaWorkspaceProps> = ({
 
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-              {language === 'tm' ? 'Goşulan walýutalar' : 'Eklenen para birimleri'} (
+              {t('walyuta.addedCurrencies')} (
               {currencies.length})
             </span>
             <button

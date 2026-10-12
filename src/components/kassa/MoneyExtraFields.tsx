@@ -4,6 +4,7 @@ import { SUB_CATEGORY_LABELS, MoneyExtraField } from '../../db/moneyService';
 import { PersonPicker } from './PersonPicker';
 import { INPUT, LABEL } from './kassaStyles';
 import type { MoneyFormState } from './moneyFormModel';
+import { useT } from '../../locales/LanguageContext';
 
 interface MoneyExtraFieldsProps {
   extra: MoneyExtraField;
@@ -30,6 +31,7 @@ export const MoneyExtraFields: React.FC<MoneyExtraFieldsProps> = ({
   patch,
   onQuickAdd,
 }) => {
+  const t = useT();
   switch (extra) {
     case 'none':
       return null;
@@ -37,7 +39,7 @@ export const MoneyExtraFields: React.FC<MoneyExtraFieldsProps> = ({
     case 'customer':
       return (
         <PersonPicker
-          label="Müşderi (islege görä)"
+          label={t('kassa.customerOptional')}
           customers={customers}
           language={language}
           value={form.customerId}
@@ -50,7 +52,7 @@ export const MoneyExtraFields: React.FC<MoneyExtraFieldsProps> = ({
     case 'customer-required':
       return (
         <PersonPicker
-          label="Müşderi"
+          label={t('kassa.customerLabel')}
           required
           customers={customers}
           language={language}
@@ -66,7 +68,7 @@ export const MoneyExtraFields: React.FC<MoneyExtraFieldsProps> = ({
       const suppliers = customers.filter((customer) => customer.type === 'supplier');
       return (
         <PersonPicker
-          label="Üpjün ediji (islege görä)"
+          label={t('kassa.supplierOptional')}
           customers={suppliers.length > 0 ? suppliers : customers}
           language={language}
           value={form.customerId}
@@ -82,7 +84,7 @@ export const MoneyExtraFields: React.FC<MoneyExtraFieldsProps> = ({
       return (
         <div>
           <label className={LABEL}>
-            {form.category === 'karz_almak' ? 'Kimden' : 'Kime'}
+            {form.category === 'karz_almak' ? t('kassa.fromWhom') : t('kassa.toWhom')}
             {extra === 'person-required' ? ' *' : ''}
           </label>
           <input
@@ -97,13 +99,13 @@ export const MoneyExtraFields: React.FC<MoneyExtraFieldsProps> = ({
     case 'staff':
       return appUsers.length > 0 ? (
         <div>
-          <label className={LABEL}>Işgär</label>
+          <label className={LABEL}>{t('kassa.staffLabel')}</label>
           <select
             value={form.staffUserId}
             onChange={(e) => patch({ staffUserId: e.target.value })}
             className={`${INPUT} cursor-pointer font-medium text-gray-800`}
           >
-            <option value="">— Saýla —</option>
+            <option value="">{t('kassa.selectOption')}</option>
             {appUsers.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.fullName} ({user.role})
@@ -113,7 +115,7 @@ export const MoneyExtraFields: React.FC<MoneyExtraFieldsProps> = ({
         </div>
       ) : (
         <div>
-          <label className={LABEL}>Işgär ady (bellige alynmadyk)</label>
+          <label className={LABEL}>{t('kassa.staffNameLabel')}</label>
           <input
             type="text"
             value={form.description}
@@ -126,13 +128,13 @@ export const MoneyExtraFields: React.FC<MoneyExtraFieldsProps> = ({
     case 'subcategory':
       return (
         <div>
-          <label className={LABEL}>Alt kategoriýa</label>
+          <label className={LABEL}>{t('kassa.subCategoryLabel')}</label>
           <select
             value={form.subCategory}
             onChange={(e) => patch({ subCategory: e.target.value as MoneySubCategoryId | '' })}
             className={`${INPUT} cursor-pointer font-medium text-gray-800`}
           >
-            <option value="">— Saýla —</option>
+            <option value="">{t('kassa.selectOption')}</option>
             {(Object.keys(SUB_CATEGORY_LABELS) as MoneySubCategoryId[]).map((key) => (
               <option key={key} value={key}>
                 {SUB_CATEGORY_LABELS[key]}

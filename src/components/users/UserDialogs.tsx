@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { AppUser, LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface DeleteUserDialogProps {
   language: LanguageCode;
@@ -12,13 +13,13 @@ export const DeleteUserDialog: React.FC<DeleteUserDialogProps> = ({
   language,
   onCancel,
   onConfirm,
-}) => (
+}) => {
+  const t = useT();
+  return (
   <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center space-y-4">
       <p className="font-bold text-gray-800 text-sm">
-        {language === 'tm'
-          ? 'Bu ulanyjyny pozmak isleýärsiňizmi?'
-          : 'Bu kullanıcıyı silmek istiyor musunuz?'}
+        {t('users.deleteMsg')}
       </p>
       <div className="flex gap-3 justify-center">
         <button
@@ -26,19 +27,20 @@ export const DeleteUserDialog: React.FC<DeleteUserDialogProps> = ({
           onClick={onCancel}
           className="px-6 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
         >
-          Ýatyr
+          {t('cancel')}
         </button>
         <button
           type="button"
           onClick={onConfirm}
           className="px-6 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs"
         >
-          Pozmak
+          {t('users.deleteTip')}
         </button>
       </div>
     </div>
   </div>
-);
+  );
+};
 
 interface ResetPasswordDialogProps {
   user: AppUser;
@@ -60,11 +62,13 @@ export const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
   onConfirmChange,
   onClose,
   onSubmit,
-}) => (
+}) => {
+  const t = useT();
+  return (
   <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
     <form onSubmit={onSubmit} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
       <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between">
-        <span className="font-bold text-sm">Paroly täzele</span>
+        <span className="font-bold text-sm">{t('users.resetPasswordTip')}</span>
         <button
           type="button"
           onClick={onClose}
@@ -79,14 +83,14 @@ export const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
           type="password"
           value={password}
           onChange={(e) => onPasswordChange(e.target.value)}
-          placeholder="Täze parol"
+          placeholder={t('users.newPassword')}
           className="w-full h-9 px-3 border border-gray-200 rounded-xl text-sm bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 outline-none"
         />
         <input
           type="password"
           value={confirmPassword}
           onChange={(e) => onConfirmChange(e.target.value)}
-          placeholder="Paroly tassykla"
+          placeholder={t('users.confirmPassword')}
           className="w-full h-9 px-3 border border-gray-200 rounded-xl text-sm bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 outline-none"
         />
         {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
@@ -96,16 +100,17 @@ export const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
             onClick={onClose}
             className="h-9 px-4 rounded-xl bg-gray-100 text-gray-700 font-bold text-xs"
           >
-            Ýatyr
+            {t('cancel')}
           </button>
           <button
             type="submit"
             className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
           >
-            Ýatda sakla
+            {t('save')}
           </button>
         </div>
       </div>
     </form>
   </div>
-);
+  );
+};

@@ -21,7 +21,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { LanguageCode } from '../../types';
-import { translations } from '../../locales/i18n';
+import { translations, translate } from '../../locales/i18n';
 
 export type PosTabType =
   | 'checkout'
@@ -144,8 +144,8 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
         <button
           onClick={onSwitchAccount}
           className="p-1.5 text-gray-300 hover:text-blue-300 hover:bg-white/10 rounded-lg transition-colors ml-0.5"
-          title={t.logoutTooltip === 'Çıkış' ? 'Hesap Değiştir' : 'Hesap değiştir'}
-          aria-label="Hesap değiştir"
+          title={translate(language, 'pos.switchAccount')}
+          aria-label={translate(language, 'pos.switchAccount')}
         >
           <Building2 className="w-4 h-4" />
         </button>

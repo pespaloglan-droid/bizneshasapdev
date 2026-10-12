@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AlertTriangle, ListChecks, Save, Search, X } from 'lucide-react';
 import type { Customer, CustomerType, LanguageCode } from '../../types';
 import { GENERAL_CUSTOMER_ID } from '../../db/customerService';
+import { useT } from '../../locales/LanguageContext';
 
 interface CustomerBulkEditModalProps {
   customers: readonly Customer[];
@@ -15,11 +16,7 @@ const textInput =
 const numInput =
   'w-full h-8 px-2 text-right bg-[#F8FAFC] border rounded-lg text-[11px] font-mono font-bold outline-none focus:ring-1 focus:ring-emerald-500';
 
-const TYPES: { id: CustomerType; tm: string; tr: string }[] = [
-  { id: 'customer', tm: 'Müşderi', tr: 'Müşteri' },
-  { id: 'employee', tm: 'Işgär', tr: 'İşgören' },
-  { id: 'supplier', tm: 'Üpjün ediji', tr: 'Tedarikçi' },
-];
+const TYPE_IDS: CustomerType[] = ['customer', 'employee', 'supplier'];
 
 export const CustomerBulkEditModal: React.FC<CustomerBulkEditModalProps> = ({
   customers,
@@ -27,7 +24,13 @@ export const CustomerBulkEditModal: React.FC<CustomerBulkEditModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
+  const typeLabel = (id: CustomerType) =>
+    id === 'employee'
+      ? t('customers.typeEmployee')
+      : id === 'supplier'
+      ? t('customers.typeSupplier')
+      : t('customers.typeCustomer');
   const [drafts, setDrafts] = useState<Customer[]>(() => customers.map((c) => ({ ...c })));
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<CustomerType | ''>('');
@@ -81,10 +84,10 @@ export const CustomerBulkEditModal: React.FC<CustomerBulkEditModalProps> = ({
             <ListChecks className="w-5 h-5" />
             <div>
               <h3 className="text-sm font-bold tracking-wide">
-                {isTm ? 'Birbada Uýtgetmek — Müşderiler' : 'Toplu Düzenleme — Müşteriler'}
+                {t('customers.bulkModalTitle')}
               </h3>
               <p className="text-[11px] text-gray-300">
-                {changed.length} {isTm ? 'üýtgeşme taýýar' : 'değişiklik hazır'}
+                {changed.length} {t('customers.changesReady')}
               </p>
             </div>
           </div>
@@ -104,7 +107,7 @@ export const CustomerBulkEditModal: React.FC<CustomerBulkEditModalProps> = ({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={isTm ? 'At ýa-da telefon boýunça gözle...' : 'İsim veya telefon...'}
+              placeholder={t('customers.bulkSearchPlaceholder')}
               className="w-full h-9 pl-9 pr-3 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:border-emerald-500"
             />
           </div>
@@ -113,10 +116,10 @@ export const CustomerBulkEditModal: React.FC<CustomerBulkEditModalProps> = ({
             onChange={(e) => setTypeFilter(e.target.value as CustomerType | '')}
             className="h-9 px-3 bg-white border border-gray-200 rounded-xl text-xs outline-none cursor-pointer"
           >
-            <option value="">{isTm ? 'Ähli görnüşler' : 'Tüm türler'}</option>
-            {TYPES.map((t) => (
-              <option key={t.id} value={t.id}>
-                {isTm ? t.tm : t.tr}
+            <option value="">{t('customers.allTypes')}</option>
+            {TYPE_IDS.map((id) => (
+              <option key={id} value={id}>
+                {typeLabel(id)}
               </option>
             ))}
           </select>
@@ -129,12 +132,12 @@ export const CustomerBulkEditModal: React.FC<CustomerBulkEditModalProps> = ({
           <table className="w-full text-left text-xs">
             <thead className="sticky top-0 bg-gray-50 z-10">
               <tr className="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-200">
-                <th className="py-2 px-3 min-w-[170px]">{isTm ? 'Ady Familiýasy' : 'Ad Soyad'}</th>
-                <th className="py-2 px-3 min-w-[140px]">{isTm ? 'Telefon' : 'Telefon'}</th>
-                <th className="py-2 px-3 min-w-[120px]">{isTm ? 'Görnüşi' : 'Tür'}</th>
-                <th className="py-2 px-3 w-[90px] text-right">{isTm ? 'Möhlet' : 'Vade'}</th>
-                <th className="py-2 px-3 min-w-[150px]">{isTm ? 'Salgy / Bellik' : 'Adres / Not'}</th>
-                <th className="py-2 px-3 w-[120px] text-right">{isTm ? 'Galyndy' : 'Bakiye'}</th>
+                <th className="py-2 px-3 min-w-[170px]">{t('customers.colFullName')}</th>
+                <th className="py-2 px-3 min-w-[140px]">{t('customers.colPhone')}</th>
+                <th className="py-2 px-3 min-w-[120px]">{t('customers.colKind')}</th>
+                <th className="py-2 px-3 w-[90px] text-right">{t('customers.colDueDate')}</th>
+                <th className="py-2 px-3 min-w-[150px]">{t('customers.colAddressNote')}</th>
+                <th className="py-2 px-3 w-[120px] text-right">{t('customers.colBalance')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -149,7 +152,7 @@ export const CustomerBulkEditModal: React.FC<CustomerBulkEditModalProps> = ({
                         value={c.name}
                         disabled={isSystem}
                         onChange={(e) => updateText(c.id, 'name', e.target.value)}
-                        title={isSystem ? (isTm ? 'Sistem ýazgysy — ady üýtgedilmeýär' : 'Sistem kaydı — adı değiştirilemez') : ''}
+                        title={isSystem ? t('customers.systemNameReadOnly') : ''}
                         className={`${textInput} ${bad ? 'border-rose-400' : 'border-gray-200'} ${isSystem ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
                       />
                     </td>
@@ -167,9 +170,9 @@ export const CustomerBulkEditModal: React.FC<CustomerBulkEditModalProps> = ({
                         onChange={(e) => updateType(c.id, e.target.value as CustomerType)}
                         className={`${textInput} border-gray-200 cursor-pointer`}
                       >
-                        {TYPES.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {isTm ? t.tm : t.tr}
+                        {TYPE_IDS.map((id) => (
+                          <option key={id} value={id}>
+                            {typeLabel(id)}
                           </option>
                         ))}
                       </select>
@@ -212,11 +215,11 @@ export const CustomerBulkEditModal: React.FC<CustomerBulkEditModalProps> = ({
             {errorCount > 0 ? (
               <span className="inline-flex items-center gap-1.5 text-rose-600">
                 <AlertTriangle className="w-3.5 h-3.5" />
-                {errorCount} {isTm ? 'hataly setir (at boş)' : 'hatalı satır (ad boş)'}
+                {t('customers.errorEmptyName', { count: errorCount })}
               </span>
             ) : (
               <span className="text-gray-400">
-                {isTm ? 'Galyndy: (+) bize borçly · (−) biz borçly' : 'Bakiye: (+) bize borçlu · (−) biz borçluyuz'}
+                {t('customers.balanceLegend')}
               </span>
             )}
           </div>
@@ -226,7 +229,7 @@ export const CustomerBulkEditModal: React.FC<CustomerBulkEditModalProps> = ({
               onClick={onClose}
               className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
             >
-              {isTm ? 'Ýatyr' : 'İptal'}
+              {t('cancel')}
             </button>
             <button
               type="button"
@@ -235,7 +238,7 @@ export const CustomerBulkEditModal: React.FC<CustomerBulkEditModalProps> = ({
               className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5"
             >
               <Save className="w-3.5 h-3.5" />
-              {isTm ? `Ýatda sakla (${changed.length})` : `Kaydet (${changed.length})`}
+              {t('customers.saveCount', { count: changed.length })}
             </button>
           </div>
         </div>

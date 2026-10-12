@@ -1,4 +1,5 @@
 import type { SystemPrinter } from '../types';
+import { isNative } from './platform';
 
 export interface PrintTestResult {
   readonly success: boolean;
@@ -54,9 +55,18 @@ export function electronBridge(): ElectronBridge {
   return (window as unknown as { electronAPI?: ElectronBridge }).electronAPI ?? {};
 }
 
+/** Base64 → baýtlar (tarayıcıda `Buffer` ýok). */
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
 /**
  * F11 — faýl sakla diýalogy açyp base64 mazmuny ýazýar.
- * Electron ýok bolsa (web/mobil) dowload hökmünde işleýär.
+ * Capacitor (Android) bolsa Documents bukjasyna native ýazýar;
+ * Electron ýok we web bolsa download hökmünde işleýär.
  */
 export async function saveFileAs(options: SaveFileAsOptions): Promise<boolean> {
   const bridge = electronBridge();
@@ -64,10 +74,25 @@ export async function saveFileAs(options: SaveFileAsOptions): Promise<boolean> {
     const result = await bridge.saveFileAs(options);
     return Boolean(result?.saved);
   }
+  // Android (Capacitor): WebView'de blob download güvenilmez — native Filesystem.
+  if (isNative()) {
+    try {
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      await Filesystem.writeFile({
+        path: options.defaultName || 'faýl.xlsx',
+        data: options.data,
+        directory: Directory.Documents,
+        recursive: true,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
   // Web gurşawy: blob hökmünde ýükle (diýalog bolmasa-da faýl ineşýär).
   try {
-    const bytes = new Uint8Array(Buffer.from(options.data, 'base64'));
-    const blob = new Blob([bytes], {
+    const bytes = base64ToBytes(options.data);
+    const blob = new Blob([bytes as BlobPart], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
     const url = URL.createObjectURL(blob);

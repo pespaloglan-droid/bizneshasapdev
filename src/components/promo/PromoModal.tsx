@@ -5,6 +5,7 @@ import { ProductImage } from '../pos/ProductImage';
 import { formatPromoMoney, productsInPromos, type PromoRecord } from '../../db/promoService';
 import { PromoFormPanel } from './PromoFormPanel';
 import { PromoListPanel } from './PromoListPanel';
+import { useT } from '../../locales/LanguageContext';
 
 interface PromoModalProps {
   promos: readonly PromoRecord[];
@@ -25,13 +26,14 @@ export const PromoModal: React.FC<PromoModalProps> = ({
   onDelete,
   onClose,
 }) => {
+  const t = useT();
   const [tab, setTab] = useState<PromoTab>('new');
   const [editing, setEditing] = useState<PromoRecord | null>(null);
 
   const tabs: { id: PromoTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'new', label: editing ? 'Promo redaktirle' : 'Täze Promo', icon: <Gift className="w-4 h-4" /> },
-    { id: 'list', label: `Işjeň Promolar (${promos.length})`, icon: <ListChecks className="w-4 h-4" /> },
-    { id: 'stock', label: 'Stok ýagdaýy', icon: <Boxes className="w-4 h-4" /> },
+    { id: 'new', label: editing ? t('promo.tabEdit') : t('promo.tabNew'), icon: <Gift className="w-4 h-4" /> },
+    { id: 'list', label: t('promo.tabList', { count: promos.length }), icon: <ListChecks className="w-4 h-4" /> },
+    { id: 'stock', label: t('promo.tabStock'), icon: <Boxes className="w-4 h-4" /> },
   ];
 
   const usedProducts = productsInPromos(promos, products);
@@ -52,9 +54,9 @@ export const PromoModal: React.FC<PromoModalProps> = ({
               <Gift className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold tracking-wide">PROMO ulgamy</h2>
+              <h2 className="text-base font-bold tracking-wide">{t('promo.modalTitle')}</h2>
               <p className="text-[11px] text-gray-300">
-                Satuw + promo utgaşmasy, stok we kassa girdejisi · {currencyCode}
+                {t('promo.modalSubtitle', { code: currencyCode })}
               </p>
             </div>
           </div>
@@ -120,7 +122,7 @@ export const PromoModal: React.FC<PromoModalProps> = ({
               <div className="py-14 flex flex-col items-center justify-center text-gray-400">
                 <Boxes className="w-10 h-10 text-gray-200 mb-2 stroke-1" />
                 <span className="text-xs font-semibold text-gray-500">
-                  Promolarda ýekeje haryt hem ulanylmady
+                  {t('promo.stockEmpty')}
                 </span>
               </div>
             ) : (
@@ -150,7 +152,7 @@ export const PromoModal: React.FC<PromoModalProps> = ({
                               negative ? 'text-rose-600' : critical ? 'text-amber-600' : 'text-emerald-600'
                             }`}
                           >
-                            Stok: {product.stock}
+                            {t('promo.stockLabel')} {product.stock}
                           </span>
                           <span className="text-[11px] font-mono text-gray-600">
                             {formatPromoMoney(product.price, currencyCode)}

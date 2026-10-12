@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import type { InvoiceRecord, LanguageCode } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface GaralamaRejectDialogProps {
   language: LanguageCode;
@@ -15,6 +16,7 @@ export const GaralamaRejectDialog: React.FC<GaralamaRejectDialogProps> = ({
   onCancel,
   onConfirm,
 }) => {
+  const t = useT();
   const [reason, setReason] = useState('');
 
   return (
@@ -22,7 +24,7 @@ export const GaralamaRejectDialog: React.FC<GaralamaRejectDialogProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         <div className="px-5 py-4 bg-gradient-to-r from-rose-500 to-rose-600 text-white flex items-center justify-between">
           <span className="font-bold text-sm tracking-wide">
-            {language === 'tm' ? 'Garalamany ret et' : 'Taslağı reddet'}
+            {t('faktura.rejectTitle')}
           </span>
           <button
             type="button"
@@ -38,14 +40,12 @@ export const GaralamaRejectDialog: React.FC<GaralamaRejectDialogProps> = ({
             {invoice.invoiceNo} · {invoice.customerName}
           </p>
           <p className="text-[11px] font-semibold text-gray-500">
-            {language === 'tm'
-              ? 'Ret edilen garalama hiç bir modula täsir etmeýär, ýöne taryhda galýar.'
-              : 'Reddedilen taslak hiçbir modülü etkilemez, ancak geçmişte kalır.'}
+            {t('faktura.rejectHint')}
           </p>
 
           <div>
             <label className="block text-[11px] font-bold text-gray-500 mb-1">
-              {language === 'tm' ? 'Ret sebäbi (islege görä)' : 'Ret nedeni (opsiyonel)'}
+              {t('faktura.rejectReasonLabel')}
             </label>
             <input
               type="text"

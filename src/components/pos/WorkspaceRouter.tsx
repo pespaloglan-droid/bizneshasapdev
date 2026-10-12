@@ -3,6 +3,7 @@ import type { PosTabType } from './TopNavBar';
 import type { Customer, InvoiceRecord, LanguageCode, OperationSettings, Product, User, Account } from '../../types';
 import type { ModuleStores } from '../../hooks/useModuleStores';
 import type { MoneyStore } from '../../hooks/useMoneyStore';
+import type { BatchWriteResult } from '../../db/pouch';
 import {
   filterItemsById,
   getActiveAccessControl,
@@ -11,6 +12,7 @@ import {
   resolveModuleExtras,
 } from '../../db/accessService';
 import { resolveModulePermission } from '../../db/ledgerService';
+import { useT } from '../../locales/LanguageContext';
 import { CustomerWorkspace } from '../customers/CustomerWorkspace';
 import { UserWorkspace } from '../UserWorkspace';
 import { KassaWorkspace } from '../kassa/KassaWorkspace';
@@ -35,9 +37,17 @@ interface WorkspaceRouterProps {
   onAddProduct: (product: Product) => void;
   onUpdateProduct: (product: Product) => void;
   onDeleteProduct: (id: string) => void;
+  /** Excel importynyň toplu ýazgy prosesi (BIR batch, ýalňyşlyklar aýratyn). */
+  onImportProducts?: (
+    items: ReadonlyArray<{ product: Product; rowNumber: number }>
+  ) => Promise<BatchWriteResult>;
   onAddCustomer: (customer: Customer) => void;
   onUpdateCustomer: (customer: Customer) => void;
   onDeleteCustomer: (id: string) => void;
+  /** Excel importynyň toplu ýazgy prosesi (BIR batch, ýalňyşlyklar aýratyn). */
+  onImportCustomers?: (
+    items: ReadonlyArray<{ customer: Customer; rowNumber: number }>
+  ) => Promise<BatchWriteResult>;
   /** "Müşderi → Üýtget" rugsady — Müşderi modulyndaky redaktirle ikony. */
   canEditCustomer?: boolean;
   onQuickAddCustomer: (name: string) => Customer;
@@ -80,9 +90,11 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
+  onImportProducts,
   onAddCustomer,
   onUpdateCustomer,
   onDeleteCustomer,
+  onImportCustomers,
   canEditCustomer = false,
   onQuickAddCustomer,
   storeDb,
@@ -101,6 +113,7 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
   onAddToCart,
   onGoToCheckout,
 }) => {
+  const t = useT();
   // Ýörite rugsatlar: ambar we depder sanawlaryny çäklendir (müşderi/haryt PosWorkspace'den gelýär)
   const activeAccess = useMemo(
     () => getActiveAccessControl(currentUser, stores.appUsers),
@@ -153,6 +166,7 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
         onAddCustomer={onAddCustomer}
         onUpdateCustomer={onUpdateCustomer}
         onDeleteCustomer={onDeleteCustomer}
+        onImportCustomers={onImportCustomers}
         focusCustomerId={focusCustomerId}
       />
     );
@@ -260,6 +274,7 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
         onAddProduct={onAddProduct}
         onUpdateProduct={onUpdateProduct}
         onDeleteProduct={onDeleteProduct}
+        onImportProducts={onImportProducts}
         onCreateUnit={stores.saveUnit}
         focusProductId={focusProductId}
       />
@@ -333,10 +348,10 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
         </div>
         <div>
           <p className="font-bold text-gray-500 text-sm">
-            {language === 'tm' ? 'Bu bölüm häzirlikçe boş' : 'Bu bölüm şimdilik boş'}
+            {t('pos.emptySection')}
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            {language === 'tm' ? 'Ýakyn wagtda mazmun goşular.' : 'Yakında içerik eklenecek.'}
+            {t('pos.emptySectionHint')}
           </p>
         </div>
       </div>

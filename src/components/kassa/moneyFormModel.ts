@@ -1,4 +1,5 @@
 import type {
+  LanguageCode,
   MoneyCategoryId,
   MoneyPaymentMethod,
   MoneySubCategoryId,
@@ -12,6 +13,7 @@ import {
   generateMoneyTxId,
 } from '../../db/moneyService';
 import { todayIsoDate } from '../../utils/money';
+import { translate } from '../../locales/i18n';
 
 export interface MoneyFormState {
   type: MoneyTxType;
@@ -72,15 +74,15 @@ export function switchMoneyType(form: MoneyFormState, type: MoneyTxType): MoneyF
   };
 }
 
-export function validateMoneyForm(form: MoneyFormState): string | null {
+export function validateMoneyForm(form: MoneyFormState, language: LanguageCode = 'tm'): string | null {
   const amount = Number(form.amount);
-  if (!Number.isFinite(amount) || amount <= 0) return 'Mukdar 0-dan uly bolmaly.';
-  if (!form.date) return 'Senäni saýlaň.';
+  if (!Number.isFinite(amount) || amount <= 0) return translate(language, 'kassa.errAmount');
+  if (!form.date) return translate(language, 'kassa.errDate');
 
   const extra = categoryMeta(form.category).extra;
-  if (extra === 'customer-required' && !form.customerId) return 'Müşderini saýlaň.';
+  if (extra === 'customer-required' && !form.customerId) return translate(language, 'kassa.errCustomer');
   if (extra === 'person-required' && !form.personName.trim()) {
-    return 'Kim bilen baglydygyny ýazyň.';
+    return translate(language, 'kassa.errPerson');
   }
   return null;
 }

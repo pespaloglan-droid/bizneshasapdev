@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link2 } from 'lucide-react';
 import type { Account, LanguageCode } from '../../types';
+import { translate } from '../../locales/i18n';
 import { ConnectionFields } from './ConnectionFields';
 
 interface Props {
@@ -21,7 +22,7 @@ export const AccountConnectionPanel: React.FC<Props> = ({ language, storeDb, acc
   if (!account?.id) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-xs text-gray-500">
-        Hesap seçilmedi.
+        {translate(language, 'conn.noAccount')}
       </div>
     );
   }
@@ -33,9 +34,9 @@ export const AccountConnectionPanel: React.FC<Props> = ({ language, storeDb, acc
           <Link2 className="w-5 h-5" />
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-bold text-gray-900">CouchDB Bağlantısı</div>
+          <div className="text-sm font-bold text-gray-900">{translate(language, 'conn.sectionTitle')}</div>
           <div className="text-[11px] text-gray-500">
-            {account.name} · veriler bilgisayarındaki sunucuyla paylaşılır
+            {translate(language, 'conn.shareNote', { name: account.name })}
           </div>
         </div>
       </div>
@@ -48,9 +49,7 @@ export const AccountConnectionPanel: React.FC<Props> = ({ language, storeDb, acc
       />
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-[10px] text-gray-400 leading-relaxed">
-        Aynı anda tek bağlantı açık olur; diğeri otomatik kapanır. Yeşil ikona tekrar
-        basarsanız bağlantı durur. Uygulama yeniden açıldığında son kullanılan bağlantı
-        otomatik başlar.
+        {translate(language, 'conn.panelNote')}
       </div>
     </div>
   );

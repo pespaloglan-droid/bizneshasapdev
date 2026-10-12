@@ -2,7 +2,7 @@
  * PC ↔ APK alan eşleme haritası (FAZ 2.3 · MD §3.3).
  *
  * TEK KAYNAK: her alan çifti burada bir kez tanımlı; iki yönün dönüşümü de
- * (pcToApk*/apk*ToPcDoc) bu haritadan türetilir. Yeni alan eklerken yalnızca
+ * (pcToApk* / apk*ToPcDoc) bu haritadan türetilir. Yeni alan eklerken yalnızca
  * ilgili listeye satır eklenir — ters yönü unutmak imkânsızlaşır.
  *
  * Enum dönüşümleri (tip/faturaTipi/durum/odemeTipi), kalem dizisi ve sabit

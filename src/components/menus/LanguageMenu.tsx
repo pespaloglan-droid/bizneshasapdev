@@ -2,6 +2,7 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import { LanguageCode } from '../../types';
 import { FlagIcon } from '../common/FlagIcon';
+import { useTranslation } from '../../locales/LanguageContext';
 
 interface LanguageMenuProps {
   currentLanguage: LanguageCode;
@@ -14,6 +15,7 @@ export const LanguageMenu: React.FC<LanguageMenuProps> = ({
   onSelectLanguage,
   onClose
 }) => {
+  const t = useTranslation();
   const languages: { code: LanguageCode; label: string; sub: string }[] = [
     { code: 'en', label: 'English', sub: 'USA' },
     { code: 'tr', label: 'Türkçe', sub: 'Türkiye' },
@@ -27,7 +29,7 @@ export const LanguageMenu: React.FC<LanguageMenuProps> = ({
       onMouseLeave={onClose}
     >
       <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 border-b border-gray-100 uppercase tracking-wider">
-        Dil Seçimi / Language
+        {t.languageMenuTitle}
       </div>
       {languages.map((lang) => (
         <button

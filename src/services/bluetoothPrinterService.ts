@@ -3,6 +3,7 @@
 // Genişleme: WiFi yazıcı için ayrı adapter yazılır, mobilePrintService seçer.
 
 import { registerBluetoothPrinter } from './mobilePrintService';
+import { formatDateTime } from '../utils/locale';
 
 // Nordic UART Service
 const NUS_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
@@ -190,7 +191,7 @@ export async function connectBleDevice(deviceId: string, name: string): Promise<
 
 /** Bağlı yazıcıya deneme fişi basar. */
 export async function printBtTestPage(companyName: string): Promise<boolean> {
-  const now = new Date().toLocaleString('tr-TR');
+  const now = formatDateTime(new Date());
   const html =
     `<div>${companyName || 'BIZNES HASAP'}</div>` +
     `<div>SYNAG ÇAP</div><div>${now}</div><div>Baglanyşyk üstünlikli!</div>`;

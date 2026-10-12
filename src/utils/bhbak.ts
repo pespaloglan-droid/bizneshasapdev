@@ -83,7 +83,7 @@ export async function encodeBhbak(json: string): Promise<Uint8Array> {
   
   if (licenseKey) {
     // V2: Şifreli
-    const encrypted = await encryptWithKey(Buffer.from(compressed), licenseKey);
+    const encrypted = await encryptWithKey(compressed, licenseKey);
     const out = new Uint8Array(9 + encrypted.length);
     out.set(MAGIC_BYTES, 0);
     out[4] = 2; // V2
@@ -122,7 +122,7 @@ export async function decodeBhbak(bytes: Uint8Array): Promise<string> {
       }
       
       try {
-        const decrypted = await decryptWithKey(Buffer.from(payload), licenseKey);
+        const decrypted = await decryptWithKey(payload, licenseKey);
         const raw = await gzipDecompress(new Uint8Array(decrypted));
         return new TextDecoder().decode(raw);
       } catch (err) {

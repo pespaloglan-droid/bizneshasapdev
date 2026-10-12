@@ -1,4 +1,5 @@
 import { Account, LanguageCode, PrinterMode } from '../types';
+import { detectInitialLanguage } from '../utils/languageDetect';
 import {
   getAllAccountsFromDb,
   isSeedAccount,
@@ -21,7 +22,7 @@ const EMPTY_STATE: AppState = {
   accounts: [],
   selectedAccountId: '',
   selectedUserId: '',
-  language: 'en',
+  language: detectInitialLanguage(),
   printerMode: 'auto',
 };
 
@@ -39,7 +40,7 @@ export function loadStoredState(): AppState {
 
     const settings = rawSettings
       ? JSON.parse(rawSettings)
-      : { language: 'en', printerMode: 'auto' };
+      : { language: detectInitialLanguage(), printerMode: 'auto' };
 
     // Arka planda PouchDB'yi doğrula (seed YOK — sadece mevcutları oku).
     getAllAccountsFromDb().catch(() => {});
@@ -52,7 +53,7 @@ export function loadStoredState(): AppState {
       selectedUserId: settings.selectedUserId && accounts.some((a) => a.users.some((u) => u.id === settings.selectedUserId))
         ? settings.selectedUserId
         : '',
-      language: settings.language || 'en',
+      language: settings.language || detectInitialLanguage(),
       printerMode: settings.printerMode || 'auto'
     };
   } catch {

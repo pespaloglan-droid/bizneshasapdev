@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LanguageCode, PrinterMode } from '../types';
 import { LanguageMenu } from './menus/LanguageMenu';
 import { FlagIcon } from './common/FlagIcon';
+import { useT } from '../locales/LanguageContext';
 import bhLogo from '../assets/bh_logo.svg';
 
 interface BottomToolbarProps {
@@ -17,6 +18,7 @@ export const BottomToolbar: React.FC<BottomToolbarProps> = ({
   onSelectLanguage,
 }) => {
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const t = useT();
 
   const langCodes: Record<LanguageCode, string> = {
     en: 'ENG',
@@ -54,7 +56,7 @@ export const BottomToolbar: React.FC<BottomToolbarProps> = ({
           <button
             onClick={() => setIsLanguageOpen(!isLanguageOpen)}
             className="flex flex-col items-center justify-center px-2.5 py-1 border border-gray-200 hover:border-gray-400 rounded-lg bg-white shadow-sm transition-all hover:bg-gray-50 active:scale-95 min-w-[48px]"
-            title="Dil Seçimi / Change Language"
+            title={t('languageMenuTitle')}
           >
             <div className="mb-0.5 flex items-center justify-center">
               <FlagIcon language={language} className="w-4 h-3" />

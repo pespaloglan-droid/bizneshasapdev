@@ -69,6 +69,15 @@ function toDate(value: string | number | Date | null): Date | null {
   return null;
 }
 
+/**
+ * Formula injection garşysy: «= + - @» bilen başlaýan METIN bahalarynyň
+ * öňüne ' goýulýar — ExcelJS olary işjeň formula hökmünde ýazyp bilerdi.
+ * San tipinde gelen bahalara (meselem, otrisatel sanlara) degilmeýär.
+ */
+function escapeFormulaText(value: string): string {
+  return /^[=+\-@]/.test(value) ? `'${value}` : value;
+}
+
 /** Başlyga görä ýazgy giňligi (excel birligi: 1 ≈ bir harf). */
 function widthFor(header: string, sample: (string | number | Date | null)[]): number {
   let longest = header.length;
@@ -208,12 +217,12 @@ export function buildStyledSheet<Row>(
         if (typeof raw === 'number' && Number.isFinite(raw)) cell.value = raw;
         else if (typeof raw === 'string' && raw.trim() !== '') {
           const parsed = Number(raw.replace(',', '.'));
-          cell.value = Number.isFinite(parsed) ? parsed : raw;
+          cell.value = Number.isFinite(parsed) ? parsed : escapeFormulaText(raw);
         } else cell.value = null;
         const fmt = numFmtFor(kind);
         if (fmt && typeof cell.value === 'number') cell.numFmt = fmt;
       } else {
-        cell.value = raw === null ? '' : raw;
+        cell.value = raw === null ? '' : typeof raw === 'string' ? escapeFormulaText(raw) : raw;
       }
 
       if (kind === 'money' || kind === 'qty' || kind === 'percent') {

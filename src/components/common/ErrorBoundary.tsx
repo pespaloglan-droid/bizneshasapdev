@@ -1,4 +1,6 @@
 import React from 'react';
+import { getActiveLanguage } from '../../utils/locale';
+import { translate } from '../../locales/i18n';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -41,6 +43,8 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     const { error } = this.state;
     if (!error) return this.props.children;
 
+    // Class component — hook yok; aktif dil localStorage üzerinden okunur.
+    const language = getActiveLanguage();
     const message = error.message || String(error);
     return (
       <div
@@ -52,7 +56,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mx-auto">
             <span className="text-2xl leading-none">⚠️</span>
           </div>
-          <p className="font-bold text-gray-800 text-sm">Bir şeyler ters gitti</p>
+          <p className="font-bold text-gray-800 text-sm">{translate(language, 'errors.boundaryTitle')}</p>
           <p className="text-[11px] text-gray-500 font-mono break-words bg-gray-50 rounded-xl px-3 py-2 max-h-24 overflow-y-auto">
             {message}
           </p>
@@ -61,7 +65,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             onClick={this.handleReset}
             className="w-full h-12 rounded-xl bg-emerald-500 active:bg-emerald-600 text-white text-sm font-bold"
           >
-            Yeniden başlat
+            {translate(language, 'errors.boundaryRestart')}
           </button>
         </div>
       </div>

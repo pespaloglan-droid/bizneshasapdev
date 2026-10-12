@@ -6,6 +6,7 @@ import type {
   Targow,
   TargowRegion,
 } from '../../types';
+import { useT } from '../../locales/LanguageContext';
 
 interface DraftMetaFieldsProps {
   targows: readonly Targow[];
@@ -29,10 +30,10 @@ const INPUT =
   'w-full h-9 px-3 border border-gray-200 rounded-xl text-sm bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none';
 const LABEL = 'block text-[11px] font-bold text-gray-500 mb-1';
 
-const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
-  { value: 'cash', label: 'Nagt' },
-  { value: 'card', label: 'Kart' },
-  { value: 'credit', label: 'Karz (nesiýe)' },
+const PAYMENT_OPTIONS: { value: PaymentMethod; labelKey: string }[] = [
+  { value: 'cash', labelKey: 'faktura.payCash' },
+  { value: 'card', labelKey: 'faktura.payCard' },
+  { value: 'credit', labelKey: 'faktura.payCredit' },
 ];
 
 export const DraftMetaFields: React.FC<DraftMetaFieldsProps> = ({
@@ -52,6 +53,7 @@ export const DraftMetaFields: React.FC<DraftMetaFieldsProps> = ({
   onPaymentChange,
   onCurrencyChange,
 }) => {
+  const t = useT();
   const targow = targows.find((item) => item.id === targowId) ?? null;
   const availableRegions = regions.filter((region) =>
     targow ? targow.regionIds.includes(region.id) : false
@@ -60,7 +62,7 @@ export const DraftMetaFields: React.FC<DraftMetaFieldsProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div>
-        <label className={LABEL}>Targowçy *</label>
+        <label className={LABEL}>{t('faktura.targowLabel')}</label>
         <select
           value={targowId}
           onChange={(e) => onTargowChange(e.target.value)}
@@ -75,13 +77,13 @@ export const DraftMetaFields: React.FC<DraftMetaFieldsProps> = ({
       </div>
 
       <div>
-        <label className={LABEL}>Müşderi *</label>
+        <label className={LABEL}>{t('faktura.customerLabel')}</label>
         <select
           value={customerId}
           onChange={(e) => onCustomerChange(e.target.value)}
           className={`${INPUT} cursor-pointer font-medium text-gray-800`}
         >
-          <option value="">— Saýla —</option>
+          <option value="">{t('faktura.selectOption')}</option>
           {customers.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}
@@ -91,13 +93,13 @@ export const DraftMetaFields: React.FC<DraftMetaFieldsProps> = ({
       </div>
 
       <div>
-        <label className={LABEL}>Etrap *</label>
+        <label className={LABEL}>{t('faktura.regionLabel')}</label>
         <select
           value={regionId}
           onChange={(e) => onRegionChange(e.target.value)}
           className={`${INPUT} cursor-pointer font-medium text-gray-800`}
         >
-          <option value="">— Saýla —</option>
+          <option value="">{t('faktura.selectOption')}</option>
           {availableRegions.map((region) => (
             <option key={region.id} value={region.id}>
               {region.name}
@@ -108,7 +110,7 @@ export const DraftMetaFields: React.FC<DraftMetaFieldsProps> = ({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={LABEL}>Töleg görnüşi</label>
+          <label className={LABEL}>{t('faktura.paymentLabel')}</label>
           <select
             value={paymentMethod}
             onChange={(e) => onPaymentChange(e.target.value as PaymentMethod)}
@@ -116,13 +118,13 @@ export const DraftMetaFields: React.FC<DraftMetaFieldsProps> = ({
           >
             {PAYMENT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t(option.labelKey)}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className={LABEL}>Walýuta</label>
+          <label className={LABEL}>{t('faktura.currencyLabel')}</label>
           <select
             value={currency}
             onChange={(e) => onCurrencyChange(e.target.value)}

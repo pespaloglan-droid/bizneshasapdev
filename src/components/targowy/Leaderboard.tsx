@@ -2,13 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import type { InvoiceRecord, LanguageCode, Targow } from '../../types';
 import {
-  CRITERION_LABELS,
-  PERIOD_LABELS,
   buildLeaderboard,
   type LeaderboardCriterion,
   type TargowPeriod,
 } from '../../db/targowService';
 import { formatMoney } from '../../utils/money';
+import { useT } from '../../locales/LanguageContext';
 
 interface LeaderboardProps {
   targows: readonly Targow[];
@@ -18,9 +17,23 @@ interface LeaderboardProps {
 
 const PERIODS: TargowPeriod[] = ['today', 'week', 'month', 'all'];
 const CRITERIA: LeaderboardCriterion[] = ['amount', 'orders', 'newCustomers'];
+
+/** db'deki tm etiket haritaları yerine çeviri anahtarları. */
+const PERIOD_KEYS: Record<TargowPeriod, string> = {
+  today: 'targowy.today',
+  week: 'targowy.thisWeek',
+  month: 'targowy.thisMonth',
+  all: 'targowy.periodAll',
+};
+const CRITERION_KEYS: Record<LeaderboardCriterion, string> = {
+  amount: 'targowy.critAmount',
+  orders: 'targowy.critOrders',
+  newCustomers: 'targowy.critNewCustomers',
+};
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export const Leaderboard: React.FC<LeaderboardProps> = ({ targows, invoices, language }) => {
+  const t = useT();
   const [period, setPeriod] = useState<TargowPeriod>('month');
   const [criterion, setCriterion] = useState<LeaderboardCriterion>('amount');
 
@@ -44,7 +57,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ targows, invoices, lan
                   : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
               }`}
             >
-              {PERIOD_LABELS[item]}
+              {t(PERIOD_KEYS[item])}
             </button>
           ))}
 
@@ -55,7 +68,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ targows, invoices, lan
           >
             {CRITERIA.map((item) => (
               <option key={item} value={item}>
-                {CRITERION_LABELS[item]}
+                {t(CRITERION_KEYS[item])}
               </option>
             ))}
           </select>
@@ -67,20 +80,20 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ targows, invoices, lan
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 select-none">
-                <th className="py-3 px-4 w-16 text-center">Sıra</th>
-                <th className="py-3 px-4">Ady</th>
-                <th className="py-3 px-4 text-right">Sargyt sany</th>
-                <th className="py-3 px-4 text-right">Jemi tutar</th>
-                <th className="py-3 px-4 text-right">Ortaça sargyt</th>
-                <th className="py-3 px-4 text-right">Täze müşderi</th>
-                <th className="py-3 px-4 text-center">Trend</th>
+                <th className="py-3 px-4 w-16 text-center">{t('targowy.colRank')}</th>
+                <th className="py-3 px-4">{t('targowy.colName')}</th>
+                <th className="py-3 px-4 text-right">{t('targowy.colOrderCount')}</th>
+                <th className="py-3 px-4 text-right">{t('targowy.colTotalAmount')}</th>
+                <th className="py-3 px-4 text-right">{t('targowy.avgOrder')}</th>
+                <th className="py-3 px-4 text-right">{t('targowy.colNewCustomer')}</th>
+                <th className="py-3 px-4 text-center">{t('targowy.colTrend')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {rows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-16 text-center text-gray-400 font-semibold text-xs">
-                    {language === 'tm' ? 'Targowçy ýok' : 'Targowçı yok'}
+                    {t('targowy.noTargow')}
                   </td>
                 </tr>
               ) : (

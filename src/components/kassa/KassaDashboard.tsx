@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowDownLeft, ArrowUpRight, CreditCard, Wallet } from 'lucide-react';
 import type { LanguageCode, MoneyTransaction } from '../../types';
 import { formatMoneyTmt, todayIsoDate } from '../../utils/money';
+import { useT } from '../../locales/LanguageContext';
 
 interface KassaDashboardProps {
   transactions: readonly MoneyTransaction[];
@@ -61,12 +62,13 @@ function computeTotals(transactions: readonly MoneyTransaction[]): MoneyTotals {
 
 export const KassaDashboard: React.FC<KassaDashboardProps> = ({ transactions, language }) => {
   const totals = computeTotals(transactions);
-  const todayLabel = language === 'tm' ? 'Şu gün' : 'Bugün';
+  const t = useT();
+  const todayLabel = t('kassa.today');
 
   const cards = [
     {
       key: 'balance',
-      label: 'Kassadaky galyndy',
+      label: t('kassa.balanceCard'),
       value: formatMoneyTmt(totals.balance),
       valueClass: totals.balance >= 0 ? 'text-emerald-600' : 'text-rose-600',
       icon: <Wallet className="w-4 h-4" />,
@@ -74,7 +76,7 @@ export const KassaDashboard: React.FC<KassaDashboardProps> = ({ transactions, la
     },
     {
       key: 'income',
-      label: 'Şu günki giriş',
+      label: t('kassa.todayIncome'),
       value: `+${formatMoneyTmt(totals.todayIncome)}`,
       valueClass: 'text-emerald-600',
       icon: <ArrowDownLeft className="w-4 h-4" />,
@@ -82,7 +84,7 @@ export const KassaDashboard: React.FC<KassaDashboardProps> = ({ transactions, la
     },
     {
       key: 'expense',
-      label: 'Şu günki çykyş',
+      label: t('kassa.todayExpense'),
       value: `−${formatMoneyTmt(totals.todayExpense)}`,
       valueClass: 'text-rose-600',
       icon: <ArrowUpRight className="w-4 h-4" />,
@@ -117,11 +119,11 @@ export const KassaDashboard: React.FC<KassaDashboardProps> = ({ transactions, la
         </div>
         <div className="space-y-0.5 text-xs font-mono">
           <div className="flex items-center justify-between">
-            <span className="text-gray-500 font-sans font-semibold">Nagt:</span>
+            <span className="text-gray-500 font-sans font-semibold">{t('kassa.cashLabel')}:</span>
             <span className="font-bold text-gray-800">{formatMoneyTmt(totals.splitCash)}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-gray-500 font-sans font-semibold">Kart/Geçirme:</span>
+            <span className="text-gray-500 font-sans font-semibold">{t('kassa.cardLabel')}:</span>
             <span className="font-bold text-gray-800">{formatMoneyTmt(totals.splitCard)}</span>
           </div>
         </div>

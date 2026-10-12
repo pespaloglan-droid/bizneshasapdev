@@ -9,6 +9,7 @@ import type {
 } from '../../types';
 import { buildThermalReceiptHtml } from '../../utils/receiptHtml';
 import { listPrintersOrEmpty, printHtmlOrFallback } from '../../utils/electron';
+import { useT } from '../../locales/LanguageContext';
 
 interface DraftPrintModalProps {
   language: LanguageCode;
@@ -36,7 +37,7 @@ export const DraftPrintModal: React.FC<DraftPrintModalProps> = ({
   settings,
   onClose,
 }) => {
-  const isTm = language === 'tm';
+  const t = useT();
   const [printers, setPrinters] = useState<{ name: string; displayName: string; isDefault: boolean }[]>([]);
   const [deviceName, setDeviceName] = useState('');
   const [notice, setNotice] = useState('');
@@ -82,7 +83,7 @@ export const DraftPrintModal: React.FC<DraftPrintModalProps> = ({
     [items, subtotal, discountTotal, invoiceCode, selectedCustomer]
   );
 
-  const html = buildThermalReceiptHtml(draft, settings, storeName, '');
+  const html = buildThermalReceiptHtml(draft, settings, storeName, '', language);
 
   const handlePrint = async () => {
     setNotice('');
@@ -95,8 +96,8 @@ export const DraftPrintModal: React.FC<DraftPrintModalProps> = ({
     });
     setNotice(
       ok
-        ? (isTm ? 'Çap edildi.' : 'Yazdırıldı.')
-        : (isTm ? 'Çap başartmady.' : 'Yazdırma başarısız.')
+        ? t('pos.dpPrinted')
+        : t('pos.dpPrintFailed')
     );
   };
 
@@ -105,7 +106,7 @@ export const DraftPrintModal: React.FC<DraftPrintModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
         <div className="px-5 py-4 bg-gradient-to-r from-[#0B1F3A] to-[#163864] text-white flex items-center justify-between flex-shrink-0">
           <span className="font-bold text-sm tracking-wide">
-            {isTm ? `Çap — ${draft.invoiceNo}` : `Yazdır — ${draft.invoiceNo}`}
+            {t('pos.dpTitle', { no: draft.invoiceNo })}
           </span>
           <button
             type="button"
@@ -120,7 +121,7 @@ export const DraftPrintModal: React.FC<DraftPrintModalProps> = ({
           {/* Öňünden görkeziş */}
           <div className="flex-1 min-h-0 bg-gray-50 rounded-xl overflow-auto p-2">
             <iframe
-              title={isTm ? 'Öňünden görkeziş' : 'Önizleme'}
+              title={t('pos.dpPreview')}
               srcDoc={html}
               className="w-full h-full min-h-[420px]"
             />
@@ -129,14 +130,14 @@ export const DraftPrintModal: React.FC<DraftPrintModalProps> = ({
           {/* Yazdyryjy saýlama */}
           <div className="w-64 flex flex-col gap-3 flex-shrink-0 bg-white border border-gray-200 rounded-xl p-3">
             <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-              {isTm ? 'Yazdyryjy' : 'Yazıcı'}
+              {t('pos.dpPrinter')}
             </div>
             <select
               value={deviceName}
               onChange={(e) => setDeviceName(e.target.value)}
               className="w-full h-9 px-2 border border-gray-200 rounded-lg text-[11px] text-gray-700 bg-[#F8FAFC] focus:ring-2 focus:ring-emerald-500 outline-none"
             >
-              <option value="">{isTm ? 'Deslapky (düzgün)' : 'Varsayılan (varsayılan)'}</option>
+              <option value="">{t('pos.dpDefaultPrinter')}</option>
               {printers.map((printer) => (
                 <option key={printer.name} value={printer.name}>
                   {printer.displayName}
@@ -149,7 +150,7 @@ export const DraftPrintModal: React.FC<DraftPrintModalProps> = ({
               className="h-10 px-4 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs flex items-center gap-2 transition-colors shadow-sm"
             >
               <Printer className="w-4 h-4" />
-              {isTm ? 'Çap et' : 'Yazdır'}
+              {t('pos.dpPrintBtn')}
             </button>
             {notice && (
               <div className="text-[10px] font-semibold text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-2 py-1.5">
@@ -157,9 +158,7 @@ export const DraftPrintModal: React.FC<DraftPrintModalProps> = ({
               </div>
             )}
             <p className="text-[10px] text-gray-400 leading-snug">
-              {isTm
-                ? 'Mukdar we bahalar häzirki sepede görä. Faktura doly gutarylmadyk — diňe garalama çapy.'
-                : 'Tutar ve fiyatlar mevcut sepete göre. Fatura tamamlanmadı — yalnızca taslak yazdırma.'}
+              {t('pos.dpNote')}
             </p>
           </div>
         </div>
