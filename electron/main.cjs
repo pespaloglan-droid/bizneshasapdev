@@ -399,6 +399,10 @@ if (!gotTheLock) {
     });
 
     createWindow();
+    require('./telemetry.cjs').setupCrashReporting({
+      app, ipcMain, getWindow: () => mainWindow,
+      dsn: process.env.BIZNES_SENTRY_DSN || require('../package.json').sentryDsn || '',
+    });
     require('./auto-update.cjs').startAutoUpdates({
       app,
       dialog,

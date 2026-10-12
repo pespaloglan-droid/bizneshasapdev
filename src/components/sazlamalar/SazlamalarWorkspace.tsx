@@ -1,3 +1,4 @@
+import { TelemetrySettingsPanel } from './TelemetrySettingsPanel';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import type { Account, AppSettings, InvoiceRecord, LanguageCode, Product, RoleTemplates } from '../../types';
@@ -387,7 +388,7 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
         )}
 
         {section === 'sync' && (
-          <AccountConnectionPanel language={language} storeDb={storeDb} account={account} />
+          <AccountConnectionPanel language={language} storeDb={storeDb} account={account} canEdit={canEditSettings} />
         )}
 
         {section === 'audit' && <AuditLogPanel />}
@@ -395,6 +396,7 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
         {section === 'general' && (
           <div className="space-y-3">
             <EncryptionSettingsCard disabled={!canEditSettings} />
+            <TelemetrySettingsPanel disabled={!canEditSettings} />
             <GeneralSettingsPanel
               value={draft.general}
               currencyCode={currencyCode}

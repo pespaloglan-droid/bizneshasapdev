@@ -531,6 +531,11 @@ export const translations: Record<LanguageCode, {
   };
   /** Ayarlar ekranı. */
   sazlamalar: {
+    telemetryTitle: string;
+    telemetryHint: string;
+    telemetryAnalytics: string;
+    telemetryCrashes: string;
+    telemetryNotConfigured: string;
     sectionGeneral: string;
     resetToDefaults: string;
     unitNameRequired: string;
@@ -2252,6 +2257,11 @@ export const translations: Record<LanguageCode, {
       ledgerBalance: "Kasadaki / Defterdeki bakiye",
     },
     sazlamalar: {
+      telemetryTitle: "Gizlilik ve telemetri",
+      telemetryHint: "İzinler yalnızca bu cihaz içindir ve varsayılan kapalıdır. Ticari veriler, isimler, faturalar, parolalar ve ekran kaydı gönderilmez. Dilediğiniz an kapatabilirsiniz.",
+      telemetryAnalytics: "Anonim özellik kullanımına izin ver",
+      telemetryCrashes: "Windows uygulamasında anonim hata raporlarına izin ver",
+      telemetryNotConfigured: "Analiz servisi yapılandırılmamış; kullanım verisi gönderilmez. Hata raporları da yalnızca yapılandırılmış Windows uygulamasında çalışır.",
       sectionGeneral: "Genel Ayarlar",
       resetToDefaults: "Varsayılanlara Dön",
       unitNameRequired: "Ad giriniň.",
@@ -3878,6 +3888,11 @@ export const translations: Record<LanguageCode, {
       ledgerBalance: "Kassadaky / Depderdäki galyndy",
     },
     sazlamalar: {
+      telemetryTitle: "Gizlinlik we telemetriýa",
+      telemetryHint: "Rugsatlar diňe bu enjam üçin we deslap ýapykdyr. Söwda maglumatlary, atlar, fakturalar, parollar we ekran ýazgysy iberilmeýär. Islän wagtyňyz ýapyp bilersiňiz.",
+      telemetryAnalytics: "Anonim aýratynlyk ulanylyşyna rugsat ber",
+      telemetryCrashes: "Windows programmasynda anonim ýalňyşlyk hasabatlaryna rugsat ber",
+      telemetryNotConfigured: "Analiz hyzmaty sazlanmady; ulanylyş maglumatlary iberilmeýär. Ýalňyşlyk hasabatlary diňe sazlanan Windows programmasynda işleýär.",
       sectionGeneral: "Umumy Sazlamalar",
       resetToDefaults: "Deslapky Sazlamalara Gaýtar",
       unitNameRequired: "At giriziň.",
@@ -5503,6 +5518,11 @@ export const translations: Record<LanguageCode, {
       ledgerBalance: "Cash / ledger balance",
     },
     sazlamalar: {
+      telemetryTitle: "Privacy and telemetry",
+      telemetryHint: "Permissions apply only to this device and are off by default. Business data, names, invoices, passwords and screen recordings are not sent. You may turn them off at any time.",
+      telemetryAnalytics: "Allow anonymous feature usage",
+      telemetryCrashes: "Allow anonymous error reports in the Windows app",
+      telemetryNotConfigured: "Analytics is not configured; no usage data is sent. Error reporting also requires a configured Windows app.",
       sectionGeneral: "General Settings",
       resetToDefaults: "Reset to Defaults",
       unitNameRequired: "Enter a name.",
@@ -7128,6 +7148,11 @@ export const translations: Record<LanguageCode, {
       ledgerBalance: "Остаток в кассе / книге",
     },
     sazlamalar: {
+      telemetryTitle: "Конфиденциальность и телеметрия",
+      telemetryHint: "Разрешения действуют только на этом устройстве и по умолчанию выключены. Деловые данные, имена, счета, пароли и записи экрана не отправляются. Можно отключить в любой момент.",
+      telemetryAnalytics: "Разрешить анонимную статистику функций",
+      telemetryCrashes: "Разрешить анонимные отчёты об ошибках Windows-приложения",
+      telemetryNotConfigured: "Аналитика не настроена; данные использования не отправляются. Отчёты об ошибках также требуют настроенного Windows-приложения.",
       sectionGeneral: "Общие настройки",
       resetToDefaults: "Сбросить настройки",
       unitNameRequired: "Введите название.",

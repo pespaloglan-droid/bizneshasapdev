@@ -5,7 +5,7 @@ import { CONFLICT_REVIEW_EVENT, isConflictReviewEnabled, setConflictReviewEnable
 import { SYNC_IMPORTED_EVENT } from '../db/schemaBridge';
 
 /** Tercih bu hesap/veritabanı ve cihaz içindir; varsayılan sessiz LWW değişmez. */
-export function ConflictResolverModal({ dbName }: { dbName: string }) {
+export function ConflictResolverModal({ dbName, disabled = false }: { dbName: string; disabled?: boolean }) {
   const t = useT();
   const [review, setReview] = useState(() => isConflictReviewEnabled(dbName));
   const [open, setOpen] = useState(false);
@@ -26,6 +26,7 @@ export function ConflictResolverModal({ dbName }: { dbName: string }) {
     finally { setBusy(false); }
   }
   async function apply() {
+    if (disabled) return;
     setBusy(true); setError(''); let failed = false;
     for (const record of records) {
       if (!choices[record.id]) continue;
@@ -38,7 +39,7 @@ export function ConflictResolverModal({ dbName }: { dbName: string }) {
   }
   return <section className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
     <label className="flex gap-2 items-center text-xs font-semibold">
-      <input type="checkbox" checked={review} onChange={event => {
+      <input type="checkbox" disabled={disabled} checked={review} onChange={event => {
         try { setConflictReviewEnabled(dbName, event.target.checked); setReview(event.target.checked); }
         catch { setError(t('conflicts.changed')); }
       }} />{t('conflicts.review')}
@@ -57,7 +58,7 @@ export function ConflictResolverModal({ dbName }: { dbName: string }) {
           <button disabled={busy} onClick={() => void refresh()} className="border rounded-lg px-3 py-2">{t('conflicts.refresh')}</button>
           <button disabled={busy || !records.length} className="border rounded-lg px-3 py-2" onClick={() => setChoices(Object.fromEntries(records.map(record => [record.id,
             record.versions.reduce((best, version) => version.timestamp > best.timestamp ? version : best).rev])))}>{t('conflicts.newest')}</button>
-          <button disabled={busy || !Object.keys(choices).length} onClick={() => void apply()} className="bg-emerald-600 text-white disabled:opacity-40 rounded-lg px-3 py-2">{t('conflicts.apply', { count: Object.keys(choices).length })}</button>
+          <button disabled={disabled || busy || !Object.keys(choices).length} onClick={() => void apply()} className="bg-emerald-600 text-white disabled:opacity-40 rounded-lg px-3 py-2">{t('conflicts.apply', { count: Object.keys(choices).length })}</button>
         </div>
         {records.map(record => <section key={record.id} className="border rounded-lg p-3 space-y-2">
           <h3 className="text-xs font-mono break-all">{record.id}</h3>

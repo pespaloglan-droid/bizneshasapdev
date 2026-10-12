@@ -1,3 +1,4 @@
+import { useTelemetry } from '../../hooks/useTelemetry';
 import { useCatalogActions } from '../../hooks/useCatalogActions';
 import { useDraftActions } from '../../hooks/useDraftActions';
 import { useInvoiceEffects } from '../../hooks/useInvoiceEffects';
@@ -159,6 +160,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
 
   // Navigation
   const [activeTab, setActiveTab] = useState<PosTabType>('checkout');
+  useTelemetry(activeTab);
   // Mobil: çekmece menü + satış içi sekme (sepet / ürünler / ödeme)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [mobilePane, setMobilePane] = useState<'cart' | 'catalog' | 'pay'>('cart');

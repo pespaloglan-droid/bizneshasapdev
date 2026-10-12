@@ -40,6 +40,7 @@ export interface GateResult {
 declare global {
   interface Window {
     electronAPI: {
+      setCrashReportingConsent?(enabled: boolean): Promise<{ enabled: boolean; configured: boolean }>;
       // Window controls
       minimize(): void;
       maximize(): void;

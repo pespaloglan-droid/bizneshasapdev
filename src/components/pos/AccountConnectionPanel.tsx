@@ -8,6 +8,7 @@ import { ConnectionFields } from './ConnectionFields';
 interface Props {
   language: LanguageCode;
   storeDb: string;
+  canEdit?: boolean;
   account?: Account;
   /** PC'den gelen belgeleri içeri alma tetikleyicisi. */
   onDocsChanged?: () => void;
@@ -19,7 +20,7 @@ interface Props {
  * Satırların kendisi `ConnectionFields` bileşeninde — hesap ekranları da aynı
  * bileşeni kullanıyor (kod tekrarı yok).
  */
-export const AccountConnectionPanel: React.FC<Props> = ({ language, storeDb, account, onDocsChanged }) => {
+export const AccountConnectionPanel: React.FC<Props> = ({ language, storeDb, account, onDocsChanged, canEdit = false }) => {
   if (!account?.id) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-xs text-gray-500">
@@ -42,7 +43,7 @@ export const AccountConnectionPanel: React.FC<Props> = ({ language, storeDb, acc
         </div>
       </div>
 
-      <ConflictResolverModal dbName={storeDb} />
+      <ConflictResolverModal dbName={storeDb} disabled={!canEdit} />
 
       <ConnectionFields
         accountId={account.id}
