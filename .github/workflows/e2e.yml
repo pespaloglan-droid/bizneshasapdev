@@ -1,5 +1,8 @@
 name: Web uçtan uca testler
 on:
+  push:
+    branches:
+      - "faz-c-d/**"
   pull_request:
   workflow_dispatch:
 permissions:

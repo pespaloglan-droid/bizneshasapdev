@@ -585,3 +585,10 @@ SHA-256: `67ac8d3eb8f44db9bcade2113ef2dc7a994d14c87609024ffa9653c01e5e816f`.
 Yedeksiz uninstall veri kaybettirebilir; bu işlem yapılmadı ve önerilen bir yükseltme yolu değildir.
 Fiziksel Android cihazda Documents/import ve donanım işlevleri henüz test edilmedi.
 Gerçek CouchDB live sync ve kullanıcı Sentry/PostHog projeleri ayrıca doğrulanmalıdır.
+
+### Push sonrası workflow doğrulaması
+
+GitHub'ın bildirdiği job-env `runner.temp` context hatası giderildi; geçici
+sertifika yolu pwsh step'inde GITHUB_ENV ile hazırlanır. Actionlint tüm workflow'ları
+hatasız doğruladı. E2E kontrolü çalışma branch'i push'larında da tetiklenir.
+Bu yalnızca workflow düzeltmesidir; APK'nın kaynak kodu ve SHA-256'sı değişmedi.

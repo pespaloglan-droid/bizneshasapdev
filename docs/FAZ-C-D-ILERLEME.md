@@ -73,3 +73,7 @@ Aşağıdakiler ayrıca gerçek ortam gerektirir ve kaynak testleriyle doğrulan
   APK repodaki dosyaya kopyalandı; üretim paketinde E2E fixture yok.
   Yeni debug imzası eski v1.3.7 ile eşleşmediğinden yerinde güncelleme için eski
   keystore gerekir. Fiziksel cihaz testi hâlâ yapılmadı.
+- İlk remote kontrolde Windows workflow job-env içindeki `runner.temp` context'i
+  GitHub doğrulayıcısı tarafından reddedildi. Yol step içinde GITHUB_ENV üzerinden
+  hazırlanacak şekilde düzeltildi; tüm workflow'lar actionlint ile hatasız doğrulandı.
+  E2E workflow çalışma branch'inin push'larında da çalışacak şekilde tetiklendi.

@@ -9,10 +9,12 @@ permissions:
 jobs:
   signed-build:
     runs-on: windows-latest
-    env:
-      CERT_FILE: ${{ runner.temp }}/bizneshasap-signing/bizneshasap.pfx
-
     steps:
+      - name: Geçici sertifika yolunu hazırla
+        shell: pwsh
+        run: |
+          "CERT_FILE=$env:RUNNER_TEMP/bizneshasap-signing/bizneshasap.pfx" >> $env:GITHUB_ENV
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
