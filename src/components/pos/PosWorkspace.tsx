@@ -1,3 +1,4 @@
+import { useCatalogActions } from '../../hooks/useCatalogActions';
 import { useDraftActions } from '../../hooks/useDraftActions';
 import { useInvoiceEffects } from '../../hooks/useInvoiceEffects';
 import { useInvoiceActions } from '../../hooks/useInvoiceActions';
@@ -909,140 +910,38 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
   }, [activeTab, isAnyModalOpen]);
 
   // ── Product CRUD Handlers ────────────────────────────────────────
-  const handleAddProduct = (p: Product) => {
-    setProducts(prev => [p, ...prev]);
-    saveProductToDb(p, storeDb).catch(() => {});
-  };
+  const { handleAddProduct, handleUpdateProduct, handleDeleteProduct, handleImportProducts, handleImportCustomers, handleAddCustomer, handleUpdateCustomer, handleDeleteCustomer, applyCustomerDeltas, handleQuickAddCustomer } = useCatalogActions({ setProducts, storeDb, setCustomers, setSelectedCustomer, setToastMessage, selectedCustomer, customers });
 
-  const handleUpdateProduct = (p: Product) => {
-    setProducts(prev => prev.map(x => x.id === p.id ? p : x));
-    saveProductToDb(p, storeDb).catch(() => {});
-  };
 
-  const handleDeleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(x => x.id !== id));
-    deleteProductFromDb(id, storeDb).catch(() => {});
-  };
+
+
 
   // ── Excel import: toplu ýazgy — ähli harytlar BIR batch-de ýazylýar. ──
   // Şowsuz galanlar UI-a goşulmaýar; setir belgisi + sebäp bilen hasaba alnyp
   // import modalyna gaýdýar (ýalňyşlyk ýutulmaýar).
-  const handleImportProducts = async (
-    items: ReadonlyArray<{ product: Product; rowNumber: number }>
-  ): Promise<BatchWriteResult> => {
-    const result = await saveProductsBatchDb(
-      items.map((item) => item.product),
-      storeDb
-    );
-    const failedIds = new Set(result.failed.map((f) => f.id));
-    const succeeded = items.map((item) => item.product).filter((p) => !failedIds.has(p.id));
-    setProducts((prev) => {
-      const prevIds = new Set(prev.map((p) => p.id));
-      const fresh: Product[] = [];
-      const replaced = new Map<string, Product>();
-      for (const product of succeeded) {
-        if (prevIds.has(product.id)) replaced.set(product.id, product);
-        else fresh.push(product);
-      }
-      return [...fresh, ...prev.map((p) => replaced.get(p.id) ?? p)];
-    });
-    return result;
-  };
+
 
   // ── Excel import: toplu ýazgy — ähli müşderiler BIR batch-de ýazylýar. ──
-  const handleImportCustomers = async (
-    items: ReadonlyArray<{ customer: Customer; rowNumber: number }>
-  ): Promise<BatchWriteResult> => {
-    const result = await saveCustomersBatchDb(
-      items.map((item) => item.customer),
-      storeDb
-    );
-    const failedIds = new Set(result.failed.map((f) => f.id));
-    const succeeded = items.map((item) => item.customer).filter((c) => !failedIds.has(c.id));
-    setCustomers((prev) => {
-      const prevIds = new Set(prev.map((c) => c.id));
-      const fresh: Customer[] = [];
-      const replaced = new Map<string, Customer>();
-      for (const customer of succeeded) {
-        if (prevIds.has(customer.id)) replaced.set(customer.id, customer);
-        else fresh.push(customer);
-      }
-      return [...fresh, ...prev.map((c) => replaced.get(c.id) ?? c)];
-    });
-    setSelectedCustomer((prev) => {
-      if (!prev) return prev;
-      return succeeded.find((c) => c.id === prev.id) ?? prev;
-    });
-    return result;
-  };
 
-  const handleAddCustomer = (newCustomer: Customer) => {
-    setCustomers(prev => [newCustomer, ...prev]);
-    saveCustomerToDb(newCustomer, storeDb).catch(() => {});
-    setToastMessage({ type: 'success', text: `${newCustomer.name} üstünlikli goşuldy.` });
-    setTimeout(() => setToastMessage(null), 3000);
-  };
 
-  const handleUpdateCustomer = (customer: Customer) => {
-    setCustomers(prev => prev.map(c => (c.id === customer.id ? customer : c)));
-    setSelectedCustomer(prev => (prev?.id === customer.id ? customer : prev));
-    saveCustomerToDb(customer, storeDb).catch(() => {});
-  };
 
-  const handleDeleteCustomer = (id: string) => {
-    // "Umumy Müşderi" sistem ýazgysy — pozup bolmaýar.
-    if (id === GENERAL_CUSTOMER_ID) return;
-    setCustomers(prev => prev.filter(c => c.id !== id));
-    if (selectedCustomer?.id === id) setSelectedCustomer(null);
-    deleteCustomerFromDb(id, storeDb).catch(() => {});
-  };
+
+
+
+
 
 // ─ Kassa (Para Hereketleri) Handlers ────────────────────────────
   // Müşderi balansyny bir snapşot üstünde bitewüleşdirip ulanýarys —
   // hereket goşulanda hem-de öňki hereket üýtgedilende dogry hasaplansyn.
   // (Ambar / Ulanyjy CRUD-y useModuleStores hook-ynda ýaşaýar.)
-  const applyCustomerDeltas = (adjustments: CustomerAdjustment[]) => {
-    const merged = new Map<string, number>();
-    for (const { customerId, delta } of adjustments) {
-      if (!customerId || delta === 0) continue;
-      merged.set(customerId, (merged.get(customerId) ?? 0) + delta);
-    }
-    if (merged.size === 0) return;
 
-    const touched: Customer[] = [];
-    const nextCustomers = customers.map((customer) => {
-      const delta = merged.get(customer.id);
-      if (!delta) return customer;
-      const updated: Customer = { ...customer, balance: customer.balance + delta };
-      touched.push(updated);
-      return updated;
-    });
-
-    setCustomers(nextCustomers);
-    setSelectedCustomer((prev) =>
-      prev ? nextCustomers.find((c) => c.id === prev.id) ?? prev : prev
-    );
-    for (const customer of touched) {
-      saveCustomerToDb(customer, storeDb).catch(() => {});
-    }
-  };
 
   // Para hereketleri (Kassa + Depder geçirimleri) hook içinde ýaşaýar;
   // müşderi balansyny üýtgedýänligi üçin applyCustomerDeltas-a bagly.
   const moneyStore = useMoneyStore(storeDb, applyCustomerDeltas);
   const moneyTransactions = moneyStore.moneyTransactions;
 
-  const handleQuickAddCustomer = (name: string): Customer => {
-    const customer: Customer = {
-      id: `cust-${Date.now()}`,
-      name: name.trim(),
-      type: 'customer',
-      balance: 0
-    };
-    setCustomers((prev) => [customer, ...prev]);
-    saveCustomerToDb(customer, storeDb).catch(() => {});
-    return customer;
-  };
+
 
   // Beýleki modullarda (Faktura / Kassa) ulanylýan walýuta kodlary.
   const inUseCurrencyCodes = useMemo(() => {
