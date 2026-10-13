@@ -34,23 +34,23 @@ interface WorkspaceRouterProps {
   stores: ModuleStores;
   moneyStore: MoneyStore;
   inUseCurrencyCodes: readonly string[];
-  onAddProduct: (product: Product) => void;
-  onUpdateProduct: (product: Product) => void;
-  onDeleteProduct: (id: string) => void;
+  onAddProduct: (product: Product) => boolean | void | Promise<boolean | void>;
+  onUpdateProduct: (product: Product) => boolean | void | Promise<boolean | void>;
+  onDeleteProduct: (id: string) => boolean | void | Promise<boolean | void>;
   /** Excel importynyň toplu ýazgy prosesi (BIR batch, ýalňyşlyklar aýratyn). */
   onImportProducts?: (
     items: ReadonlyArray<{ product: Product; rowNumber: number }>
   ) => Promise<BatchWriteResult>;
-  onAddCustomer: (customer: Customer) => void;
-  onUpdateCustomer: (customer: Customer) => void;
-  onDeleteCustomer: (id: string) => void;
+  onAddCustomer: (customer: Customer) => boolean | void | Promise<boolean | void>;
+  onUpdateCustomer: (customer: Customer) => boolean | void | Promise<boolean | void>;
+  onDeleteCustomer: (id: string) => boolean | void | Promise<boolean | void>;
   /** Excel importynyň toplu ýazgy prosesi (BIR batch, ýalňyşlyklar aýratyn). */
   onImportCustomers?: (
     items: ReadonlyArray<{ customer: Customer; rowNumber: number }>
   ) => Promise<BatchWriteResult>;
   /** "Müşderi → Üýtget" rugsady — Müşderi modulyndaky redaktirle ikony. */
   canEditCustomer?: boolean;
-  onQuickAddCustomer: (name: string) => Customer;
+  onQuickAddCustomer: (name: string) => Promise<Customer | null>;
   storeDb: string;
   companyName: string;
   currencyCode: string;

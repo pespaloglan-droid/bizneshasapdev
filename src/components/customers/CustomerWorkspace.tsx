@@ -44,9 +44,9 @@ interface CustomerWorkspaceProps {
   language: LanguageCode;
   /** "Müşderi → Üýtget" rugsady — şu rugsady bolan ulanyjylar diňe ✏️ görýär. */
   canEditCustomer?: boolean;
-  onAddCustomer: (customer: Customer) => void;
-  onUpdateCustomer: (customer: Customer) => void;
-  onDeleteCustomer: (id: string) => void;
+  onAddCustomer: (customer: Customer) => boolean | void | Promise<boolean | void>;
+  onUpdateCustomer: (customer: Customer) => boolean | void | Promise<boolean | void>;
+  onDeleteCustomer: (id: string) => boolean | void | Promise<boolean | void>;
   /**
    * Excel importynyň toplu ýazgy prosesi: çykyşy tassyklanan müşderileriň
    * hemmesini BIR batch-de ýazýar we şowsuzlary aýratynlykda hasaba alýar.
@@ -302,8 +302,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
       }
     } else {
       for (const item of planned) {
-        if (item.action === 'add') onAddCustomer(item.customer);
-        else onUpdateCustomer(item.customer);
+        try { const saved = item.action === 'add' ? await onAddCustomer(item.customer) : await onUpdateCustomer(item.customer); if (saved === false) throw new Error('CATALOG_WRITE_FAILED'); } catch { failed.push({ row: item.rowNumber, name: item.customer.name, detail: item.customer.phone ?? '', reason: t('pos.catalogWriteFailed') }); if (item.action === 'add') added--; else updated--; }
       }
     }
 
@@ -311,9 +310,10 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
   };
 
   /** Birbada üýtgedilen müşderileriň hemmesini ýazýar. */
-  const handleBulkCustomerSave = (updated: Customer[]) => {
-    for (const customer of updated) onUpdateCustomer(customer);
-    setIsBulkOpen(false);
+  const handleBulkCustomerSave = async (updated: Customer[]) => {
+    const results = await Promise.allSettled(updated.map(customer => onUpdateCustomer(customer)));
+    if (results.some(r => r.status === 'rejected' || r.value === false)) return false;
+    setIsBulkOpen(false); return true;
   };
 
   return (
@@ -450,8 +450,8 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
             <CustomerForm
               mode="create"
               language={language}
-              onSave={(customer) => {
-                onAddCustomer(customer);
+              onSave={async (customer) => {
+                if (await onAddCustomer(customer) === false) return false;
                 setIsFormOpen(false);
               }}
               onCancel={() => setIsFormOpen(false)}
@@ -472,8 +472,8 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
               initial={editingCustomer}
               language={language}
               nameReadOnly={editingCustomer.id === GENERAL_CUSTOMER_ID}
-              onSave={(updated) => {
-                onUpdateCustomer(updated);
+              onSave={async (updated) => {
+                if (await onUpdateCustomer(updated) === false) return false;
                 setEditingCustomer(null);
               }}
               onCancel={() => setEditingCustomer(null)}

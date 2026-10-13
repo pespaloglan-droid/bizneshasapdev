@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useRef } from 'react';
 import { useT } from '../locales/LanguageContext';
 import { Product, Customer } from '../types';
 import { saveProductToDb, deleteProductFromDb, saveProductsBatchDb } from '../db/productService';
@@ -19,21 +20,29 @@ interface Options {
 
 export function useCatalogActions({ setProducts, storeDb, setCustomers, setSelectedCustomer, setToastMessage, selectedCustomer, customers }: Options) {
   const t = useT();
-
-const handleAddProduct = (p: Product) => {
-    setProducts(prev => [p, ...prev]);
-    saveProductToDb(p, storeDb).catch(() => {});
+  const inFlight = useRef(new Set<string>());
+  const persist = async (key: string, write: () => Promise<unknown>, update: () => void): Promise<boolean> => {
+    if (inFlight.current.has(key)) return false;
+    inFlight.current.add(key);
+    try {
+      if (await write() === false) throw new Error('CATALOG_WRITE_FAILED');
+      update();
+      return true;
+    } catch {
+      setToastMessage({ type: 'info', text: t('pos.catalogWriteFailed') });
+      return false;
+    } finally { inFlight.current.delete(key); }
   };
 
-const handleUpdateProduct = (p: Product) => {
+const handleAddProduct = (p: Product) => persist(`product:${p.id}`, () => saveProductToDb(p, storeDb), () => {
+    setProducts(prev => [p, ...prev.filter(x => x.id !== p.id)]);
+  });
+const handleUpdateProduct = (p: Product) => persist(`product:${p.id}`, () => saveProductToDb(p, storeDb), () => {
     setProducts(prev => prev.map(x => x.id === p.id ? p : x));
-    saveProductToDb(p, storeDb).catch(() => {});
-  };
-
-const handleDeleteProduct = (id: string) => {
+  });
+const handleDeleteProduct = (id: string) => persist(`product:${id}`, () => deleteProductFromDb(id, storeDb), () => {
     setProducts(prev => prev.filter(x => x.id !== id));
-    deleteProductFromDb(id, storeDb).catch(() => {});
-  };
+  });
 
 const handleImportProducts = async (
     items: ReadonlyArray<{ product: Product; rowNumber: number }>
@@ -83,25 +92,20 @@ const handleImportCustomers = async (
     return result;
   };
 
-const handleAddCustomer = (newCustomer: Customer) => {
-    setCustomers(prev => [newCustomer, ...prev]);
-    saveCustomerToDb(newCustomer, storeDb).catch(() => {});
-    setToastMessage({ type: 'success', text: t('pos.customerAdded', { name: newCustomer.name }) });
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
-const handleUpdateCustomer = (customer: Customer) => {
-    setCustomers(prev => prev.map(c => (c.id === customer.id ? customer : c)));
-    setSelectedCustomer(prev => (prev?.id === customer.id ? customer : prev));
-    saveCustomerToDb(customer, storeDb).catch(() => {});
-  };
-
-const handleDeleteCustomer = (id: string) => {
-    // "Umumy Müşderi" sistem ýazgysy — pozup bolmaýar.
-    if (id === GENERAL_CUSTOMER_ID) return;
-    setCustomers(prev => prev.filter(c => c.id !== id));
-    if (selectedCustomer?.id === id) setSelectedCustomer(null);
-    deleteCustomerFromDb(id, storeDb).catch(() => {});
+const handleAddCustomer = (customer: Customer) => persist(`customer:${customer.id}`, () => saveCustomerToDb(customer, storeDb), () => {
+    setCustomers(prev => [customer, ...prev.filter(x => x.id !== customer.id)]);
+    setToastMessage({ type: 'success', text: t('pos.customerAdded', { name: customer.name }) });
+  });
+const handleUpdateCustomer = (customer: Customer) => persist(`customer:${customer.id}`, () => saveCustomerToDb(customer, storeDb), () => {
+    setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
+    setSelectedCustomer(prev => prev?.id === customer.id ? customer : prev);
+  });
+const handleDeleteCustomer = (id: string): Promise<boolean> => {
+    if (id === GENERAL_CUSTOMER_ID) return Promise.resolve(false);
+    return persist(`customer:${id}`, () => deleteCustomerFromDb(id, storeDb), () => {
+      setCustomers(prev => prev.filter(c => c.id !== id));
+      setSelectedCustomer(prev => prev?.id === id ? null : prev);
+    });
   };
 
 const applyCustomerDeltas = async (adjustments: CustomerAdjustment[]): Promise<boolean> => {
@@ -116,16 +120,10 @@ const applyCustomerDeltas = async (adjustments: CustomerAdjustment[]): Promise<b
     return !failed;
   };
 
-const handleQuickAddCustomer = (name: string): Customer => {
-    const customer: Customer = {
-      id: `cust-${Date.now()}`,
-      name: name.trim(),
-      type: 'customer',
-      balance: 0
-    };
-    setCustomers((prev) => [customer, ...prev]);
-    saveCustomerToDb(customer, storeDb).catch(() => {});
-    return customer;
+const handleQuickAddCustomer = async (name: string): Promise<Customer | null> => {
+    const customer: Customer = { id: `cust-${crypto.randomUUID()}`, name: name.trim(), type: 'customer', balance: 0 };
+    if (!customer.name) return null;
+    return await handleAddCustomer(customer) ? customer : null;
   };
 
   return { handleAddProduct, handleUpdateProduct, handleDeleteProduct, handleImportProducts, handleImportCustomers, handleAddCustomer, handleUpdateCustomer, handleDeleteCustomer, applyCustomerDeltas, handleQuickAddCustomer };

@@ -38,7 +38,7 @@ interface MoneyFormModalProps {
   editingTransaction: MoneyTransaction | null;
   onSave: (transaction: MoneyTransaction) => void | Promise<void>;
   onClose: () => void;
-  onQuickAddCustomer: (name: string) => Customer;
+  onQuickAddCustomer: (name: string) => Promise<Customer | null>;
   ledgerId?: string;
   /** Rugsat berilen gelir kategoriýalary (undefined = ählisi; dropdown diňe şolar görkezýär). */
   allowedIncomeCategories?: readonly string[];
@@ -82,14 +82,19 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
   const patch = (partial: Partial<MoneyFormState>) =>
     setForm((prev) => ({ ...prev, ...partial, ...(partial.customerId !== undefined && partial.customerId !== prev.customerId ? { invoiceId: '' } : {}) }));
 
-  const handleQuickAdd = (name: string) => {
-    const created = onQuickAddCustomer(name);
-    patch({ customerId: created.id });
+  const quickAdding = useRef(false);
+  const handleQuickAdd = async (name: string) => {
+    if (quickAdding.current) return;
+    quickAdding.current=true;
+    try { const created = await onQuickAddCustomer(name); if (created) patch({ customerId: created.id }); else setError(t('pos.catalogWriteFailed')); }
+    catch { setError(t('pos.catalogWriteFailed')); }
+    finally { quickAdding.current=false; }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting.current) return;
+    if (quickAdding.current) { setError(t('pos.catalogWriteFailed')); return; }
     // Hizmet katmanı (backend) koruması: izinsiz kategoriye/kayda yol ýok.
     if (
       form.type === 'income' &&

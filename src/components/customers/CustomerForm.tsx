@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import type { Customer, CustomerType, LanguageCode } from '../../types';
 import { useT } from '../../locales/LanguageContext';
 
@@ -13,7 +13,7 @@ interface CustomerFormProps {
    * Beýle ýazgylarda ady salt-okunur görkezilýär.
    */
   nameReadOnly?: boolean;
-  onSave: (customer: Customer) => void;
+  onSave: (customer: Customer) => boolean | void | Promise<boolean | void>;
   onCancel: () => void;
 }
 
@@ -45,14 +45,20 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
     initial?.cashSalesBlocked ?? false
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (savingRef.current || !name.trim()) return;
+    savingRef.current=true; setSaving(true); setError('');
+    try {
+    let saved;
 
     if (mode === 'edit' && initial) {
       // Galyndy (balance) Faktura/Kassa hereketlerinden awtomatik hasaplanýar —
       // formada diňe görkezilýär, el bilen üýtgedilmeýär, şonuň üçin saklanýar.
-      onSave({
+      saved = await onSave({
         ...initial,
         name: name.trim(),
         phone: phone.trim() || undefined,
@@ -64,7 +70,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         cashSalesBlocked,
       });
     } else {
-      onSave({
+      saved = await onSave({
         id: `cust-${Date.now()}`,
         name: name.trim(),
         phone: phone.trim() || undefined,
@@ -77,6 +83,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         cashSalesBlocked,
       });
     }
+    if (saved === false) setError(t('pos.catalogWriteFailed'));
+    } catch { setError(t('pos.catalogWriteFailed')); }
+    finally { savingRef.current=false; setSaving(false); }
   };
 
   return (
@@ -235,17 +244,20 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         </p>
       </div>
 
+      {error && <div role="alert" className="text-rose-700">{error}</div>}
       {/* Butonlar — formun altında sabit (sticky), hiçbir şeyin üstüne binmez */}
       <div className="flex justify-end gap-2 pt-3 border-t border-gray-100 sticky bottom-0 bg-white z-10 shadow-sm pb-1">
         <button
           type="button"
           onClick={onCancel}
+          disabled={saving}
           className="flex-1 sm:flex-none px-5 h-12 rounded-xl border border-gray-300 hover:bg-gray-50 text-sm font-bold text-gray-700 transition-all active:scale-95"
         >
           {t('cancel')}
         </button>
         <button
           type="submit"
+          disabled={saving}
           className="flex-1 sm:flex-none px-6 h-12 rounded-xl bg-[#10b981] hover:bg-[#059669] text-sm font-bold text-white shadow-sm transition-all active:scale-95"
         >
           {mode === 'edit' ? t('save') : t('customers.saveCreateBtn')}

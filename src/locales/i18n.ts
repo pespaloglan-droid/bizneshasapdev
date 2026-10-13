@@ -113,6 +113,9 @@ export const translations: Record<LanguageCode, {
     receiptInvoiceInvalid: string;
     moneyWriteFailed: string;
     pcMirrorPending: string;
+    catalogWriteFailed: string;
+    pcMirrorRetry: string;
+    pcMirrorRetrying: string;
     effectsIncomplete: string;
     saleSaveFailed: string;
     cardInvoiceSaveFailed: string;
@@ -1893,6 +1896,9 @@ export const translations: Record<LanguageCode, {
       receiptInvoiceInvalid: "Fatura bağlantısı geçersiz veya fatura henüz yüklenmedi. İlgili faturayı yükleyip kontrol edin.",
       moneyWriteFailed: "Para hareketi veya bağlı bakiye güncellenemedi. Kaydı kontrol edin; tekrar tahsilat yapmadan DB durumunu doğrulayın.",
       pcMirrorPending: "PC ayna yazımı tamamlanmadı. Yerel kayıt korunuyor ancak PC’de eksik veya eski görünebilir; eşitleme kaydını kontrol edin.",
+      catalogWriteFailed: "Kayıt tamamlanamadı. Bilgileriniz korunuyor; tekrar deneyin.",
+      pcMirrorRetry: "Tekrar dene",
+      pcMirrorRetrying: "Yeniden deneniyor…",
       effectsIncomplete: "Fatura kaydedildi ancak {count} stok/bakiye yazımı başarısız. Kaydı kontrol edin; aynı satışı tekrar yapmayın.",
       saleSaveFailed: "Satış kaydedilemedi. Sepet korundu; stok ve bakiye değiştirilmedi.",
       cardInvoiceSaveFailed: "Kart onayı alındı ancak fatura kaydedilemedi. Sepet korundu; ödemeyi tekrar çekmeden kayıt durumunu kontrol edin.",
@@ -3573,6 +3579,9 @@ export const translations: Record<LanguageCode, {
       receiptInvoiceInvalid: "Faktura baglanyşygy nädogry ýa-da faktura ýüklenmedi. Fakturany ýükläp barlaň.",
       moneyWriteFailed: "Pul hereketi ýa-da bagly balans täzelenmedi. Ýazgyny barlaň; tölegi gaýtalamazdan DB ýagdaýyny barlaň.",
       pcMirrorPending: "PC aýna ýazgysy tamamlanmady. Ýerli ýazgy saklanýar, emma PC-de ýok ýa-da köne bolup biler; sinhron ýazgyny barlaň.",
+      catalogWriteFailed: "Ýazgy tamamlanmady. Girizen maglumatlaryňyz saklanýar; gaýtadan synanyşyň.",
+      pcMirrorRetry: "Gaýtadan synanyş",
+      pcMirrorRetrying: "Gaýtadan synanyşylýar…",
       effectsIncomplete: "Faktura saklandy, emma {count} stok/balans ýazgysy şowsuz. Ýazgyny barlaň; şol satuwy gaýtalamaň.",
       saleSaveFailed: "Satuw saklanyp bilinmedi. Sebet saklandy; stok we balans üýtgedilmedi.",
       cardInvoiceSaveFailed: "Kart tassyklamasy alyndy, emma faktura saklanmady. Sebet saklandy; tölegi gaýtalamazdan ýazgyny barlaň.",
@@ -5252,6 +5261,9 @@ export const translations: Record<LanguageCode, {
       receiptInvoiceInvalid: "Invoice link is invalid or the invoice is not loaded yet. Load and verify the invoice.",
       moneyWriteFailed: "Money movement or related balance could not be updated. Check the saved record before repeating a collection.",
       pcMirrorPending: "PC mirror write is pending. Local record is kept, but the PC may show missing or older data; check synchronization.",
+      catalogWriteFailed: "The record could not be saved. Your input is kept; please retry.",
+      pcMirrorRetry: "Retry now",
+      pcMirrorRetrying: "Retrying…",
       effectsIncomplete: "Invoice saved, but {count} stock/balance writes failed. Check the record; do not repeat this sale.",
       saleSaveFailed: "Sale could not be saved. Cart kept; stock and balance were not changed.",
       cardInvoiceSaveFailed: "Card approval received but invoice was not saved. Cart kept; check the payment before charging again.",
@@ -6931,6 +6943,9 @@ export const translations: Record<LanguageCode, {
       receiptInvoiceInvalid: "Привязка неверна или счёт ещё не загружен. Загрузите и проверьте счёт.",
       moneyWriteFailed: "Денежная операция или связанный баланс не обновлены. Проверьте запись перед повторным получением платежа.",
       pcMirrorPending: "Запись для ПК не завершена. Локальная запись сохранена, но на ПК данные могут отсутствовать или быть устаревшими; проверьте синхронизацию.",
+      catalogWriteFailed: "Не удалось сохранить запись. Введённые данные сохранены; повторите попытку.",
+      pcMirrorRetry: "Повторить",
+      pcMirrorRetrying: "Повторная попытка…",
       effectsIncomplete: "Счёт сохранён, но {count} записей остатков/баланса не обновлены. Проверьте запись; не повторяйте продажу.",
       saleSaveFailed: "Продажа не сохранена. Корзина сохранена; остатки и баланс не изменены.",
       cardInvoiceSaveFailed: "Оплата картой подтверждена, но счёт не сохранён. Корзина сохранена; проверьте платёж перед повторным списанием.",

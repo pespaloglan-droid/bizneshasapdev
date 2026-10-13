@@ -33,7 +33,7 @@ interface KassaWorkspaceProps {
   onAdvancedSearchClose: () => void;
   onSaveTransaction: (transaction: MoneyTransaction, previous: MoneyTransaction | null) => Promise<boolean>;
   onDeleteTransaction: (transaction: MoneyTransaction) => void;
-  onQuickAddCustomer: (name: string) => Customer;
+  onQuickAddCustomer: (name: string) => Promise<Customer | null>;
   /** Inçe rugsatlar (Kassa). */
   kassaExtras?: KassaExtras;
   /** Modul düzenle rugsady (kalem ikony). */

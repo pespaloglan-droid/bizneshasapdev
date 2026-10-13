@@ -37,7 +37,7 @@ interface DepderWorkspaceProps {
   onSaveTransaction: (transaction: MoneyTransaction, previous: MoneyTransaction | null) => Promise<boolean>;
   onDeleteTransaction: (transaction: MoneyTransaction) => void;
   onTransfer: (transactions: [MoneyTransaction, MoneyTransaction]) => void;
-  onQuickAddCustomer: (name: string) => Customer;
+  onQuickAddCustomer: (name: string) => Promise<Customer | null>;
 }
 
 export const DepderWorkspace: React.FC<DepderWorkspaceProps> = ({

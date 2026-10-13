@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ListChecks, Save, Search, X } from 'lucide-react';
 import type { LanguageCode, Product } from '../../types';
 import { useT } from '../../locales/LanguageContext';
@@ -7,7 +7,7 @@ interface ProductBulkEditModalProps {
   products: readonly Product[];
   language: LanguageCode;
   onClose: () => void;
-  onSave: (updated: Product[]) => void;
+  onSave: (updated: Product[]) => Promise<boolean>;
 }
 
 type NumericKey = 'purchasePrice' | 'price' | 'stock' | 'criticalStock';
@@ -72,9 +72,15 @@ export const ProductBulkEditModal: React.FC<ProductBulkEditModalProps> = ({
     );
   });
 
-  const handleSave = () => {
-    if (errorCount > 0 || changed.length === 0) return;
-    onSave(changed);
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const handleSave = async () => {
+    if (savingRef.current || errorCount > 0 || changed.length === 0) return;
+    savingRef.current=true; setSaving(true); setError('');
+    try { if (!await onSave(changed)) setError(t('pos.catalogWriteFailed')); }
+    catch { setError(t('pos.catalogWriteFailed')); }
+    finally { savingRef.current=false; setSaving(false); }
   };
 
   return (
@@ -218,10 +224,12 @@ export const ProductBulkEditModal: React.FC<ProductBulkEditModalProps> = ({
               </span>
             )}
           </div>
+          {error && <div role="alert" className="text-rose-700">{error}</div>}
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onClose}
+              disabled={saving}
               className="h-9 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs"
             >
               {t('cancel')}
@@ -229,7 +237,7 @@ export const ProductBulkEditModal: React.FC<ProductBulkEditModalProps> = ({
             <button
               type="button"
               onClick={handleSave}
-              disabled={errorCount > 0 || changed.length === 0}
+              disabled={saving || errorCount > 0 || changed.length === 0}
               className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5"
             >
               <Save className="w-3.5 h-3.5" />

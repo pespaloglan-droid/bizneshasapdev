@@ -37,9 +37,9 @@ interface ProductWorkspaceProps {
   products: Product[];
   units: readonly MeasurementUnit[];
   language: LanguageCode;
-  onAddProduct: (p: Product) => void;
-  onUpdateProduct: (p: Product) => void;
-  onDeleteProduct: (id: string) => void;
+  onAddProduct: (p: Product) => boolean | void | Promise<boolean | void>;
+  onUpdateProduct: (p: Product) => boolean | void | Promise<boolean | void>;
+  onDeleteProduct: (id: string) => boolean | void | Promise<boolean | void>;
   onCreateUnit: (unit: MeasurementUnit) => void;
   /**
    * Excel importynyň toplu ýazgy prosesi: çykyşy tassyklanan harytlaryň
@@ -251,8 +251,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
       }
     } else {
       for (const item of planned) {
-        if (item.action === 'add') onAddProduct(item.product);
-        else onUpdateProduct(item.product);
+        try { const saved = item.action === 'add' ? await onAddProduct(item.product) : await onUpdateProduct(item.product); if (saved === false) throw new Error('CATALOG_WRITE_FAILED'); } catch { failed.push({ row: item.rowNumber, name: item.product.name, detail: item.product.barcode, reason: t('pos.catalogWriteFailed') }); if (item.action === 'add') added--; else updated--; }
       }
     }
 
@@ -260,9 +259,10 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
   };
 
   /** Birbada üýtgedilen harytlaryň hemmesini ýazýar. */
-  const handleBulkSave = (updated: Product[]) => {
-    for (const product of updated) onUpdateProduct(product);
-    setIsBulkOpen(false);
+  const handleBulkSave = async (updated: Product[]) => {
+    const results = await Promise.allSettled(updated.map(product => onUpdateProduct(product)));
+    if (results.some(r => r.status === 'rejected' || r.value === false)) return false;
+    setIsBulkOpen(false); return true;
   };
 
   // All unique categories from products + free input
@@ -364,26 +364,29 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
     setForm(f => ({ ...f, extraBarcodes: (f.extraBarcodes || []).filter((_, i) => i !== idx) }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    if (savingRef.current || !form.name.trim()) return;
     if (!form.barcode.trim()) return;
 
-    if (editingProduct) {
-      onUpdateProduct({ ...editingProduct, ...form });
-    } else {
-      const newProduct: Product = {
-        id: `prod_${Date.now()}`,
-        ...form,
-      };
-      onAddProduct(newProduct);
-    }
-    handleCloseForm();
+    savingRef.current = true; setSaving(true); setSaveError('');
+    try {
+      const saved = editingProduct
+        ? await onUpdateProduct({ ...editingProduct, ...form })
+        : await onAddProduct({ id: `prod_${crypto.randomUUID()}`, ...form });
+      if (saved === false) { setSaveError(t('pos.catalogWriteFailed')); return; }
+      handleCloseForm();
+    } catch { setSaveError(t('pos.catalogWriteFailed')); }
+    finally { savingRef.current = false; setSaving(false); }
   };
 
   return (
     <div className="flex-1 flex flex-col bg-[#F1F5F9] overflow-hidden">
       <PageScroll>
+      {saveError && !isFormOpen && <div role="alert" className="p-3 text-rose-700">{saveError}</div>}
       {/* ── Üst: Arama + Kategori + Yeni Düğmesi ─────────────────────── */}
       <div className="px-3 md:px-6 pt-3 md:pt-5 pb-3">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex flex-wrap items-center gap-2 md:gap-3">
@@ -624,6 +627,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
             <p className="font-bold text-gray-800 text-sm">
               {t('products.deleteConfirm')}
             </p>
+            {saveError && <div role="alert" className="text-rose-700">{saveError}</div>}
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setDeleteConfirmId(null)}
@@ -632,7 +636,8 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                 {t('products.noBtn')}
               </button>
               <button
-                onClick={() => { onDeleteProduct(deleteConfirmId); setDeleteConfirmId(null); }}
+                onClick={async () => { if (savingRef.current) return; savingRef.current=true; setSaving(true); try { if (await onDeleteProduct(deleteConfirmId) !== false) setDeleteConfirmId(null); else setSaveError(t('pos.catalogWriteFailed')); } catch { setSaveError(t('pos.catalogWriteFailed')); } finally { savingRef.current=false; setSaving(false); } }}
+                disabled={saving}
                 className="px-6 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs transition-colors"
               >
                 {t('delete')}
@@ -651,10 +656,11 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
           products={products}
           units={units}
           onClose={() => setCompositionProduct(null)}
-          onUpdatePrice={(productId, newPrice) => {
+          onUpdatePrice={async (productId, newPrice) => {
             const product = products.find((p) => p.id === productId);
-            if (product) onUpdateProduct({ ...product, price: newPrice });
+            if (!product || await onUpdateProduct({ ...product, price: newPrice }) === false) return false;
             setCompositionProduct((prev) => (prev ? { ...prev, price: newPrice } : prev));
+            return true;
           }}
         />
       )}
@@ -671,12 +677,14 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={handleCloseForm}
+                disabled={saving}
                 className="p-1.5 rounded-xl hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {saveError && <div role="alert" className="px-5 py-2 text-rose-700">{saveError}</div>}
             {/* Form */}
             <form onSubmit={handleSave} className="overflow-y-auto flex-1 p-5 space-y-4">
 
@@ -1029,6 +1037,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={handleCloseForm}
+                disabled={saving}
                 className="px-6 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs transition-colors"
               >
                 {t('products.cancelBtn')}
@@ -1037,6 +1046,7 @@ export const ProductWorkspace: React.FC<ProductWorkspaceProps> = ({
                 type="submit"
                 form=""
                 onClick={handleSave}
+                disabled={saving}
                 className="px-8 py-2 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs transition-colors shadow-sm"
               >
                 {t('products.saveBtn')}

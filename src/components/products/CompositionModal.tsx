@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import type { LanguageCode, Product } from '../../types';
 import { useT } from '../../locales/LanguageContext';
@@ -22,7 +22,7 @@ interface CompositionModalProps {
   units: readonly MeasurementUnit[];
   onClose: () => void;
   /** Esasy harydyň bahasyny täzelemek (önerilen baha boýunça). */
-  onUpdatePrice: (productId: string, newPrice: number) => void;
+  onUpdatePrice: (productId: string, newPrice: number) => Promise<boolean>;
 }
 
 const INPUT =
@@ -98,10 +98,16 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
     );
   };
 
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const handleSave = async () => {
+    if (savingRef.current) return;
+    savingRef.current=true; setSaving(true); setError('');
+    try {
     const clean = parts.filter((part) => part.qty > 0);
     if (clean.length === 0) {
-      await deleteComposition(storeDb, mainProduct.id);
+      if (await getComposition(storeDb, mainProduct.id) && !await deleteComposition(storeDb, mainProduct.id)) throw new Error('CATALOG_WRITE_FAILED');
     } else {
       const composition: ProductComposition = {
         productId: mainProduct.id,
@@ -112,10 +118,12 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
     }
     // Esasy harydyň bahasyny täzele.
     if (newPrice !== mainProduct.price && newPrice > 0) {
-      onUpdatePrice(mainProduct.id, newPrice);
+      if (!await onUpdatePrice(mainProduct.id, newPrice)) throw new Error('CATALOG_WRITE_FAILED');
     }
     setNotice(t('products.compSaved'));
     setTimeout(onClose, 700);
+    } catch { setError(t('pos.catalogWriteFailed')); }
+    finally { savingRef.current=false; setSaving(false); }
   };
 
   return (
@@ -379,6 +387,7 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
           )}
         </div>
 
+        {error && <div role="alert" className="px-4 text-rose-700">{error}</div>}
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-gray-100 flex-shrink-0">
           <button
             type="button"
@@ -390,6 +399,7 @@ export const CompositionModal: React.FC<CompositionModalProps> = ({
           <button
             type="button"
             onClick={() => void handleSave()}
+            disabled={saving}
             className="h-9 px-5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs"
           >
             {t('save')}
