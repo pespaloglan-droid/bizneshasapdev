@@ -1,7 +1,7 @@
 import { setMirrorPending } from './mirrorStatus';
 import type { CartItem, Customer, CustomerType, InvoiceRecord, InvoiceType, PaymentMethod, Product } from '../types';
 import { historyCutoffDay, type SyncHistoryMonths } from './syncSelection';
-import { listDocsByPrefix, upsertDoc, upsertDocsBatch } from './pouch';
+import { getLocalDatabase, removeDoc, listDocsByPrefix, upsertDoc, upsertDocsBatch } from './pouch';
 
 /**
  * PC (offline-pos) ile APK arasındaki veri köprüsü.
@@ -301,6 +301,7 @@ export function importPcMirrorsIntoStore(storeDb: string, historyMonths: SyncHis
 }
 
 async function runBridgeImport(storeDb: string, historyMonths: SyncHistoryMonths, now: Date): Promise<number> {
+  const deleted = await importProvenPcDeletions(storeDb);
   // Yazılacak belgeler önce toplanır, sonra 100'erlik gruplar halinde yazılır —
   // tek tek yazmak büyük veride arayüzü donduruyordu.
   const writes: { id: string; fields: Record<string, unknown> }[] = [];
@@ -366,8 +367,28 @@ async function runBridgeImport(storeDb: string, historyMonths: SyncHistoryMonths
     });
   }
 
-  await upsertDocsBatch(storeDb, writes);
-  return writes.length;
+  const result = await upsertDocsBatch(storeDb, writes);
+  if (result.failed.length) throw new Error('BRIDGE_IMPORT_PARTIAL_WRITE');
+  return result.written + deleted;
+}
+
+/** Yokluk silme değildir: yalnız allDocs(keys) ile görülen gerçek PC tombstone'u aktarılır. */
+export async function importProvenPcDeletions(storeDb: string): Promise<number> {
+  const db = getLocalDatabase(storeDb);
+  let deleted = 0;
+  for (const kind of ['product', 'customer', 'invoice'] as const) {
+    const nativeDocs = await listDocsByPrefix(storeDb, LOCAL_PREFIX[kind]);
+    const keys = nativeDocs.map(doc => PC_PREFIX[kind] + doc._id.slice(LOCAL_PREFIX[kind].length));
+    if (!keys.length) continue;
+    const rows = await db.allDocs({ keys });
+    for (const row of rows.rows) {
+      if (!('value' in row) || !(row.value as any).deleted) continue;
+      const nativeId = LOCAL_PREFIX[kind] + row.key.slice(PC_PREFIX[kind].length);
+      if (!await removeDoc(storeDb, nativeId)) throw new Error('BRIDGE_DELETE_FAILED');
+      deleted++;
+    }
+  }
+  return deleted;
 }
 
 /** APK'da değişen bir kaydı PC'nin okuyacağı ayna belge olarak yazar. */

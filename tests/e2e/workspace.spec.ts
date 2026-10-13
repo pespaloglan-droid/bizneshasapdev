@@ -327,3 +327,16 @@ test('P2-1 silinmiş ürün tekil ve batch aynı ID ile tam alanlarıyla yeniden
   expect(result.batch.written).toBe(1);expect(result.batch.failed).toHaveLength(0);
   expect(result.after).toMatchObject({stock:3,name:'Recreated',sku:'000012',barcode:'000345'});
 });
+test('P2-2 PC tombstone native ürünü siler; eksik ayna selective cihazda silme sayılmaz',async({page})=>{
+  const result=await page.evaluate(async()=>{
+    const {getLocalDatabase,removeDoc}=await import('/src/db/pouch.ts');
+    const {saveProductToDb,getProductsForAccount}=await import('/src/db/productService.ts');
+    const {importPcMirrorsIntoStore}=await import('/src/db/schemaBridge.ts');
+    const name=(window as any).e2e.storeDb,db=getLocalDatabase(name),product=(await getProductsForAccount(name))[0];
+    await saveProductToDb({...product,id:'pc-delete'},name);
+    await db.put({_id:'product_no-mirror',docType:'product',product:{...product,id:'no-mirror'}});
+    await removeDoc(name,'urun:pc-delete');await importPcMirrorsIntoStore(name,3);
+    const rows=await db.allDocs({keys:['product_pc-delete','product_no-mirror']});
+    return {deleted:rows.rows[0].value?.deleted===true,kept:rows.rows[1].value?.deleted!==true && !rows.rows[1].error};
+  });expect(result).toEqual({deleted:true,kept:true});
+});
