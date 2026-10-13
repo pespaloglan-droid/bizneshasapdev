@@ -928,7 +928,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
 
   // Para hereketleri (Kassa + Depder geçirimleri) hook içinde ýaşaýar;
   // müşderi balansyny üýtgedýänligi üçin applyCustomerDeltas-a bagly.
-  const moneyStore = useMoneyStore(storeDb, applyCustomerDeltas);
+  const moneyStore = useMoneyStore(storeDb, applyCustomerDeltas, () => setToastMessage({type:'info',text:t('pos.moneyWriteFailed')}));
   const moneyTransactions = moneyStore.moneyTransactions;
 
 

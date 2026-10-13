@@ -89,7 +89,7 @@ const performVoidInvoice = async (invoice: InvoiceRecord) => {
 
     // Şu faktura bagly Kassa/Depder ýazgylaryny aýyrýarys (bakiyeler awtomatik düzelýär).
     for (const tx of moneyTransactions) {
-      if (tx.invoiceId === invoice.id) moneyStore.deleteMoneyTransaction(tx);
+      if (tx.invoiceId === invoice.id && !await moneyStore.deleteMoneyTransaction(tx)) failures++;
     }
 
     setToastMessage({ type: failures ? 'info' : 'success', text: failures ? t('pos.effectsIncomplete', { count: failures }) : t('pos.invoiceVoided', { invoice: invoice.invoiceNo }) });
@@ -182,14 +182,14 @@ const applyAcceptedDraft = async (accepted: InvoiceRecord): Promise<boolean> => 
     completedAccepts.current.add(accepted.id);
     const stockResult = await applyStockChanges(accepted.items, accepted.invoiceType);
     const balanceResult = await applyCustomerBalance(accepted);
-    const failures = (stockResult?.failed.length ?? 0) + (balanceResult?.failed.length ?? 0);
+    let failures = (stockResult?.failed.length ?? 0) + (balanceResult?.failed.length ?? 0);
 
     // Depder saýlanan bolsa we nagt/kart töleg bolsa — depdere degişli ýazgy düşýär.
     if (accepted.ledgerId && accepted.paymentMethod !== 'credit') {
       const isIncome = accepted.invoiceType === 'sales' || accepted.invoiceType === 'other_in';
       const isExpense = accepted.invoiceType === 'purchase' || accepted.invoiceType === 'other_out';
       if (isIncome || isExpense) {
-        moneyStore.saveMoneyTransaction(
+        const moneyWritten = await moneyStore.saveMoneyTransaction(
           {
             id: `mtx-draft-${accepted.id}-ledger`,
             type: isIncome ? 'income' : 'expense',
@@ -205,6 +205,7 @@ const applyAcceptedDraft = async (accepted: InvoiceRecord): Promise<boolean> => 
           },
           null
         );
+        if (moneyWritten === false) failures++;
       }
     }
 

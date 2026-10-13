@@ -3,7 +3,7 @@ import { useT } from '../locales/LanguageContext';
 import { Product, Customer } from '../types';
 import { saveProductToDb, deleteProductFromDb, saveProductsBatchDb } from '../db/productService';
 import { BatchWriteResult } from '../db/pouch';
-import { saveCustomersBatchDb, saveCustomerToDb, GENERAL_CUSTOMER_ID, deleteCustomerFromDb } from '../db/customerService';
+import { saveCustomersBatchDb, saveCustomerToDb, adjustCustomerBalance, GENERAL_CUSTOMER_ID, deleteCustomerFromDb } from '../db/customerService';
 import { CustomerAdjustment } from './useMoneyStore';
 import { WorkspaceToast } from './useCartActions';
 
@@ -104,30 +104,16 @@ const handleDeleteCustomer = (id: string) => {
     deleteCustomerFromDb(id, storeDb).catch(() => {});
   };
 
-const applyCustomerDeltas = (adjustments: CustomerAdjustment[]) => {
+const applyCustomerDeltas = async (adjustments: CustomerAdjustment[]): Promise<boolean> => {
     const merged = new Map<string, number>();
-    for (const { customerId, delta } of adjustments) {
-      if (!customerId || delta === 0) continue;
-      merged.set(customerId, (merged.get(customerId) ?? 0) + delta);
-    }
-    if (merged.size === 0) return;
-
-    const touched: Customer[] = [];
-    const nextCustomers = customers.map((customer) => {
-      const delta = merged.get(customer.id);
-      if (!delta) return customer;
-      const updated: Customer = { ...customer, balance: customer.balance + delta };
-      touched.push(updated);
-      return updated;
-    });
-
-    setCustomers(nextCustomers);
-    setSelectedCustomer((prev) =>
-      prev ? nextCustomers.find((c) => c.id === prev.id) ?? prev : prev
-    );
-    for (const customer of touched) {
-      saveCustomerToDb(customer, storeDb).catch(() => {});
-    }
+    for (const { customerId, delta } of adjustments) if (customerId && delta!==0) merged.set(customerId,(merged.get(customerId)??0)+delta);
+    const saved=new Map<string,Customer>();let failed=false;
+    await Promise.all([...merged].map(async([id,delta])=>{
+      try {saved.set(id,await adjustCustomerBalance(id,delta,storeDb));} catch {failed=true;}
+    }));
+    setCustomers(prev=>prev.map(customer=>saved.get(customer.id)??customer));
+    setSelectedCustomer(prev=>prev ? saved.get(prev.id)??prev : prev);
+    return !failed;
   };
 
 const handleQuickAddCustomer = (name: string): Customer => {

@@ -32,7 +32,7 @@ interface DepderWorkspaceProps {
   language: LanguageCode;
   onSaveLedger: (ledger: Ledger) => void;
   onDeleteLedger: (ledger: Ledger) => void;
-  onSaveTransaction: (transaction: MoneyTransaction, previous: MoneyTransaction | null) => void;
+  onSaveTransaction: (transaction: MoneyTransaction, previous: MoneyTransaction | null) => Promise<boolean>;
   onDeleteTransaction: (transaction: MoneyTransaction) => void;
   onTransfer: (transactions: [MoneyTransaction, MoneyTransaction]) => void;
   onQuickAddCustomer: (name: string) => Customer;
@@ -112,9 +112,8 @@ export const DepderWorkspace: React.FC<DepderWorkspaceProps> = ({
             initialType={moneyFormType}
             editingTransaction={editingTransaction}
             ledgerId={selectedLedger.id}
-            onSave={(transaction) => {
-              onSaveTransaction(transaction, editingTransaction);
-              closeMoneyForm();
+            onSave={async (transaction) => {
+              if (await onSaveTransaction(transaction, editingTransaction)) closeMoneyForm();
             }}
             onClose={closeMoneyForm}
             onQuickAddCustomer={onQuickAddCustomer}

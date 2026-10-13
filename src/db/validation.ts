@@ -57,11 +57,7 @@ export const InvoiceSchema = z.object({
 export const TransactionSchema = z.object({
   id: identifier, type: z.enum(['income', 'expense']), date: text, amount: number,
   paymentMethod: z.enum(['cash', 'card', 'transfer']),
-  category: z.enum(['hyzmat_toleg', 'weresiye_yygnamak', 'karz_almak',
-    'karende_girdejisi', 'atiyaclandyrys_tolegi', 'maya_goyum_girdejisi', 'basga_girdeji',
-    'dukan_cykdajylary', 'aylyk', 'karz_bermek', 'karz_gaytarmak', 'salgyt_tolegi',
-    'ulag_cykdajylary', 'mahabat_cykdajylary', 'bejeris_abatlayys', 'enjam_satyn_almak',
-    'basga_cykdajy', 'haryt_satuw', 'haryt_satyn_almak']),
+  category: text, // Legacy serbest string korunur; sessiz kategori dönüşümü yok.
   subCategory: z.enum(['karende', 'elektrik', 'suw', 'beyleki']).optional(),
   customerId: optText, personName: optText, staffUserId: optText, description: optText,
   invoiceId: optText, currency: optText, exchangeRateAtTime: optNumber, amountTmt: optNumber,

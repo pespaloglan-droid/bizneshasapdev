@@ -272,3 +272,12 @@ test('P1-5 PC mirror hatası kalıcı uyarı üretir, native başarı korunur ve
   });
   await expect(page.getByText(await text(page,'pos.pcMirrorPending'),{exact:true})).not.toBeVisible();
 });
+test('P2-4 legacy para kategorisi düzenlenirken aynı değer korunur', async ({ page }) => {
+  const category=await page.evaluate(async()=>{
+    const {saveMoneyTransactionToDb,getMoneyTransactions}=await import('/src/db/moneyService.ts');
+    const name=(window as any).e2e.storeDb;
+    const tx={id:'legacy-category',type:'income',date:'2026-10-12',amount:40,paymentMethod:'cash',category:'legacy-custom-category',createdAt:'2026-10-12'};
+    await saveMoneyTransactionToDb(tx,name);await saveMoneyTransactionToDb({...tx,amount:45},name);
+    return (await getMoneyTransactions(name)).find((t:any)=>t.id===tx.id).category;
+  });expect(category).toBe('legacy-custom-category');
+});

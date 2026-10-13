@@ -31,7 +31,7 @@ interface KassaWorkspaceProps {
   advancedSearchOpen?: boolean;
   onAdvancedSearchOpen: () => void;
   onAdvancedSearchClose: () => void;
-  onSaveTransaction: (transaction: MoneyTransaction, previous: MoneyTransaction | null) => void;
+  onSaveTransaction: (transaction: MoneyTransaction, previous: MoneyTransaction | null) => Promise<boolean>;
   onDeleteTransaction: (transaction: MoneyTransaction) => void;
   onQuickAddCustomer: (name: string) => Customer;
   /** Inçe rugsatlar (Kassa). */
@@ -137,7 +137,7 @@ export const KassaWorkspace: React.FC<KassaWorkspaceProps> = ({
   }), [kassaExtras.addIncome]);
 
   // ── Hizmet katmanı (backend) koruması: izinsiz gider/kategori/operasiya döwri ──
-  const handleSave = (transaction: MoneyTransaction) => {
+  const handleSave = async (transaction: MoneyTransaction) => {
     // Operasiýa döwri: başlangyç/soňky sene aralygyndan daşarda ýazgy ýazylmaýar.
     if (operationRules) {
       const start = operationRules.operationStartDate;
@@ -166,7 +166,8 @@ export const KassaWorkspace: React.FC<KassaWorkspaceProps> = ({
         return;
       }
     }
-    onSaveTransaction(transaction, editingTransaction);
+    const saved=await onSaveTransaction(transaction, editingTransaction);
+    if (!saved) {setSaveError(t('pos.moneyWriteFailed'));return;}
     closeForm();
   };
 

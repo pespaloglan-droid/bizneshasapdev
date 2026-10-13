@@ -103,6 +103,7 @@ export const translations: Record<LanguageCode, {
     finish: string;
   };
   pos: {
+    moneyWriteFailed: string;
     pcMirrorPending: string;
     effectsIncomplete: string;
     saleSaveFailed: string;
@@ -1874,6 +1875,7 @@ export const translations: Record<LanguageCode, {
       finish: "Bitir",
     },
     pos: {
+      moneyWriteFailed: "Para hareketi veya bağlı bakiye güncellenemedi. Kaydı kontrol edin; tekrar tahsilat yapmadan DB durumunu doğrulayın.",
       pcMirrorPending: "PC ayna yazımı tamamlanmadı. Yerel kayıt korunuyor ancak PC’de eksik veya eski görünebilir; eşitleme kaydını kontrol edin.",
       effectsIncomplete: "Fatura kaydedildi ancak {count} stok/bakiye yazımı başarısız. Kaydı kontrol edin; aynı satışı tekrar yapmayın.",
       saleSaveFailed: "Satış kaydedilemedi. Sepet korundu; stok ve bakiye değiştirilmedi.",
@@ -3545,6 +3547,7 @@ export const translations: Record<LanguageCode, {
       finish: "Tamamla",
     },
     pos: {
+      moneyWriteFailed: "Pul hereketi ýa-da bagly balans täzelenmedi. Ýazgyny barlaň; tölegi gaýtalamazdan DB ýagdaýyny barlaň.",
       pcMirrorPending: "PC aýna ýazgysy tamamlanmady. Ýerli ýazgy saklanýar, emma PC-de ýok ýa-da köne bolup biler; sinhron ýazgyny barlaň.",
       effectsIncomplete: "Faktura saklandy, emma {count} stok/balans ýazgysy şowsuz. Ýazgyny barlaň; şol satuwy gaýtalamaň.",
       saleSaveFailed: "Satuw saklanyp bilinmedi. Sebet saklandy; stok we balans üýtgedilmedi.",
@@ -5215,6 +5218,7 @@ export const translations: Record<LanguageCode, {
       finish: "Finish",
     },
     pos: {
+      moneyWriteFailed: "Money movement or related balance could not be updated. Check the saved record before repeating a collection.",
       pcMirrorPending: "PC mirror write is pending. Local record is kept, but the PC may show missing or older data; check synchronization.",
       effectsIncomplete: "Invoice saved, but {count} stock/balance writes failed. Check the record; do not repeat this sale.",
       saleSaveFailed: "Sale could not be saved. Cart kept; stock and balance were not changed.",
@@ -6885,6 +6889,7 @@ export const translations: Record<LanguageCode, {
       finish: "Завершить",
     },
     pos: {
+      moneyWriteFailed: "Денежная операция или связанный баланс не обновлены. Проверьте запись перед повторным получением платежа.",
       pcMirrorPending: "Запись для ПК не завершена. Локальная запись сохранена, но на ПК данные могут отсутствовать или быть устаревшими; проверьте синхронизацию.",
       effectsIncomplete: "Счёт сохранён, но {count} записей остатков/баланса не обновлены. Проверьте запись; не повторяйте продажу.",
       saleSaveFailed: "Продажа не сохранена. Корзина сохранена; остатки и баланс не изменены.",

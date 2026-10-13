@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import type {
   AppUser,
@@ -34,7 +34,7 @@ interface MoneyFormModalProps {
   appUsers: readonly AppUser[];
   initialType: MoneyTxType;
   editingTransaction: MoneyTransaction | null;
-  onSave: (transaction: MoneyTransaction) => void;
+  onSave: (transaction: MoneyTransaction) => void | Promise<void>;
   onClose: () => void;
   onQuickAddCustomer: (name: string) => Customer;
   ledgerId?: string;
@@ -64,6 +64,7 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
   );
   const [error, setError] = useState('');
   const t = useT();
+  const submitting = useRef(false);
 
   const extra = categoryMeta(form.category).extra;
   // Girdeji kategoriýalary: rugsat berilenler (undefined = ählisi açyk).
@@ -83,8 +84,9 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
     patch({ customerId: created.id });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting.current) return;
     // Hizmet katmanı (backend) koruması: izinsiz kategoriye/kayda yol ýok.
     if (
       form.type === 'income' &&
@@ -99,7 +101,10 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
       setError(nextError);
       return;
     }
-    onSave(buildMoneyTransaction(form, editingTransaction, ledgerId));
+    submitting.current=true;
+    try {await onSave(buildMoneyTransaction(form, editingTransaction, ledgerId));}
+    catch {setError(t('pos.moneyWriteFailed'));}
+    finally {submitting.current=false;}
   };
 
   const title = editingTransaction
