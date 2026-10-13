@@ -1,0 +1,14 @@
+import React from 'react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, expect, it, vi } from 'vitest';
+const mock=vi.hoisted(()=>({count:vi.fn(),stop:vi.fn(),request:vi.fn(),busy:undefined as undefined|((value:boolean)=>void)}));
+vi.mock('../../src/db/mirrorStatus',()=>({MIRROR_STATUS_EVENT:'bh:mirror-status',pendingMirrorCount:mock.count}));
+vi.mock('../../src/db/mirrorRetry',()=>({startMirrorRetry:(_:string,busy:(value:boolean)=>void)=>{mock.busy=busy;return {request:mock.request,stop:mock.stop,retryNow:async()=>{busy(true);busy(false);}};}}));
+import { MirrorSyncWarning } from '../../src/components/pos/MirrorSyncWarning';
+import { LanguageProvider } from '../../src/locales/LanguageContext';
+const view=(name='QA')=><LanguageProvider language="en"><MirrorSyncWarning dbName={name}/></LanguageProvider>;
+beforeEach(()=>{vi.clearAllMocks();mock.count.mockResolvedValue(0);});
+it('başarılı queue temizliği uyarıyı kaldırır',async()=>{mock.count.mockResolvedValue(1);render(view());await screen.findByRole('alert');mock.count.mockResolvedValue(0);await act(async()=>window.dispatchEvent(new CustomEvent('bh:mirror-status',{detail:{dbName:'QA',pending:false,tracked:true}})));await waitFor(()=>expect(screen.queryByRole('alert')).toBeNull());});
+it('başka IDler tracked olsa da takip yazma hatası uyarısı sonradan sıfırda kaybolmaz',async()=>{mock.count.mockResolvedValue(1);render(view());await screen.findByRole('alert');await act(async()=>window.dispatchEvent(new CustomEvent('bh:mirror-status',{detail:{dbName:'QA',pending:true,tracked:false}})));mock.count.mockResolvedValue(0);await act(async()=>window.dispatchEvent(new CustomEvent('bh:mirror-status',{detail:{dbName:'QA',pending:false,tracked:true}})));expect(screen.getByRole('alert')).toBeVisible();});
+it('queue okunamazsa boş kabul edilmez; tamamlanan retry görünümü yeniden okur',async()=>{mock.count.mockRejectedValue(new Error('fixture'));render(view());await screen.findByRole('alert');mock.count.mockResolvedValue(0);await act(async()=>mock.busy?.(false));await waitFor(()=>expect(screen.queryByRole('alert')).toBeNull());});
+it('başka hesap eventleri karışmaz; unmount timer çalışanını durdurur',async()=>{const {unmount}=render(view());await waitFor(()=>expect(mock.count).toHaveBeenCalledTimes(1));await act(async()=>window.dispatchEvent(new CustomEvent('bh:mirror-status',{detail:{dbName:'OTHER',pending:true,tracked:false}})));expect(mock.count).toHaveBeenCalledTimes(1);unmount();expect(mock.stop).toHaveBeenCalledTimes(1);});
