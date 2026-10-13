@@ -110,3 +110,9 @@ Bu çalışma kaynak kodu/provisioning girdisini düzeltti; canlı admin/app par
 ## Kimi Code'a yeniden inceleme
 
 Güncel dal HEAD'ini, bu sonuç raporunu ve testleri birlikte incele. Eski devir belgesinin APK snapshot'ını yeni dağıtım gibi değerlendirme. Çoklu faturaya tahsilat dağılımı, tahsilat edit/delete etkileri, crash arasındaki yarım delta, cihazlar arası idempotency, PC metadata kaybı, tombstone-recreate yarışları, obfuscation'ın secure vault sanılmaması ve gerçek Windows sandbox başlangıcını yeniden üret. Geçen testlerden hareketle açık sınırları kapanmış sayma.
+
+## Push sonrası GitHub CI kanıtı
+
+Kaynak commit `c722aedfcd907ad9578f0c00c36ce2331b3e4066` için GitHub doğrulaması **success** olarak tamamlandı; logda **346 birim testi ve 23 E2E testi geçti**. Sonraki commitler yalnız belgeyi günceller.
+
+CI: https://github.com/pespaloglan-droid/bizneshasapdev/actions/runs/38375250185
