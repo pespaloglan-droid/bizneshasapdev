@@ -1,7 +1,7 @@
 import { InvoiceRecord } from '../types';
 import { listDocsByPrefix, removeDoc, upsertDoc } from './pouch';
 import { sanitizeInvoice } from './sanitize';
-import { mirrorToPc } from './schemaBridge';
+import { mirrorToPc, mirrorDeletionToPc } from './schemaBridge';
 
 export async function saveInvoiceToDb(invoice: InvoiceRecord, dbName: string = 'default_store'): Promise<InvoiceRecord> {
   const syncedAt = new Date().toISOString();
@@ -20,7 +20,12 @@ export async function deleteInvoicePermanently(
   invoiceId: string,
   dbName: string = 'default_store'
 ): Promise<boolean> {
-  return removeDoc(dbName, `invoice_${invoiceId}`);
+  const deletedAt = new Date().toISOString();
+  const removed = await removeDoc(dbName, `invoice_${invoiceId}`);
+  if (!removed) return false;
+  try { await mirrorDeletionToPc(dbName, 'invoice', invoiceId, deletedAt); }
+  catch { console.warn('PC_MIRROR_DELETE_FAILED:invoice'); }
+  return true;
 }
 
 export async function getInvoicesForAccount(dbName: string = 'default_store'): Promise<InvoiceRecord[]> {

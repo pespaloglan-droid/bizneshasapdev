@@ -264,13 +264,13 @@ test('P1-5 PC mirror hatası kalıcı uyarı üretir, native başarı korunur ve
     return {price:(await getProductsForAccount(name))[0].price,pending:await pendingMirrorCount(name)};
   });
   expect(before).toEqual({price:20,pending:1});
-  await expect(page.getByText(await text(page,'pos.pcMirrorPending'),{exact:true})).toBeVisible();
+  await expect(page.getByRole('alert').filter({hasText:await text(page,'pos.pcMirrorPending')})).toBeVisible();
   await page.evaluate(async()=>{
     (window as any).e2e.restorePut();
     const {saveProductToDb,getProductsForAccount}=await import('/src/db/productService.ts');
     const name=(window as any).e2e.storeDb;await saveProductToDb((await getProductsForAccount(name))[0],name);
   });
-  await expect(page.getByText(await text(page,'pos.pcMirrorPending'),{exact:true})).not.toBeVisible();
+  await expect(page.getByRole('alert').filter({hasText:await text(page,'pos.pcMirrorPending')})).not.toBeVisible();
 });
 test('P2-4 legacy para kategorisi düzenlenirken aynı değer korunur', async ({ page }) => {
   const category=await page.evaluate(async()=>{
@@ -339,4 +339,60 @@ test('P2-2 PC tombstone native ürünü siler; eksik ayna selective cihazda silm
     const rows=await db.allDocs({keys:['product_pc-delete','product_no-mirror']});
     return {deleted:rows.rows[0].value?.deleted===true,kept:rows.rows[1].value?.deleted!==true && !rows.rows[1].error};
   });expect(result).toEqual({deleted:true,kept:true});
+});
+
+test('katalog: reddedilen primary kayıt formu ve girdileri korur, düzeltince tek kayıt oluşur', async ({ page }) => {
+  await page.getByRole('button',{name:await text(page,'tabHaryt'),exact:true}).click();
+  await page.getByRole('button',{name:await text(page,'products.newProduct'),exact:true}).click();
+  await page.getByPlaceholder(await text(page,'products.namePlaceholder'),{exact:true}).fill('Kept on failure');
+  await page.getByPlaceholder('8690000000000',{exact:true}).fill('000999');
+  await page.evaluate(async()=>{const {getLocalDatabase}=await import('/src/db/pouch.ts');const db=getLocalDatabase((window as any).e2e.storeDb),put=db.put.bind(db);(window as any).restoreCatalog=()=>db.put=put;db.put=async(doc:any,...args:any[])=>{if(doc._id.startsWith('product_'))throw Object.assign(new Error('fixture'),{status:507});return put(doc,...args);};});
+  await page.getByRole('button',{name:await text(page,'products.saveBtn'),exact:true}).click();
+  await expect(page.getByPlaceholder(await text(page,'products.namePlaceholder'),{exact:true})).toHaveValue('Kept on failure');
+  await expect(page.getByRole('alert').filter({hasText:await text(page,'pos.catalogWriteFailed')}).first()).toBeVisible();
+  expect((await state(page)).products.some((p:any)=>p.name==='Kept on failure')).toBe(false);
+  await page.evaluate(()=>(window as any).restoreCatalog());
+  await page.getByRole('button',{name:await text(page,'products.saveBtn'),exact:true}).click();
+  await expect.poll(async()=>(await state(page)).products.filter((p:any)=>p.name==='Kept on failure').length).toBe(1);
+});
+
+test('mirror retry: otomatik iyileşme güncel native değeri gönderir ve uyarıyı temizler', async ({ page }) => {
+  await page.evaluate(async()=>{
+    const {getLocalDatabase}=await import('/src/db/pouch.ts');const {saveProductToDb,getProductsForAccount}=await import('/src/db/productService.ts');
+    const name=(window as any).e2e.storeDb,db=getLocalDatabase(name),put=db.put.bind(db);
+    (window as any).restoreRetry=()=>db.put=put;db.put=async(doc:any,...args:any[])=>{if(doc._id==='urun:e2e-product')throw Object.assign(new Error('fixture'),{status:507});return put(doc,...args);};
+    const product=(await getProductsForAccount(name))[0];await saveProductToDb({...product,price:11},name);await saveProductToDb({...product,price:23},name);
+  });
+  await expect(page.getByRole('button',{name:await text(page,'pos.pcMirrorRetry'),exact:true})).toBeVisible();
+  await page.evaluate(()=>(window as any).restoreRetry());
+  await expect.poll(()=>page.evaluate(async()=>{const {getLocalDatabase}=await import('/src/db/pouch.ts');return (await getLocalDatabase((window as any).e2e.storeDb).get('urun:e2e-product') as any).fiyat;})).toBe(23);
+  await expect(page.getByRole('button',{name:await text(page,'pos.pcMirrorRetry'),exact:true})).not.toBeVisible();
+});
+
+test('mirror retry: silme başarısızsa kuyrukta kalır, manuel retry tombstone aktarır, eksik native silinmez',async({page})=>{
+  const result=await page.evaluate(async()=>{
+    const {getLocalDatabase}=await import('/src/db/pouch.ts');const {saveProductToDb,deleteProductFromDb,getProductsForAccount}=await import('/src/db/productService.ts');
+    const {retryPendingMirrors}=await import('/src/db/mirrorRetry.ts');const {setMirrorPending,pendingMirrorIds}=await import('/src/db/mirrorStatus.ts');
+    const name=(window as any).e2e.storeDb,db=getLocalDatabase(name),put=db.put.bind(db),product=(await getProductsForAccount(name))[0];
+    await saveProductToDb({...product,id:'retry-delete'},name);
+    db.put=async(doc:any,...args:any[])=>{if(doc._id==='urun:retry-delete')throw Object.assign(new Error('fixture'),{status:507});return put(doc,...args);};
+    const removed=await deleteProductFromDb('retry-delete',name);const pendingBefore=await pendingMirrorIds(name);db.put=put;
+    await db.put({_id:'urun:unpulled',type:'urun',ad:'Unpulled',updatedAt:'2020-01-01T00:00:00Z'});
+    await setMirrorPending(name,'urun:unpulled',true);await retryPendingMirrors(name);
+    const rows=await db.allDocs({keys:['urun:retry-delete','urun:unpulled']});
+    return {removed,pendingBefore,deleted:(rows.rows[0] as any).value.deleted,kept:!(rows.rows[1] as any).value.deleted,pendingAfter:await pendingMirrorIds(name)};
+  });
+  expect(result).toEqual({removed:true,pendingBefore:['urun:retry-delete'],deleted:true,kept:true,pendingAfter:['urun:unpulled']});
+});
+
+test('mirror retry: bekleyen yerel kayıt eski PC köprüsü tarafından ezilmez',async({page})=>{
+  const result=await page.evaluate(async()=>{
+    const {getLocalDatabase}=await import('/src/db/pouch.ts');const {setMirrorPending}=await import('/src/db/mirrorStatus.ts');
+    const {importPcMirrorsIntoStore}=await import('/src/db/schemaBridge.ts');const name=(window as any).e2e.storeDb,db=getLocalDatabase(name);
+    const native=await db.get('product_e2e-product') as any;await db.put({...native,product:{...native.product,price:77},syncedAt:'2020-01-01T00:00:00Z'});
+    let mirror:any;try{mirror=await db.get('urun:e2e-product');}catch{mirror={_id:'urun:e2e-product'};}
+    await db.put({...mirror,type:'urun',ad:'Older PC payload',fiyat:2,updatedAt:'2020-01-03T00:00:00Z'});
+    await setMirrorPending(name,'urun:e2e-product',true);await importPcMirrorsIntoStore(name);
+    return (await db.get('product_e2e-product') as any).product.price;
+  });expect(result).toBe(77);
 });

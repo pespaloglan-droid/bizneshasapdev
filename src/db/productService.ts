@@ -1,7 +1,7 @@
 import { Product, ProductCategory } from '../types';
 import { listDocsByPrefix, removeDoc, upsertDoc, upsertDocsBatch, type BatchWriteResult } from './pouch';
 import { sanitizeProduct } from './sanitize';
-import { mirrorToPc } from './schemaBridge';
+import { mirrorToPc, mirrorDeletionToPc } from './schemaBridge';
 
 function productDocId(productId: string): string {
   return `product_${productId}`;
@@ -57,7 +57,12 @@ export async function saveProductToDb(product: Product, dbName: string = 'defaul
 }
 
 export async function deleteProductFromDb(productId: string, dbName: string = 'default_store'): Promise<boolean> {
-  return removeDoc(dbName, productDocId(productId));
+  const deletedAt = new Date().toISOString();
+  const removed = await removeDoc(dbName, productDocId(productId));
+  if (!removed) return false;
+  try { await mirrorDeletionToPc(dbName, 'product', productId, deletedAt); }
+  catch { console.warn('PC_MIRROR_DELETE_FAILED:product'); }
+  return true;
 }
 
 export async function getProductsForAccount(dbName: string = 'default_store'): Promise<Product[]> {

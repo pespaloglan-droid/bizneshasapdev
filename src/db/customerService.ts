@@ -1,7 +1,7 @@
 import { Customer } from '../types';
 import { listDocsByPrefix, removeDoc, upsertDoc, upsertDocsBatch, type BatchWriteResult } from './pouch';
 import { sanitizeCustomer } from './sanitize';
-import { mirrorToPc } from './schemaBridge';
+import { mirrorToPc, mirrorDeletionToPc } from './schemaBridge';
 
 function customerDocId(customerId: string): string {
   return `customer_${customerId}`;
@@ -56,7 +56,12 @@ export async function saveCustomerToDb(customer: Customer, dbName: string = 'def
 }
 
 export async function deleteCustomerFromDb(customerId: string, dbName: string = 'default_store'): Promise<boolean> {
-  return removeDoc(dbName, customerDocId(customerId));
+  const deletedAt = new Date().toISOString();
+  const removed = await removeDoc(dbName, customerDocId(customerId));
+  if (!removed) return false;
+  try { await mirrorDeletionToPc(dbName, 'customer', customerId, deletedAt); }
+  catch { console.warn('PC_MIRROR_DELETE_FAILED:customer'); }
+  return true;
 }
 
 export async function getCustomersForAccount(dbName: string = 'default_store'): Promise<Customer[]> {

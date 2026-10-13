@@ -1,4 +1,5 @@
-import { setMirrorPending } from './mirrorStatus';
+import { mirrorDeletionTime, pendingMirrorIds, setMirrorPending } from './mirrorStatus';
+import { prepareDocumentForWrite } from './validation';
 import type { CartItem, Customer, CustomerType, InvoiceRecord, InvoiceType, PaymentMethod, Product } from '../types';
 import { historyCutoffDay, type SyncHistoryMonths } from './syncSelection';
 import { getLocalDatabase, removeDoc, listDocsByPrefix, upsertDoc, upsertDocsBatch } from './pouch';
@@ -301,6 +302,7 @@ export function importPcMirrorsIntoStore(storeDb: string, historyMonths: SyncHis
 }
 
 async function runBridgeImport(storeDb: string, historyMonths: SyncHistoryMonths, now: Date): Promise<number> {
+  const pending = new Set(await pendingMirrorIds(storeDb));
   const deleted = await importProvenPcDeletions(storeDb);
   // Yazılacak belgeler önce toplanır, sonra 100'erlik gruplar halinde yazılır —
   // tek tek yazmak büyük veride arayüzü donduruyordu.
@@ -308,7 +310,7 @@ async function runBridgeImport(storeDb: string, historyMonths: SyncHistoryMonths
 
   const productDocs = await listDocsByPrefix(storeDb, PC_PREFIX.product);
   for (const mirror of productDocs) {
-    if (NON_SYNCED_DOC_IDS.has(mirror._id)) continue;
+    if (NON_SYNCED_DOC_IDS.has(mirror._id) || pending.has(mirror._id)) continue;
     const nativeId = stripPrefix(mirror._id, PC_PREFIX.product);
     if (!nativeId) continue;
     const natives = await listDocsByPrefix(storeDb, `${LOCAL_PREFIX.product}${nativeId}`);
@@ -328,7 +330,7 @@ async function runBridgeImport(storeDb: string, historyMonths: SyncHistoryMonths
 
   const customerDocs = await listDocsByPrefix(storeDb, PC_PREFIX.customer);
   for (const mirror of customerDocs) {
-    if (NON_SYNCED_DOC_IDS.has(mirror._id)) continue;
+    if (NON_SYNCED_DOC_IDS.has(mirror._id) || pending.has(mirror._id)) continue;
     const nativeId = stripPrefix(mirror._id, PC_PREFIX.customer);
     if (!nativeId) continue;
     const natives = await listDocsByPrefix(storeDb, `${LOCAL_PREFIX.customer}${nativeId}`);
@@ -348,7 +350,7 @@ async function runBridgeImport(storeDb: string, historyMonths: SyncHistoryMonths
 
   const invoiceDocs = await listDocsByPrefix(storeDb, PC_PREFIX.invoice);
   for (const mirror of invoiceDocs) {
-    if (NON_SYNCED_DOC_IDS.has(mirror._id)) continue;
+    if (NON_SYNCED_DOC_IDS.has(mirror._id) || pending.has(mirror._id)) continue;
     const nativeId = stripPrefix(mirror._id, PC_PREFIX.invoice);
     if (!nativeId) continue;
     const natives = await listDocsByPrefix(storeDb, `${LOCAL_PREFIX.invoice}${nativeId}`);
@@ -376,13 +378,14 @@ async function runBridgeImport(storeDb: string, historyMonths: SyncHistoryMonths
 export async function importProvenPcDeletions(storeDb: string): Promise<number> {
   const db = getLocalDatabase(storeDb);
   let deleted = 0;
+  const pending = new Set(await pendingMirrorIds(storeDb));
   for (const kind of ['product', 'customer', 'invoice'] as const) {
     const nativeDocs = await listDocsByPrefix(storeDb, LOCAL_PREFIX[kind]);
     const keys = nativeDocs.map(doc => PC_PREFIX[kind] + doc._id.slice(LOCAL_PREFIX[kind].length));
     if (!keys.length) continue;
     const rows = await db.allDocs({ keys });
     for (const row of rows.rows) {
-      if (!('value' in row) || !(row.value as any).deleted) continue;
+      if (pending.has(row.key) || !('value' in row) || !(row.value as any).deleted) continue;
       const nativeId = LOCAL_PREFIX[kind] + row.key.slice(PC_PREFIX[kind].length);
       if (!await removeDoc(storeDb, nativeId)) throw new Error('BRIDGE_DELETE_FAILED');
       deleted++;
@@ -391,20 +394,89 @@ export async function importProvenPcDeletions(storeDb: string): Promise<number> 
   return deleted;
 }
 
-/** APK'da değişen bir kaydı PC'nin okuyacağı ayna belge olarak yazar. */
-export async function mirrorToPc(storeDb: string, kind: MirrorKind, entity: unknown): Promise<void> {
-  const doc =
-    kind === 'product'
-      ? apkProductToPcDoc(entity as Product)
-      : kind === 'customer'
-        ? apkCustomerToPcDoc(entity as Customer)
-        : apkInvoiceToPcDoc(entity as InvoiceRecord);
-  if (!doc || typeof doc._id !== 'string') return;
-  try {
-    await upsertDoc(storeDb, doc._id, doc);
-  } catch(error) {
-    await setMirrorPending(storeDb, doc._id, true);
-    throw error;
+/** Same-device normal writes and retries share a per-record queue. No distributed lock claim. */
+const mirrorWrites = new Map<string, Promise<void>>();
+function serializeMirror(storeDb: string, mirrorId: string, task: () => Promise<void>): Promise<void> {
+  const key = JSON.stringify([storeDb, mirrorId]);
+  const previous = mirrorWrites.get(key) ?? Promise.resolve();
+  const current = previous.catch(() => undefined).then(task);
+  mirrorWrites.set(key, current);
+  return current.finally(() => { if (mirrorWrites.get(key) === current) mirrorWrites.delete(key); });
+}
+function mirrorIdentity(mirrorId: string): { kind: MirrorKind; nativeId: string } {
+  for (const kind of ['product', 'customer', 'invoice'] as const) {
+    if (mirrorId.startsWith(PC_PREFIX[kind]) && mirrorId.length > PC_PREFIX[kind].length)
+      return { kind, nativeId: LOCAL_PREFIX[kind] + mirrorId.slice(PC_PREFIX[kind].length) };
   }
-  await setMirrorPending(storeDb, doc._id, false);
+  throw new Error('UNKNOWN_MIRROR_ID');
+}
+/** Always re-read current native document; never replay a stored entity snapshot. */
+export function reconcilePcMirror(storeDb: string, mirrorId: string): Promise<void> {
+  return serializeMirror(storeDb, mirrorId, async () => {
+    await setMirrorPending(storeDb, mirrorId, true);
+    const { kind, nativeId } = mirrorIdentity(mirrorId);
+    const db = getLocalDatabase(storeDb);
+    let native: Record<string, unknown>;
+    try { native = await db.get(nativeId, { conflicts: true }) as Record<string, unknown>; }
+    catch (error) {
+      if ((error as { status?: number })?.status !== 404) throw error;
+      // Absence may be selective pull. Only an actual native tombstone authorizes delete.
+      const nativeRows = await db.allDocs({ keys: [nativeId] });
+      const row = nativeRows.rows[0];
+      if (!row || !('value' in row) || !(row.value as any).deleted) throw new Error('MIRROR_NATIVE_NOT_VERIFIED');
+      const deletionTime=Date.parse(await mirrorDeletionTime(storeDb,mirrorId) ?? '');
+      if (!Number.isFinite(deletionTime)) throw new Error('MIRROR_DELETE_TIME_NOT_VERIFIED');
+      const mirrorRows = await db.allDocs({ keys: [mirrorId] });
+      const mirror = mirrorRows.rows[0];
+      if (mirror && 'value' in mirror && !(mirror.value as any).deleted) {
+        const pc=await db.get(mirrorId, { conflicts:true }) as Record<string, unknown>;
+        const pcTime=Date.parse(String(pc.updatedAt ?? ''));
+        if (!Number.isFinite(pcTime) || (Array.isArray(pc._conflicts) && pc._conflicts.length) || pcTime > deletionTime)
+          throw new Error('MIRROR_PC_NEWER_REVIEW_REQUIRED');
+        const latestRows=await db.allDocs({ keys: [nativeId] });
+        const latest=latestRows.rows[0];
+        if (!latest || !('value' in latest) || !(latest.value as any).deleted || latest.value.rev !== row.value.rev)
+          throw new Error('MIRROR_NATIVE_CHANGED_RETRY');
+        await db.put({ _id: mirrorId, _rev: mirror.value.rev, _deleted: true } as never);
+      }
+      await setMirrorPending(storeDb, mirrorId, false); return;
+    }
+    if (Array.isArray(native._conflicts) && native._conflicts.length) throw new Error('MIRROR_NATIVE_CONFLICT');
+    prepareDocumentForWrite(nativeId, native);
+    const entity = native[kind];
+    if (!entity || native.docType !== kind) throw new Error('INVALID_MIRROR_NATIVE');
+    const doc = kind === 'product' ? apkProductToPcDoc(entity as Product)
+      : kind === 'customer' ? apkCustomerToPcDoc(entity as Customer) : apkInvoiceToPcDoc(entity as InvoiceRecord);
+    // Preserve authoritative timestamp so retry is not falsely newer than remote PC edits.
+    if (typeof native.syncedAt === 'string') doc.updatedAt = native.syncedAt;
+    let mirror: Record<string, unknown> | undefined;
+    try { mirror=await db.get(mirrorId, { conflicts: true }) as Record<string, unknown>; }
+    catch(error) {
+      if((error as {status?:number})?.status!==404)throw error;
+      const rows=await db.allDocs({keys:[mirrorId]});
+      const row=rows.rows[0];
+      if (row && 'value' in row && (row.value as any).deleted) throw new Error('MIRROR_PC_DELETED_REVIEW_REQUIRED');
+    }
+    if (Array.isArray(mirror?._conflicts) && mirror._conflicts.length) throw new Error('MIRROR_PC_CONFLICT');
+    await upsertDoc(storeDb, mirrorId, current => {
+      const pcTime=Date.parse(String(current?.updatedAt ?? ''));
+      const nativeTime=Date.parse(String(native.syncedAt ?? ''));
+      if (current?.updatedAt !== undefined && (!Number.isFinite(pcTime) || !Number.isFinite(nativeTime))) throw new Error('MIRROR_PC_TIME_NOT_VERIFIED');
+      if (Number.isFinite(pcTime) && Number.isFinite(nativeTime) && pcTime > nativeTime) throw new Error('MIRROR_PC_NEWER_REVIEW_REQUIRED');
+      return doc;
+    });
+    const latest=await db.get(nativeId);
+    if (latest._rev !== native._rev) throw new Error('MIRROR_NATIVE_CHANGED_RETRY');
+    await setMirrorPending(storeDb, mirrorId, false);
+  });
+}
+/** APK primary write must finish first. The entity identifies the record, not the replay body. */
+export async function mirrorToPc(storeDb: string, kind: MirrorKind, entity: unknown): Promise<void> {
+  const id = (entity as { id?: unknown })?.id;
+  if (typeof id !== 'string' || !id) throw new Error('INVALID_MIRROR_ENTITY_ID');
+  return reconcilePcMirror(storeDb, PC_PREFIX[kind] + id);
+}
+export async function mirrorDeletionToPc(storeDb: string, kind: MirrorKind, id: string, deletedAt: string): Promise<void> {
+  await setMirrorPending(storeDb, PC_PREFIX[kind] + id, true, deletedAt);
+  return reconcilePcMirror(storeDb, PC_PREFIX[kind] + id);
 }
