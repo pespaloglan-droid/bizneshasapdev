@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { loadConnection, resumeLastConnection, SYNC_DOCS_CHANGED_EVENT, type LinkStatusMap } from '../db/connectionStore';
+import { loadConnection, resumeLastConnection, stopCurrent, SYNC_DOCS_CHANGED_EVENT, type LinkStatusMap } from '../db/connectionStore';
 import { importPcMirrorsIntoStore, SYNC_IMPORTED_EVENT } from '../db/schemaBridge';
 import { resolveConflicts, isConflictReviewEnabled, hasReviewableConflicts } from '../db/conflictResolver';
 import { useCleanup } from './useCleanup';
@@ -23,7 +23,7 @@ export function useAutoConnection(accountId: string, storeDb: string, onStatus?:
       void run().catch(() => console.warn('[Sync]', 'bridge_failed'));
     }, 1500);
   }, [storeDb]);
-  useCleanup(() => { active.current = false; if (timer.current !== undefined) window.clearTimeout(timer.current); }, [storeDb]);
+  useCleanup(() => { stopCurrent(accountId); active.current = false; if (timer.current !== undefined) window.clearTimeout(timer.current); }, [accountId, storeDb]);
   useEffect(() => {
     active.current = true;
     const changed = (event: Event) => { if ((event as CustomEvent).detail === storeDb) pullIn(); };

@@ -267,7 +267,7 @@ function localSyncedAt(doc: Record<string, unknown>): number {
 type MirrorKind = 'product' | 'customer' | 'invoice';
 
 /** Eşzamanlı köprü aktarımlarını sıraya alır (canlı senkron her değişimde tetikler). */
-let bridgeRun: Promise<number> | null = null;
+const bridgeRuns = new Map<string, Promise<number>>();
 
 /**
  * PC'den gelen aynaları APK'nın asıl kayıtlarına aktarır.
@@ -275,11 +275,9 @@ let bridgeRun: Promise<number> | null = null;
  * son değişikliğini korur.
  */
 export function importPcMirrorsIntoStore(storeDb: string): Promise<number> {
-  if (bridgeRun) return bridgeRun;
-  bridgeRun = runBridgeImport(storeDb).finally(() => {
-    bridgeRun = null;
-  });
-  return bridgeRun;
+  const running=bridgeRuns.get(storeDb); if (running) return running;
+  const task=runBridgeImport(storeDb).finally(()=>{if(bridgeRuns.get(storeDb)===task)bridgeRuns.delete(storeDb);});
+  bridgeRuns.set(storeDb,task);return task;
 }
 
 async function runBridgeImport(storeDb: string): Promise<number> {

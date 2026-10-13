@@ -206,12 +206,19 @@ interface Running {
 }
 
 let running: Running | null = null;
+let connectionGeneration = 0;
+let pendingAccount: string | null = null;
 
-/** Yalnızca bir bağlantı aktif olabilir; yenisi başlatılırsa eskisi durur. */
-export function stopCurrent(): void {
-  if (running) {
-    running.stop();
-    running = null;
+function stopRunning(): void {
+  if (running) { running.stop(); running = null; }
+}
+/** Owner verilirse eski hesabın cleanup'ı yeni hesabın request/sync'ini kapatamaz. */
+export function stopCurrent(owner?: string): void {
+  if (!owner) { connectionGeneration++; pendingAccount=null; stopRunning(); return; }
+  if (pendingAccount===owner) { connectionGeneration++; pendingAccount=null; }
+  if (running?.accountId===owner) {
+    if (pendingAccount===null) connectionGeneration++;
+    stopRunning();
   }
 }
 
@@ -307,11 +314,16 @@ export interface StartOptions {
 export async function startConnection(opts: StartOptions): Promise<TestResult> {
   const { accountId, storeDb, kind, raw, onStatus, onDocsChanged } = opts;
   const language: LanguageCode = opts.language ?? 'tr';
+  const generation=++connectionGeneration; pendingAccount=accountId;
+  const current=()=>generation===connectionGeneration;
+  const cancelled=(): TestResult=>({ok:false,step:'server',message:'CONNECTION_CANCELLED'});
+  stopRunning();
 
   const tConn = translations[language]?.conn ?? translations.en.conn;
   onStatus({ local: { state: 'connecting', message: tConn.connecting }, online: { state: 'connecting', message: tConn.connecting } });
 
   const test = await testAddress(raw);
+  if (!current()) return cancelled();
   if (!test.ok) {
     const state: LinkStatus = {
       state: 'error',
@@ -332,19 +344,22 @@ export async function startConnection(opts: StartOptions): Promise<TestResult> {
     return { ok: false, step: 'server', message: 'Adres okunamadı' };
   }
 
-  // Aynı anda tek bağlantı: öncekini durdur
-  stopCurrent();
+  if (!current()) return cancelled();
 
   // Veri birleştirme: telefonda da, sunucuda da veri varsa sor
   let choice: MergeChoice = opts.mergeChoice ?? 'merge';
   if (!opts.mergeChoice && opts.onMergeNeeded) {
     const prompt = await checkMergeNeeded(storeDb, addr);
+    if (!current()) return cancelled();
     if (prompt.needsChoice) {
       choice = await opts.onMergeNeeded(prompt);
+      if (!current()) return cancelled();
     }
   }
 
+  if (!current()) return cancelled();
   if (choice === 'serverOnly') await clearLocalData(storeDb);
+  if (!current()) return cancelled();
 
   const auth: CouchAuth = { username: addr.username, password: addr.password };
   const okState = (msg: string): LinkStatusMap =>
@@ -359,6 +374,7 @@ export async function startConnection(opts: StartOptions): Promise<TestResult> {
   const remoteTotal = await docCount(addr.remoteUrl, {
     Authorization: basicAuth(addr.username, addr.password),
   });
+  if (!current()) return cancelled();
   opts.onProgress?.({ received, sent, done: false, remoteTotal });
 
   const stop = startCouchDbSync(
@@ -366,6 +382,7 @@ export async function startConnection(opts: StartOptions): Promise<TestResult> {
     addr.remoteUrl,
     auth,
     (s: SyncStatus) => {
+      if (!current()) return;
       const msg = syncMessage(s, addr.database, language);
       // "paused" = o an için eşitleme bitti. İlk aktarım burada tamamlanır.
       if (s.status === 'paused' && !s.message.includes('Sunucu bekleniyor')) {
@@ -389,6 +406,7 @@ export async function startConnection(opts: StartOptions): Promise<TestResult> {
       }
     },
     (info) => {
+      if (!current()) return;
       sawChange = true;
       received += info.read;
       sent += info.written;
@@ -397,6 +415,8 @@ export async function startConnection(opts: StartOptions): Promise<TestResult> {
     loadConnection(accountId).historyMonths ?? 0
   );
 
+  if (!current()) { stop(); return cancelled(); }
+  pendingAccount=null;
   running = { stop, accountId, storeDb, kind };
 
   // "Son aktif bağlantı" bilgisini kalıcı yaz
