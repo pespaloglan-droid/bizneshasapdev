@@ -1,5 +1,7 @@
 # BİZNES HASAP — Kimi Code için Faz C / D devir ve bağımsız analiz talimatı
 
+> Güncel düzeltme sonucu: [KIMI-DUZELTME-SONUC-FAZ-CD.md](KIMI-DUZELTME-SONUC-FAZ-CD.md). Aşağıdaki APK/kaynak bilgileri önceki v1.3.8 snapshot'ını anlatır; yeni düzeltmeler APK içine girmiş sayılmaz.
+
 **Hazırlanma tarihi:** 2026-10-12  
 **Amaç:** mevcut kaynak çalışmasını bağımsız incelemek, güvenlik/veri bütünlüğü risklerini bulmak ve sonraki işleri doğru sıraya koymak. Bu belge yeni özelliklerin her platformda üretime hazır olduğu iddiası değildir.
 
