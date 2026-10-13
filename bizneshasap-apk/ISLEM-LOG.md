@@ -592,3 +592,23 @@ GitHub'ın bildirdiği job-env `runner.temp` context hatası giderildi; geçici
 sertifika yolu pwsh step'inde GITHUB_ENV ile hazırlanır. Actionlint tüm workflow'ları
 hatasız doğruladı. E2E kontrolü çalışma branch'i push'larında da tetiklenir.
 Bu yalnızca workflow düzeltmesidir; APK'nın kaynak kodu ve SHA-256'sı değişmedi.
+
+## 2026-10-13 — v1.3.9 + v1.3.10: düzeltmelerin uyumlu imzalı APK'ları (bu makinede build)
+
+### v1.3.9 (versionCode 26, kaynak `c722aed`)
+- 21 P0-P3 düzeltmesi (DUZELTME-LISTESI-FAZ-CD.md) diğer AI tarafından uygulandı,
+  Kimi Code tarafından bağımsız doğrulandı: 21/21 madde kod kanıtıyla GERÇEK,
+  yerel 31 dosya / 346 birim testi geçti, secret taraması temiz.
+- APK bu makinede derlendi → debug sertifikası v1.3.7 ile AYNI (SHA-256 448b851b…).
+  Repodaki v1.3.8 farklı ortam imzalıydı; v1.3.9 imza uyuşmazlığını çözer.
+
+### v1.3.10 (versionCode 27, kaynak `57cdbc0` + belge commit'leri)
+- Katalog primary yazımları DB-first (hata toast'u, form koruma, çift gönderim engeli).
+- PC mirror retry kuyruğu: 1s/5s/30s × 3 tur, güncel belge okuma, PC-newer/tombstone guard.
+- Silme → PC tombstone aktarımı (revision + silme zamanı doğrulamalı).
+- Doğrulama: 34 dosya / 376 birim testi (yerel) + diğer AI CI'sında 27 E2E success.
+- APK yine bu makinede derlendi, imza v1.3.7 ile aynı.
+
+### Doğrulama komutları (bu makinede)
+- `npm test -- --run` ✓ · `npm run build:mobile` ✓ · `gradlew assembleDebug` ✓
+- aapt2: versionCode='26'/'27' · apksigner digest v1.3.7 ile eşleşti
