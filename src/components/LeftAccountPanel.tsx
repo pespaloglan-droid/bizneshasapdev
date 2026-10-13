@@ -1,3 +1,4 @@
+import { splitStoredAddress } from '../db/credentialStorage';
 import React, { useEffect, useState, useRef } from 'react';
 import { ChevronDown, Plus, Menu, Image as ImageIcon } from 'lucide-react';
 import { Account, LanguageCode } from '../types';
@@ -171,7 +172,7 @@ export const LeftAccountPanel: React.FC<LeftAccountPanelProps> = ({
               {account?.name || t.conn.noAccount}
             </div>
             <div className="text-[11px] text-gray-500 font-normal truncate border-b border-gray-200 pb-0.5 inline-block min-w-[120px]">
-              {account?.couchDbUrl || 'http://127.0.0.1:5984'}
+              {splitStoredAddress(account?.couchDbUrl || 'http://127.0.0.1:5984').address}
             </div>
           </div>
         </div>

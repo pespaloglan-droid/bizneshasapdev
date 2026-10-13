@@ -1,3 +1,4 @@
+import { encodeStoredAccount, decodeStoredAccount } from './credentialStorage';
 import { masterAccountsDb } from './pouch';
 import { Account, User } from '../types';
 
@@ -26,10 +27,15 @@ export async function getAllAccountsFromDb(): Promise<Account[]> {
       include_docs: true
     });
 
-    return result.rows
+    const accounts = result.rows
       .filter((row) => row.doc && (row.doc as any).docType === 'account')
       .map((row) => row.doc as AccountDoc)
-      .filter((acc) => !isSeedAccount(acc));
+      .filter((acc) => !isSeedAccount(acc)).map(decodeStoredAccount);
+    for (const account of accounts) {
+      const source = result.rows.find(row => row.doc?.id === account.id)?.doc as any;
+      if (!source?.couchDbUrlEncoded) await saveAccountToDb(account);
+    }
+    return accounts;
   } catch (error) {
     console.warn('PouchDB accounts fetch failed:', error);
     return [];
@@ -51,7 +57,7 @@ export async function saveAccountToDb(account: Account): Promise<Account> {
     }
 
     const docToSave: AccountDoc = {
-      ...account,
+      ...encodeStoredAccount(account),
       _id: docId,
       _rev: existingRev,
       docType: 'account'

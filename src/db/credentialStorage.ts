@@ -21,3 +21,13 @@ export function usesPlainHttp(raw: string): boolean {
   try { return new URL(/^[a-z]+:\/\//i.test(raw) ? raw : `http://${raw}`).protocol === 'http:'; }
   catch { return false; }
 }
+
+/** Eski hesap taban URL'si de userinfo taşıyabilir; iki saklama yolu aynı codec'i kullanır. */
+export function encodeStoredAccount<T extends { couchDbUrl: string }>(account: T): T & { couchDbUrlEncoded: string } {
+  const split = splitStoredAddress(account.couchDbUrl);
+  return { ...account, couchDbUrl: split.address, couchDbUrlEncoded: split.encoded };
+}
+export function decodeStoredAccount<T extends { couchDbUrl: string; couchDbUrlEncoded?: string }>(account: T): T {
+  const { couchDbUrlEncoded, ...body } = account;
+  return { ...body, couchDbUrl: couchDbUrlEncoded ? decodeStoredValue<string>(couchDbUrlEncoded) : account.couchDbUrl } as T;
+}

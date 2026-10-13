@@ -1,3 +1,4 @@
+import { encodeStoredAccount, decodeStoredAccount } from '../db/credentialStorage';
 import { SETTINGS_KEY } from '../utils/storageKeys';
 import { Account, LanguageCode, PrinterMode } from '../types';
 import { detectInitialLanguage } from '../utils/languageDetect';
@@ -37,7 +38,9 @@ export function loadStoredState(): AppState {
     const all: Account[] = rawAccounts ? JSON.parse(rawAccounts) : [];
     if (!Array.isArray(all)) return EMPTY_STATE;
     // Eski seed/mock hesaplar (Acme yazılım, LC Waikiki, BİM Market) temizlenir.
-    const accounts = all.filter((a) => !isSeedAccount(a));
+    const accounts = all.filter((a) => !isSeedAccount(a)).map(decodeStoredAccount);
+    // Eski raw URL kayıtlarını yeni kısa vadeli kodlama biçimine migre et.
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts.map(encodeStoredAccount)));
 
     const settings = rawSettings
       ? JSON.parse(rawSettings)
@@ -64,7 +67,7 @@ export function loadStoredState(): AppState {
 
 export function saveAccountsState(accounts: Account[], state: Partial<AppState>) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts.map(encodeStoredAccount)));
     const currentSettings = {
       selectedAccountId: state.selectedAccountId,
       selectedUserId: state.selectedUserId,
