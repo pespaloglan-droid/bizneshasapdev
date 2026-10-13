@@ -25,20 +25,18 @@ const applyStockChanges = async (items: CartItem[], type: InvoiceType, direction
 
     const deltas = new Map<string, number>();
     products.forEach((prod) => {
-      const cartItem = items.find(ci => ci.productId === prod.id);
+      const productItems = items.filter(ci => ci.productId === prod.id);
 
       // Düzmäni azaldylan haryt (esasy set ýa-da onuň bölegi).
       const compositionDelta = compositionDeltas.get(prod.id);
-      if (compositionDelta === undefined && !cartItem) return prod;
+      if (compositionDelta === undefined && !productItems.length) return prod;
 
       let delta = 0;
-      if (cartItem) {
+      if (productItems.length) {
         // Eğer sepetteki birim, ürünün 2. birimiyse (ör: Karopka) ve ürünün çarpanı varsa
         // stoğu o çarpana göre düşüreceğiz (ör: 1 Karopka = 10 Sany ise, 1 Karopka satışında stok 10 düşer)
-        let baseQty = cartItem.qty;
-        if (cartItem.unit === prod.unit2 && prod.unit2Qty) {
-          baseQty = cartItem.qty * prod.unit2Qty;
-        }
+        const baseQty = productItems.reduce((sum, item) => sum +
+          (item.unit === prod.unit2 && prod.unit2Qty ? item.qty * prod.unit2Qty : item.qty), 0);
 
         if (type === 'sales' || type === 'other_out')         delta = -baseQty;
         if (type === 'purchase' || type === 'other_in')        delta = +baseQty;
