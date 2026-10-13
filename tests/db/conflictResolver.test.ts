@@ -91,7 +91,7 @@ vi.mock('../../src/db/pouch', () => ({
   getLocalDatabase: vi.fn(() => fakeDb),
 }));
 
-import { docTimestamp, resolveConflicts, countConflicts, setConflictReviewEnabled } from '../../src/db/conflictResolver';
+import { docTimestamp, resolveConflicts, countConflicts, setConflictReviewEnabled, listDocumentConflicts, resolveReviewedConflict } from '../../src/db/conflictResolver';
 
 beforeEach(() => {
   localStorage.clear();
@@ -365,4 +365,20 @@ it('P1-3 geçersiz LWW kazananında kopyalama ve dal silme yok', async () => {
   const stats=await resolveConflicts('invalid');
   expect(stats.validationRejected).toBe(1);expect(stats.resolved).toBe(0);
   expect(fakeDb.putCalls).toHaveLength(0);expect(fakeDb.removeCalls).toHaveLength(0);
+});
+
+it('P3 unreadable revision diğer kayıtları saklamaz ama eksik kaydı çözmeyi durdurur',async()=>{
+  fakeDb.addLeaf('urun:bad','1-a',{ad:'Current'},true).addLeaf('urun:bad','2-unreadable',{ad:'Other'});
+  fakeDb.addLeaf('urun:good','1-b',{ad:'Good'},true).addLeaf('urun:good','2-c',{ad:'Other good'});
+  fakeDb.failGetRevs.add('2-unreadable');
+  const records=await listDocumentConflicts('QA');expect(records).toHaveLength(2);
+  const incomplete=records.find(record=>record.id==='urun:bad')!;
+  expect(incomplete.incomplete).toBe(true);expect(incomplete.versions).toHaveLength(2);
+  expect(incomplete.versions.find(v=>v.rev==='2-unreadable')).toMatchObject({unreadable:true,valid:false});
+  await expect(resolveReviewedConflict('QA',incomplete,'1-a')).rejects.toThrow();
+  expect(fakeDb.putCalls).toHaveLength(0);expect(fakeDb.removeCalls).toHaveLength(0);
+  expect(records.find(record=>record.id==='urun:good')!.incomplete).toBe(false);
+});
+it('P3 tombstone deletedAt oluşturulma zamanından önce değerlendirilir',()=>{
+  expect(docTimestamp({_deleted:true,deletedAt:'2026-10-12',createdAt:'2025-01-01',updatedAt:'2025-02-01'})).toBe(Date.parse('2026-10-12'));
 });

@@ -18,6 +18,7 @@ import { getLocalDatabase } from './pouch';
 export function docTimestamp(doc: Record<string, unknown> | null | undefined): number {
   if (!doc) return 0;
   const candidates = [
+    doc._deleted === true ? doc.deletedAt : undefined,
     doc.updatedAt,
     doc.syncedAt,
     doc.createdAt,
@@ -27,6 +28,7 @@ export function docTimestamp(doc: Record<string, unknown> | null | undefined): n
     isRecord(doc.invoice) ? doc.invoice.updatedAt : undefined,
     isRecord(doc.transaction) ? doc.transaction.updatedAt : undefined,
     doc.lastEditedAt,
+    doc.deletedAt,
   ];
   for (const c of candidates) {
     const n = toMillis(c);
@@ -177,8 +179,8 @@ export function setConflictReviewEnabled(dbName: string, enabled: boolean): void
 function notifyConflictReview(dbName: string): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(CONFLICT_REVIEW_EVENT, { detail: dbName }));
 }
-export interface ConflictVersion { rev: string; timestamp: number; fields: Record<string, unknown>; valid: boolean }
-export interface DocumentConflict { id: string; currentRev: string; versions: ConflictVersion[] }
+export interface ConflictVersion { rev: string; timestamp: number; fields: Record<string, unknown>; valid: boolean; unreadable?: boolean }
+export interface DocumentConflict { id: string; currentRev: string; versions: ConflictVersion[]; incomplete?: boolean }
 const SAFE_FIELDS = new Set(['id', 'ad', 'name', 'sku', 'barkod', 'barcode', 'price', 'fiyat',
   'stock', 'stok', 'balance', 'bakiye', 'invoiceNo', 'faturaNo', 'amountDue', 'toplam', 'amount',
   'status', 'durum', 'invoiceType', 'faturaTipi', 'createdAt', 'updatedAt', 'syncedAt', '_deleted']);
@@ -196,16 +198,21 @@ export async function listDocumentConflicts(dbName: string): Promise<DocumentCon
     const current = row.doc as Record<string, unknown> & { _id: string; _rev: string; _conflicts?: string[] };
     if (!current?._conflicts?.length || !isReviewableId(current._id)) continue;
     const docs = [current];
-    for (const rev of current._conflicts) docs.push(await db.get(current._id, { rev }) as typeof current);
-    records.push({ id: current._id, currentRev: current._rev, versions: docs.map(doc => ({
+    const unreadable: ConflictVersion[] = [];
+    for (const rev of current._conflicts) {
+      try { docs.push(await db.get(current._id, { rev }) as typeof current); }
+      catch { unreadable.push({ rev, timestamp: 0, fields: {}, valid: false, unreadable: true }); }
+    }
+    records.push({ id: current._id, currentRev: current._rev, incomplete: unreadable.length > 0, versions: [...docs.map(doc => ({
       rev: doc._rev, timestamp: docTimestamp(doc), fields: previewFields(doc),
       valid: (() => { try { prepareDocumentForWrite(doc._id, doc); return true; } catch { return false; } })(),
-    })) });
+    })), ...unreadable] });
   }
   return records;
 }
 /** İncelenen revision seti değişirse işlemi durdur; sessizce başka sürüm silme. */
 export async function resolveReviewedConflict(dbName: string, snapshot: DocumentConflict, selectedRev: string): Promise<void> {
+  if (snapshot.incomplete) throw new SyncError();
   const db = getLocalDatabase(dbName);
   const current = await db.get(snapshot.id, { conflicts: true }) as Record<string, unknown> & { _rev: string; _conflicts?: string[] };
   const revisions = [current._rev, ...(current._conflicts ?? [])].sort();
