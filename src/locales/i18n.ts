@@ -28,6 +28,8 @@ export const translations: Record<LanguageCode, {
   selectLogo: string;
   /** CouchDB bağlantı arayüzü (hesap ekranı + ayarlar). */
   conn: {
+    storedOnDevice: string;
+    internetHttpWarning: string;
     historyTitle: string;
     historyAll: string;
     historyThree: string;
@@ -1729,6 +1731,8 @@ export const translations: Record<LanguageCode, {
     cancel: "İptal",
     selectLogo: "Logo Seç",
     conn: {
+      storedOnDevice: "Bağlantı bilgisi bu cihazda kodlanarak saklanır; bu şifreleme veya güvenli kasa değildir. Cihaza erişimi olan kişi geri çözebilir.",
+      internetHttpWarning: "İnternet üzerinden şifresiz HTTP: kullanıcı adı/parola yolda görülebilir. HTTPS kullanın.",
       historyTitle: "Mobil fatura geçmişi indirme aralığı",
       historyAll: "Tüm geçmiş (varsayılan)",
       historyThree: "Son 3 ay — doğrulanmış mobil faturalar",
@@ -3405,6 +3409,8 @@ export const translations: Record<LanguageCode, {
     cancel: "Ýatyr",
     selectLogo: "Logo Saýla",
     conn: {
+      storedOnDevice: "Baglanyşyk maglumatlary şu enjamda kodlanyp saklanýar; bu şifrleme ýa-da ygtybarly ammar däl. Enjama girýän adam çözüp biler.",
+      internetHttpWarning: "Internet arkaly şifrlenmedik HTTP: ulanyjy ady/parol ýolda görünip biler. HTTPS ulanyň.",
       historyTitle: "Mobil faktura taryhynyň ýükleme aralygy",
       historyAll: "Ähli taryh (deslapky)",
       historyThree: "Soňky 3 aý — tassyklanan mobil fakturalar",
@@ -5081,6 +5087,8 @@ export const translations: Record<LanguageCode, {
     cancel: "Cancel",
     selectLogo: "Choose Logo",
     conn: {
+      storedOnDevice: "Connection details are encoded on this device; this is not encryption or a secure vault. Anyone with device access can decode them.",
+      internetHttpWarning: "Unencrypted HTTP over the internet: your username/password can be intercepted. Use HTTPS.",
       historyTitle: "Mobile invoice history download window",
       historyAll: "All history (default)",
       historyThree: "Last 3 months — confirmed mobile invoices",
@@ -6756,6 +6764,8 @@ export const translations: Record<LanguageCode, {
     cancel: "Отмена",
     selectLogo: "Выбрать логотип",
     conn: {
+      storedOnDevice: "Данные подключения кодируются на устройстве; это не шифрование и не защищённое хранилище. Имеющий доступ к устройству может их декодировать.",
+      internetHttpWarning: "Незашифрованный HTTP через интернет: логин/пароль могут быть перехвачены. Используйте HTTPS.",
       historyTitle: "Период загрузки мобильных счетов",
       historyAll: "Вся история (по умолчанию)",
       historyThree: "Последние 3 месяца — подтверждённые мобильные счета",

@@ -1,3 +1,4 @@
+import { usesPlainHttp } from '../../db/credentialStorage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GitMerge } from 'lucide-react';
 import type { LanguageCode } from '../../types';
@@ -159,6 +160,8 @@ export const ConnectionFields: React.FC<ConnectionFieldsProps> = ({
         </label>
         <p className="text-[11px] text-gray-500">{t.historyHint}</p>
       </section>
+      <p className="text-xs text-amber-800 bg-amber-50 p-3 rounded-lg">{t.storedOnDevice}</p>
+      {usesPlainHttp(conn.online) && <p role="alert" className="text-sm font-bold text-red-800 bg-red-50 border border-red-300 p-3 rounded-lg">{t.internetHttpWarning}</p>}
       {rows.map((r) => (
         <ConnectionRow
           key={r.kind}

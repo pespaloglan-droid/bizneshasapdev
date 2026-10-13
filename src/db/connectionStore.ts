@@ -1,3 +1,4 @@
+import { splitStoredAddress, decodeStoredValue, encodeStoredValue } from './credentialStorage';
 import { NON_SYNCED_DOC_IDS } from './schemaBridge';
 export const SYNC_DOCS_CHANGED_EVENT = 'bh:sync-docs-changed';
 import {
@@ -86,13 +87,18 @@ export function loadConnection(accountId: string): StoredConnection {
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + accountId);
     if (!raw) return emptyConnection();
-    const p = JSON.parse(raw) as Partial<StoredConnection>;
-    return {
-      local: typeof p.local === 'string' ? p.local : '',
-      online: typeof p.online === 'string' ? p.online : '',
+    const p = JSON.parse(raw) as Partial<StoredConnection> & { storageVersion?: number };
+    const stored = p.storageVersion === 2
+      ? decodeStoredValue<{ local: string; online: string }>(localStorage.getItem(STORAGE_PREFIX + accountId + '_credentials') ?? '')
+      : p;
+    const connection: StoredConnection = {
+      local: typeof stored.local === 'string' ? stored.local : '',
+      online: typeof stored.online === 'string' ? stored.online : '',
       active: p.active === 'local' || p.active === 'online' ? p.active : null,
       ...(p.historyMonths === 3 || p.historyMonths === 12 ? { historyMonths: p.historyMonths } : {}),
     };
+    if (p.storageVersion !== 2) saveConnection(accountId, connection);
+    return connection;
   } catch {
     return emptyConnection();
   }
@@ -100,9 +106,12 @@ export function loadConnection(accountId: string): StoredConnection {
 
 export function saveConnection(accountId: string, conn: StoredConnection): void {
   try {
-    localStorage.setItem(STORAGE_PREFIX + accountId, JSON.stringify(conn));
+    const local = splitStoredAddress(conn.local), online = splitStoredAddress(conn.online);
+    // Ayrı kodlanmış anahtar: bu koruma obfuscation'dır, native secure vault değildir.
+    localStorage.setItem(STORAGE_PREFIX + accountId + '_credentials', encodeStoredValue({ local: conn.local, online: conn.online }));
+    localStorage.setItem(STORAGE_PREFIX + accountId, JSON.stringify({ ...conn, storageVersion: 2, local: local.address, online: online.address }));
   } catch (error) {
-    console.warn('Bağlantı ayarı kaydedilemedi', error);
+    console.warn('CONNECTION_STORAGE_FAILED');
   }
 }
 
@@ -110,7 +119,7 @@ export function saveConnection(accountId: string, conn: StoredConnection): void 
 export function maskAddress(raw: string): string {
   try {
     const a = parseCouchDbAddress(raw);
-    return `http://${a.username}:••••@${a.host}:${a.port}/${a.database}`;
+    return `${a.protocol}://${a.username}:••••@${a.host}:${a.port}/${a.database}`;
   } catch {
     return raw;
   }

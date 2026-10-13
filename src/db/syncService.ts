@@ -1,3 +1,4 @@
+import { encodeStoredValue, decodeStoredValue, splitStoredAddress } from './credentialStorage';
 import { startCouchDbSync, stopCouchDbSync, type CouchAuth, type SyncStatus } from './pouch';
 
 /**
@@ -60,7 +61,11 @@ export function loadSyncConfig(): SyncConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_SYNC_CONFIG, endpoints: DEFAULT_SYNC_CONFIG.endpoints.map((e) => ({ ...e })) };
-    const parsed = JSON.parse(raw) as Partial<SyncConfig>;
+    const parsed = JSON.parse(raw) as Partial<SyncConfig> & { storageVersion?: number };
+    if (parsed.storageVersion === 2) {
+      const secret = decodeStoredValue<{ password: string; endpoints: SyncEndpoint[] }>(localStorage.getItem(STORAGE_KEY + '_credentials') ?? '');
+      parsed.password = secret.password; parsed.endpoints = secret.endpoints;
+    }
     const stored = Array.isArray(parsed.endpoints) ? parsed.endpoints : [];
     // Eksik/bozuk kayıtları varsayılanlarla tamamla — eski sürümden kalan
     // boş adresler eşitlemeyi sessizce engelliyordu.
@@ -71,12 +76,14 @@ export function loadSyncConfig(): SyncConfig {
       const usable = found && typeof found.url === 'string' && found.url.trim();
       return usable ? { ...def, url: found.url } : { ...def };
     });
-    return {
+    const config: SyncConfig = {
       endpoints,
       username: typeof parsed.username === 'string' && parsed.username ? parsed.username : DEFAULT_SYNC_CONFIG.username,
       password: typeof parsed.password === 'string' ? parsed.password : DEFAULT_SYNC_CONFIG.password,
       enabled: parsed.enabled === true,
     };
+    if (parsed.storageVersion !== 2) saveSyncConfig(config);
+    return config;
   } catch {
     return { ...DEFAULT_SYNC_CONFIG, endpoints: DEFAULT_SYNC_CONFIG.endpoints.map((e) => ({ ...e })) };
   }
@@ -84,9 +91,11 @@ export function loadSyncConfig(): SyncConfig {
 
 export function saveSyncConfig(config: SyncConfig): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    localStorage.setItem(STORAGE_KEY + '_credentials', encodeStoredValue({ password: config.password, endpoints: config.endpoints }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...config, storageVersion: 2, password: undefined,
+      endpoints: config.endpoints.map(endpoint => ({ ...endpoint, url: splitStoredAddress(endpoint.url).address })) }));
   } catch (error) {
-    console.warn('Sync config could not be saved', error);
+    console.warn('SYNC_CONFIG_STORAGE_FAILED');
   }
 }
 
