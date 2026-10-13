@@ -1,8 +1,16 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { pathToFileURL } = require('node:url');
+const { isTrustedMainFrame, matchesSelectedAccount } = require('./ipc-trust.cjs');
+const { redactSecrets: redact } = require('./redact-secrets.cjs');
 
 let mainWindow;
+const ALLOWED_RENDERER_URL = process.env.NODE_ENV === 'development' && !app.isPackaged
+  ? 'http://localhost:5173/' : pathToFileURL(path.join(__dirname, '../dist/index.html')).href;
+function assertTrustedIPC(event) {
+  if (!isTrustedMainFrame(event, mainWindow, ALLOWED_RENDERER_URL)) throw new Error('UNTRUSTED_IPC');
+}
 
 const IS_PRODUCTION = !process.env.NODE_ENV || process.env.NODE_ENV === 'production' || app.isPackaged;
 
@@ -10,29 +18,7 @@ const IS_PRODUCTION = !process.env.NODE_ENV || process.env.NODE_ENV === 'product
  * Production'da hassas bilgileri hata mesajlarından temizler.
  * Spec FAZ 1.3: Şema/adres/kimlik bilgisi sızıntısını engelle.
  */
-function redactSecrets(message) {
-  if (!IS_PRODUCTION) return message; // Dev'de tam hata göster
-  
-  let cleaned = String(message);
-  
-  // URL'deki kimlik bilgilerini temizle: http://user:pass@host → http://***@host
-  cleaned = cleaned.replace(/(:\/\/)[^:@\/]+:[^@\/]+@/g, '$1***:***@');
-  
-  // IP adresleri: 192.168.1.100 → ***.***.***.***
-  cleaned = cleaned.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '***.***.***.***');
-  
-  // Port numaraları: :5984 → :****
-  cleaned = cleaned.replace(/:\d{4,5}\b/g, ':****');
-  
-  // Veritabanı adları: /db_name → /***
-  cleaned = cleaned.replace(/\/[a-z0-9_-]{3,}/gi, '/***');
-  
-  // Dosya yolları: C:\Users\... → C:\***
-  cleaned = cleaned.replace(/[A-Z]:\\[^\s]*/gi, 'C:\\***');
-  cleaned = cleaned.replace(/\/home\/[^\s]*/gi, '/home/***');
-  
-  return cleaned;
-}
+function redactSecrets(message) { return redact(message, IS_PRODUCTION); }
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -68,6 +54,7 @@ if (!gotTheLock) {
       backgroundColor: '#ffffff',
       show: true,
       webPreferences: {
+        sandbox: true,
         nodeIntegration: false,
         contextIsolation: true,
         preload: path.join(__dirname, 'preload.cjs')
@@ -122,6 +109,7 @@ if (!gotTheLock) {
 
     // ── Seçili hesabın lisans kimliği (spec v3 §3.3) ─────────────────────
     let selectedLicenseId = null;
+    let selectedLicenseOwner = null;
 
     const LICENSE_ID_RE = /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{2}$/;
 
@@ -134,14 +122,18 @@ if (!gotTheLock) {
       return id.trim().toUpperCase();
     }
 
-    function requireSelectedLicenseId() {
-      return selectedLicenseId;
+    function requireSelectedLicenseId(event) {
+      assertTrustedIPC(event);
+      return selectedLicenseOwner === event.sender.id ? selectedLicenseId : null;
+    }
+    function trustedIPC(channel, handler) {
+      ipcMain.handle(channel, async (event, ...args) => { assertTrustedIPC(event); return handler(event, ...args); });
     }
 
     // guardedIPC: Tüm veri kanallarını lisans kontrolü ile korur
     function guardedIPC(channel, moduleBit, handler) {
       ipcMain.handle(channel, async (event, ...args) => {
-        const accountId = requireSelectedLicenseId();
+        const accountId = requireSelectedLicenseId(event);
         if (!accountId) {
           const err = new Error('LICENSE_REQUIRED: No account selected');
           err.code = 'LICENSE_REQUIRED';
@@ -233,7 +225,7 @@ if (!gotTheLock) {
     });
 
     // Terezi: seriýa port goldawy henüz ýok
-    ipcMain.handle('scale-status', async () => ({
+    guardedIPC('scale-status', gate.MOD.STOK, async () => ({
       connected: false,
       message: 'Terezi bilen göni aragatnaşyk häzirlikçe ýok (seriýa port goldawy goşulmaly).'
     }));
@@ -293,7 +285,7 @@ if (!gotTheLock) {
     });
 
     // Pano — renderer'da navigator.clipboard file:// context'inde çalışmaz
-    ipcMain.handle('clipboard-write', async (_event, text) => {
+    guardedIPC('clipboard-write', 0, async (_event, text) => {
       try {
         const { clipboard } = require('electron');
         clipboard.writeText(String(text == null ? '' : text));
@@ -304,7 +296,7 @@ if (!gotTheLock) {
     });
 
     // Hesap bazlı lisans IPC'leri (spec v3 §4)
-    ipcMain.handle('license-info', async (_e, licenseId) => {
+    trustedIPC('license-info', async (_e, licenseId) => {
       try {
         const accountId = normalizeLicenseId(licenseId);
         if (!accountId) {
@@ -317,7 +309,7 @@ if (!gotTheLock) {
       }
     });
 
-    ipcMain.handle('license-request-code', async (_e, licenseId) => {
+    trustedIPC('license-request-code', async (_e, licenseId) => {
       try {
         const accountId = normalizeLicenseId(licenseId);
         if (!accountId) return null;
@@ -327,7 +319,7 @@ if (!gotTheLock) {
       }
     });
 
-    ipcMain.handle('license-create-id', async () => {
+    trustedIPC('license-create-id', async () => {
       try {
         return native.createAccountId();
       } catch {
@@ -335,7 +327,7 @@ if (!gotTheLock) {
       }
     });
 
-    ipcMain.handle('license-set-root', async (_e, licenseId, rootCode) => {
+    trustedIPC('license-set-root', async (_e, licenseId, rootCode) => {
       try {
         const accountId = normalizeLicenseId(licenseId);
         if (!accountId) return -9;
@@ -345,7 +337,7 @@ if (!gotTheLock) {
       }
     });
 
-    ipcMain.handle('license-activate', async (_e, licenseId, key) => {
+    trustedIPC('license-activate', async (_e, licenseId, key) => {
       try {
         const accountId = normalizeLicenseId(licenseId);
         if (!accountId) return -9;
@@ -355,26 +347,27 @@ if (!gotTheLock) {
       }
     });
 
-    ipcMain.handle('license-derive-key', async (_e, licenseId, purpose) => {
+    trustedIPC('license-derive-key', async (_e, licenseId, purpose) => {
       try {
         const accountId = normalizeLicenseId(licenseId);
-        if (!accountId) return null;
+        if (!matchesSelectedAccount(accountId, requireSelectedLicenseId(_e), _e.sender.id, selectedLicenseOwner)) return null;
         return native.deriveKey(accountId, String(purpose || ''));
       } catch {
         return null;
       }
     });
 
-    ipcMain.handle('license-select-account', async (_e, licenseId) => {
+    trustedIPC('license-select-account', async (_e, licenseId) => {
       const accountId = normalizeLicenseId(licenseId);
       selectedLicenseId = accountId;
+      selectedLicenseOwner = accountId ? _e.sender.id : null;
       return accountId;
     });
 
-    ipcMain.handle('license-guard', async (_e, moduleName, licenseId) => {
+    trustedIPC('license-guard', async (_e, moduleName, licenseId) => {
       try {
         const accountId = normalizeLicenseId(licenseId);
-        if (!accountId) {
+        if (!matchesSelectedAccount(accountId, requireSelectedLicenseId(_e), _e.sender.id, selectedLicenseOwner)) {
           return { allowed: false, reason: 'NO_ACCOUNT', status: -5 };
         }
         gate.selectAccount(accountId);
