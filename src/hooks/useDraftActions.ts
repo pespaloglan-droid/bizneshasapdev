@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useRef } from 'react';
 import { useT } from '../locales/LanguageContext';
 import type { MoneyTransaction } from '../types';
 import { InvoiceRecord, CartItem, Customer, InvoiceType, PaymentMethod, User } from '../types';
@@ -50,6 +51,8 @@ interface Options {
 
 export function useDraftActions({ setCompletedInvoices, storeDb, applyStockChanges, applyCustomerBalance, moneyTransactions, moneyStore, currentUser, setToastMessage, setIsDraftFormOpen, setIsGaralamaOpen, cartItems, loadedDraftId, completedInvoices, invoiceType, selectedCustomer, subtotal, discountTotal, amountDue, paymentMethod, creditAdvance, internalNote, creditFields, draftWarehouseId, draftTargetWarehouseId, draftLedgerId, setLoadedDraftId, setCartItems, setCashReceived, setInternalNote, setGlobalPercent, setSelectedCustomer, customers, setInvoiceType, setPaymentMethod, setInvoiceCode, setDraftWarehouseId, setDraftLedgerId, handleTabChange }: Options) {
   const t = useT();
+  const pendingAccepts = useRef(new Set<string>());
+  const completedAccepts = useRef(new Set<string>());
 
 const upsertInvoice = (invoice: InvoiceRecord) => {
     setCompletedInvoices((prev) => {
@@ -109,7 +112,7 @@ const handleSaveDraftFromCart = () => {
       : null;
 
     const draft: InvoiceRecord = {
-      id: existing ? existing.id : `inv-${Date.now()}`,
+      id: existing ? existing.id : `inv-${Date.now()}-${crypto.randomUUID()}`,
       invoiceNo: existing ? existing.invoiceNo : generateInvoiceNo(),
       invoiceType,
       customerId: selectedCustomer?.id ?? null,
@@ -164,8 +167,15 @@ const handleSaveDraftFromCart = () => {
     setGlobalPercent(0);
   };
 
-const applyAcceptedDraft = (accepted: InvoiceRecord) => {
-    upsertInvoice(accepted);
+const applyAcceptedDraft = async (accepted: InvoiceRecord): Promise<boolean> => {
+    if (pendingAccepts.current.has(accepted.id) || completedAccepts.current.has(accepted.id) ||
+        completedInvoices.some(inv => inv.id === accepted.id && (inv.draftStatus === 'accepted' || inv.status === 'voided'))) return false;
+    pendingAccepts.current.add(accepted.id);
+    try {
+    await saveInvoiceToDb(accepted, storeDb);
+    setCompletedInvoices(prev => prev.some(inv => inv.id === accepted.id)
+      ? prev.map(inv => inv.id === accepted.id ? accepted : inv) : [accepted, ...prev]);
+    completedAccepts.current.add(accepted.id);
     applyStockChanges(accepted.items, accepted.invoiceType);
     applyCustomerBalance(accepted);
 
@@ -176,7 +186,7 @@ const applyAcceptedDraft = (accepted: InvoiceRecord) => {
       if (isIncome || isExpense) {
         moneyStore.saveMoneyTransaction(
           {
-            id: `mtx-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`,
+            id: `mtx-draft-${accepted.id}-ledger`,
             type: isIncome ? 'income' : 'expense',
             date: accepted.createdAt.slice(0, 10),
             amount: accepted.amountTmt ?? accepted.amountDue,
@@ -195,10 +205,15 @@ const applyAcceptedDraft = (accepted: InvoiceRecord) => {
 
     setToastMessage({ type: 'success', text: t('pos.draftAccepted', { invoice: accepted.invoiceNo }) });
     setTimeout(() => setToastMessage(null), 3000);
+    return true;
+    } catch {
+      setToastMessage({ type: 'info', text: t('pos.saleSaveFailed') });
+      return false;
+    } finally { pendingAccepts.current.delete(accepted.id); }
   };
 
 const handleAcceptDraft = (invoice: InvoiceRecord) => {
-    applyAcceptedDraft({
+    return applyAcceptedDraft({
       ...invoice,
       draftStatus: 'accepted',
       acceptedBy: currentUser.name,
@@ -230,13 +245,13 @@ const clearLoadedDraft = () => {
     setGlobalPercent(0);
   };
 
-const acceptLoadedDraft = () => {
+const acceptLoadedDraft = async () => {
     const draft = completedInvoices.find((item) => item.id === loadedDraftId);
     if (!draft) {
       clearLoadedDraft();
       return;
     }
-    applyAcceptedDraft({
+    const accepted = await applyAcceptedDraft({
       ...draft,
       customerId: selectedCustomer ? selectedCustomer.id : null,
       customerName: selectedCustomer ? selectedCustomer.name : t('generalCustomer'),
@@ -257,7 +272,7 @@ const acceptLoadedDraft = () => {
       acceptedBy: currentUser.name,
       acceptedAt: new Date().toISOString(),
     });
-    clearLoadedDraft();
+    if (accepted) clearLoadedDraft();
   };
 
 const handleRejectDraft = (invoice: InvoiceRecord, reason: string) => {

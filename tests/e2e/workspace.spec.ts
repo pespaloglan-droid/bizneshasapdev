@@ -203,3 +203,9 @@ test('P0-2 reddedilen satış: fatura stok ve bakiye değişmez; sepet korunur',
   expect(after.customers).toEqual(before.customers);
   await expect(page.locator('input[type=number]')).not.toHaveCount(0);
 });
+test('P0-3 satış butonuna çift tık tek fatura ve tek stok düşümü üretir', async ({ page }) => {
+  await page.getByText('E2E Tea', { exact: true }).click();
+  await page.getByRole('button', { name: await text(page, 'completeSaleBtn'), exact: true }).first().dblclick();
+  await expect.poll(async () => (await state(page)).invoices.length).toBe(1);
+  await expect.poll(async () => (await state(page)).products[0].stock).toBe(4);
+});

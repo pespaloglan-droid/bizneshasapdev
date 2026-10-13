@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useRef } from 'react';
 import { formatMoney } from '../utils/locale';
 import { useT, useLanguage } from '../locales/LanguageContext';
 import type { OperationSettings } from '../types';
@@ -44,6 +45,7 @@ interface Options {
 
 export function useInvoiceActions({ paymentMethod, creditAdvance, ops, creditTermDays, setIsPosTerminalModalOpen, setLastAuthCode, invoiceType, selectedCustomer, cartItems, subtotal, discountTotal, amountDue, fixedInvoiceAt, currentUser, internalNote, storeDb, setCompletedInvoices, applyStockChanges, applyCustomerBalance, setActiveReceiptInvoice, setToastMessage, setCartItems, setCashReceived, setInternalNote, setGlobalPercent, compositionMapRef, products, loadedDraftId, acceptLoadedDraft, cashReceived, setCreditAdvance }: Options) {
   const t = useT();
+  const saleInFlight = useRef(false);
   const { language } = useLanguage();
 
 const creditFields = (
@@ -66,12 +68,12 @@ const creditFields = (
     };
   };
 
-const handleCardPaymentApproved = async (authCode: string) => {
+const approveCardPayment = async (authCode: string) => {
     setIsPosTerminalModalOpen(false);
     setLastAuthCode(authCode);
 
     const newInvoice: InvoiceRecord = {
-      id: `inv-${Date.now()}`,
+      id: `inv-${Date.now()}-${crypto.randomUUID()}`,
       invoiceNo: generateInvoiceNo(),
       invoiceType,                               // ← artık state'ten geliyor
       customerId: selectedCustomer?.id || null,
@@ -118,7 +120,7 @@ const handleCardPaymentApproved = async (authCode: string) => {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-const handleCompleteSale = async () => {
+const completeSale = async () => {
     if (cartItems.length === 0) return;
 
     // ── Düzüm (set) bölekleriniň stogy ýeterlik mi? ───────────────────────
@@ -189,7 +191,7 @@ const handleCompleteSale = async () => {
 
     // Açylan garalama bar bolsa — sebetdäki üýtgeşmeler bilen tassyklaýarys.
     if (loadedDraftId) {
-      acceptLoadedDraft();
+      await acceptLoadedDraft();
       return;
     }
 
@@ -199,7 +201,7 @@ const handleCompleteSale = async () => {
     }
 
     const newInvoice: InvoiceRecord = {
-      id: `inv-${Date.now()}`,
+      id: `inv-${Date.now()}-${crypto.randomUUID()}`,
       invoiceNo: generateInvoiceNo(),
       invoiceType,                               // ← artık state'ten geliyor
       customerId: selectedCustomer?.id || null,
@@ -257,5 +259,12 @@ const handleCompleteSale = async () => {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
+  const runSale = async (operation: () => Promise<void>) => {
+    if (saleInFlight.current) return;
+    saleInFlight.current = true;
+    try { await operation(); } finally { saleInFlight.current = false; }
+  };
+  const handleCompleteSale = () => runSale(completeSale);
+  const handleCardPaymentApproved = (code: string) => runSale(() => approveCardPayment(code));
   return { creditFields, handleCardPaymentApproved, handleCompleteSale };
 }
