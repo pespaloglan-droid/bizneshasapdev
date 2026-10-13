@@ -68,7 +68,10 @@ const upsertInvoice = async (invoice: InvoiceRecord) => {
   };
 
 const performVoidInvoice = async (requested: InvoiceRecord) => {
-    const { invoice, transactions } = await readVoidSnapshot(storeDb, requested.id);
+    let snapshot: Awaited<ReturnType<typeof readVoidSnapshot>>;
+    try { snapshot = await readVoidSnapshot(storeDb, requested.id); }
+    catch { setToastMessage({ type: 'info', text: t('pos.invoiceVoidReadFailed') }); return; }
+    const { invoice, transactions } = snapshot;
     if (invoice.status === 'voided') return;
     const effectsApplied = invoice.draftStatus !== 'pending' && invoice.draftStatus !== 'rejected';
     let remainingDebt = invoice.remainingDebt;

@@ -105,6 +105,7 @@ export const translations: Record<LanguageCode, {
     finish: string;
   };
   pos: {
+    invoiceVoidReadFailed: string;
     invoiceDeleteFailed: string;
     creditVoidNeedsAllocation: string;
     receiptInvoice: string;
@@ -1884,6 +1885,7 @@ export const translations: Record<LanguageCode, {
       finish: "Bitir",
     },
     pos: {
+      invoiceVoidReadFailed: "İptal durduruldu: güncel fatura/tahsilat kayıtları okunamadı veya geçersiz. Veriyi ve bağlantıyı kontrol edin; hiçbir iptal yan etkisi uygulanmadı.",
       invoiceDeleteFailed: "{count} fatura silinemedi; listede ve seçili kaldı. Tekrar denemeden önce veritabanını kontrol edin.",
       creditVoidNeedsAllocation: "İptal durduruldu: bu müşterinin tahsilatlarını doğru faturaya bağlayın; fazla veya uyumsuz tahsilatları kontrol edin. Tahsilatlar otomatik silinmez/iade edilmez.",
       receiptInvoice: "Tahsilatın faturası",
@@ -3563,6 +3565,7 @@ export const translations: Record<LanguageCode, {
       finish: "Tamamla",
     },
     pos: {
+      invoiceVoidReadFailed: "Ýatyrmak duruzyldy: faktura/töleg ýazgylary okalmady ýa-da nädogry. Maglumatlary we baglanyşygy barlaň; ters täsir amala aşyrylmady.",
       invoiceDeleteFailed: "{count} faktura pozulmady; sanawda we saýlanan görnüşde galdy. Gaýtalamazdan öň maglumat bazasyny barlaň.",
       creditVoidNeedsAllocation: "Ýatyrmak duruzyldy: müşderiniň töleglerini dogry faktura baglaň we artykmaç tölegi barlaň. Tölegler awtomatik pozulmaýar/gaýtarylmaýar.",
       receiptInvoice: "Tölegiň fakturasy",
@@ -5241,6 +5244,7 @@ export const translations: Record<LanguageCode, {
       finish: "Finish",
     },
     pos: {
+      invoiceVoidReadFailed: "Void blocked: current invoice/collection records could not be read or are invalid. Check the data and connection; no reversal effects were applied.",
       invoiceDeleteFailed: "{count} invoices could not be deleted; they remain listed and selected. Check the database before retrying.",
       creditVoidNeedsAllocation: "Void blocked: link this customer's collections to the correct invoice and review excess or inconsistent payments. Collections are not automatically deleted/refunded.",
       receiptInvoice: "Collection invoice",
@@ -6919,6 +6923,7 @@ export const translations: Record<LanguageCode, {
       finish: "Завершить",
     },
     pos: {
+      invoiceVoidReadFailed: "Отмена остановлена: текущий счёт/платежи не удалось прочитать или они некорректны. Проверьте данные и подключение; обратные операции не выполнены.",
       invoiceDeleteFailed: "Не удалось удалить счетов: {count}. Они остались в списке и выделенными. Перед повтором проверьте базу.",
       creditVoidNeedsAllocation: "Отмена остановлена: привяжите платежи клиента к нужным счетам и проверьте избыточные/несогласованные суммы. Платежи не удаляются и не возвращаются автоматически.",
       receiptInvoice: "Счёт платежа",

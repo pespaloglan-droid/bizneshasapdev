@@ -9,3 +9,6 @@ it('P1-1 bağlantısız eski tahsilat ve fazla tahsilatta tahmin yerine durur',(
   expect(()=>creditVoidRemainingDebt(invoice,[{...receipt,amount:101}])).toThrow('ALLOCATION_REQUIRED');
 });
 it('P1-1 tahsilat iadesini net tahsilattan düşer',()=>expect(creditVoidRemainingDebt(invoice,[receipt,{...receipt,id:'refund',type:'expense',amount:10}])).toBe(70));
+it('P1-1 bozuk tahsilat tutarı mali kararda sıfıra veya sayıya dönüştürülmez',()=>{
+  for (const amount of ['40',NaN,-40]) expect(()=>creditVoidRemainingDebt(invoice,[{...receipt,amount}])).toThrow('ALLOCATION_REQUIRED');
+});
