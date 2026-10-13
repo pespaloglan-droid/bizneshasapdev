@@ -1,3 +1,4 @@
+import { prepareDocumentForWrite } from './validation';
 import { SyncError } from '../utils/errors';
 import { getLocalDatabase } from './pouch';
 
@@ -57,6 +58,7 @@ export interface ConflictStats {
   removed: number;
   /** Zaman damgası olmayıp ilk revizyonun seçildiği belgeler. */
   noTimestamp: number;
+  validationRejected?: number;
 }
 
 /**
@@ -108,6 +110,14 @@ export async function resolveConflicts(
           bestTime = t;
           best = leaf;
         }
+      }
+
+      try { prepareDocumentForWrite(id, best); }
+      catch {
+        stats.validationRejected = (stats.validationRejected ?? 0) + 1;
+        notifyConflictReview(dbName);
+        console.warn('CONFLICT_VALIDATION_REJECTED');
+        return; // Geçersiz kazananla hiçbir dal kopyalanmaz/silinmez.
       }
 
       // Kazanan yaprak ana revizyon değilse, içeriğini ana revizyona taşı
@@ -167,7 +177,7 @@ export function setConflictReviewEnabled(dbName: string, enabled: boolean): void
 function notifyConflictReview(dbName: string): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(CONFLICT_REVIEW_EVENT, { detail: dbName }));
 }
-export interface ConflictVersion { rev: string; timestamp: number; fields: Record<string, unknown> }
+export interface ConflictVersion { rev: string; timestamp: number; fields: Record<string, unknown>; valid: boolean }
 export interface DocumentConflict { id: string; currentRev: string; versions: ConflictVersion[] }
 const SAFE_FIELDS = new Set(['id', 'ad', 'name', 'sku', 'barkod', 'barcode', 'price', 'fiyat',
   'stock', 'stok', 'balance', 'bakiye', 'invoiceNo', 'faturaNo', 'amountDue', 'toplam', 'amount',
@@ -189,6 +199,7 @@ export async function listDocumentConflicts(dbName: string): Promise<DocumentCon
     for (const rev of current._conflicts) docs.push(await db.get(current._id, { rev }) as typeof current);
     records.push({ id: current._id, currentRev: current._rev, versions: docs.map(doc => ({
       rev: doc._rev, timestamp: docTimestamp(doc), fields: previewFields(doc),
+      valid: (() => { try { prepareDocumentForWrite(doc._id, doc); return true; } catch { return false; } })(),
     })) });
   }
   return records;
@@ -206,7 +217,8 @@ export async function resolveReviewedConflict(dbName: string, snapshot: Document
   const { _rev, _conflicts, _revisions, _deleted_conflicts, ...fields } = selected;
   void _rev; void _conflicts; void _revisions; void _deleted_conflicts;
   // Başarılı yeni revision bariyeri oluşmadan hiçbir dal silinmez.
-  await db.put({ ...fields, _id: snapshot.id, _rev: current._rev } as never);
+  const validated = prepareDocumentForWrite(snapshot.id, fields);
+  await db.put({ ...validated, _rev: current._rev } as never);
   for (const rev of current._conflicts ?? []) await db.remove(snapshot.id, rev);
   notifyConflictReview(dbName);
 }

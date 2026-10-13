@@ -209,3 +209,25 @@ test('P0-3 satış butonuna çift tık tek fatura ve tek stok düşümü üretir
   await expect.poll(async () => (await state(page)).invoices.length).toBe(1);
   await expect.poll(async () => (await state(page)).products[0].stock).toBe(4);
 });
+test('P1-3 bozuk conflict kazananı kopyalanmaz ve geçerli seçim çalışır', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { getLocalDatabase, resetLocalDatabaseForReplacement } = await import('/src/db/pouch.ts');
+    const { resolveConflicts, listDocumentConflicts, resolveReviewedConflict } = await import('/src/db/conflictResolver.ts');
+    const name=`validate-conflict-${crypto.randomUUID()}`, db=getLocalDatabase(name);
+    try {
+      await db.bulkDocs([
+        { _id:'urun:qa',_rev:'1-aaa',_revisions:{start:1,ids:['aaa']},ad:42,updatedAt:'2026-10-12' },
+        { _id:'urun:qa',_rev:'1-bbb',_revisions:{start:1,ids:['bbb']},ad:'Valid',updatedAt:'2026-01-01' },
+      ],{new_edits:false});
+      const stats=await resolveConflicts(name);
+      const snapshot=(await listDocumentConflicts(name))[0];let rejected=false;
+      try { await resolveReviewedConflict(name,snapshot,'1-aaa'); } catch { rejected=true; }
+      const remaining=(await db.get('urun:qa',{conflicts:true}))._conflicts.length;
+      await resolveReviewedConflict(name,snapshot,'1-bbb');
+      const doc=await db.get('urun:qa',{conflicts:true});
+      return { stats, rejected, remaining, name:doc.ad, conflicts:doc._conflicts?.length??0 };
+    } finally {await resetLocalDatabaseForReplacement(name);}
+  });
+  expect(result.stats.validationRejected).toBe(1);expect(result.rejected).toBe(true);
+  expect(result.remaining).toBe(1);expect(result.name).toBe('Valid');expect(result.conflicts).toBe(0);
+});

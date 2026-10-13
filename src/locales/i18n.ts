@@ -73,6 +73,7 @@ export const translations: Record<LanguageCode, {
   };
   /** POS / satış ekranı (PosWorkspace + pos/* yardımcı bileşenleri). */
   conflicts: {
+    invalidVersion: string;
     title: string;
     review: string;
     hint: string;
@@ -1841,6 +1842,7 @@ export const translations: Record<LanguageCode, {
     closeBtn: "Kapat / Yeni Satış",
     thanksMsg: "Bizi tercih ettiğiniz için teşekkür ederiz!",
     conflicts: {
+      invalidVersion: "Bu sürüm doğrulamadan geçmedi; veri kaybını önlemek için otomatik seçilmedi. İnceleme gerekir.",
       title: "Çakışmaları incele",
       review: "Çakışmaları otomatik çözmeden önce incele",
       hint: "Kapalıyken en güncel kayıt otomatik seçilir. Açıkken bu cihazdaki çakışmalar seçiminizi bekler.",
@@ -3509,6 +3511,7 @@ export const translations: Record<LanguageCode, {
     closeBtn: "Ýap / Täze Söwda",
     thanksMsg: "Bizi saýlanyňyz üçin sag boluň!",
     conflicts: {
+      invalidVersion: "Bu wersiýa barlagdan geçmedi; maglumat ýitgisine ýol bermezlik üçin awtomatik saýlanmady. Barlag gerek.",
       title: "Gapma-garşylyklary barla",
       review: "Awtomatiki çözmezden öň barla",
       hint: "Ýapyk bolsa iň täze ýazgy saýlanýar. Açyk bolsa bu enjamdaky ýazgylar saýlawyňyza garaşýar.",
@@ -5176,6 +5179,7 @@ export const translations: Record<LanguageCode, {
     closeBtn: "Close / New Sale",
     thanksMsg: "Thank you for your purchase!",
     conflicts: {
+      invalidVersion: "This version failed validation and was not selected automatically. Review is required.",
       title: "Review conflicts",
       review: "Review before resolving automatically",
       hint: "When off, the newest record wins automatically. When on, conflicts on this device wait for your choice.",
@@ -6843,6 +6847,7 @@ export const translations: Record<LanguageCode, {
     closeBtn: "Закрыть / Новая продажа",
     thanksMsg: "Спасибо за покупку!",
     conflicts: {
+      invalidVersion: "Эта версия не прошла проверку и не выбрана автоматически. Требуется проверка.",
       title: "Проверить конфликты",
       review: "Проверять перед автоматическим разрешением",
       hint: "Если выключено, выбирается самая новая запись. Если включено, конфликты на этом устройстве ожидают вашего выбора.",

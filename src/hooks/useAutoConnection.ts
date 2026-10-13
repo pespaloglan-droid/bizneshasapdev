@@ -13,7 +13,8 @@ export function useAutoConnection(accountId: string, storeDb: string, onStatus?:
     timer.current = window.setTimeout(() => {
       const run = async () => {
         if (!active.current || currentDb.current !== storeDb) return;
-        await resolveConflicts(storeDb);
+        const conflicts = await resolveConflicts(storeDb);
+        if (conflicts.validationRejected) return;
         if (!active.current || currentDb.current !== storeDb) return;
         if (isConflictReviewEnabled(storeDb) && await hasReviewableConflicts(storeDb)) return;
         await importPcMirrorsIntoStore(storeDb);

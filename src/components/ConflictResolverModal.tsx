@@ -58,7 +58,7 @@ export function ConflictResolverModal({ dbName, disabled = false }: { dbName: st
         <div className="flex gap-2 flex-wrap">
           <button disabled={busy} onClick={() => void refresh()} className="border rounded-lg px-3 py-2">{t('conflicts.refresh')}</button>
           <button disabled={busy || !records.length} className="border rounded-lg px-3 py-2" onClick={() => setChoices(Object.fromEntries(records.map(record => [record.id,
-            record.versions.reduce((best, version) => version.timestamp > best.timestamp ? version : best).rev])))}>{t('conflicts.newest')}</button>
+            record.versions.filter(v => v.valid).sort((a, b) => b.timestamp - a.timestamp)[0]?.rev ?? ''])))}>{t('conflicts.newest')}</button>
           <button disabled={disabled || busy || !Object.keys(choices).length} onClick={() => void apply()} className="bg-emerald-600 text-white disabled:opacity-40 rounded-lg px-3 py-2">{t('conflicts.apply', { count: Object.keys(choices).length })}</button>
         </div>
         {records.map(record => <section key={record.id} className="border rounded-lg p-3 space-y-2">
@@ -67,7 +67,8 @@ export function ConflictResolverModal({ dbName, disabled = false }: { dbName: st
             <span className="text-sm font-bold">{t(version.rev === record.currentRev ? 'conflicts.current' : 'conflicts.other')}</span>
             <span className="block text-xs font-mono break-all">{version.rev}</span>
             <pre className="text-xs whitespace-pre-wrap break-all max-h-56 overflow-y-auto my-2">{JSON.stringify(version.fields, null, 2)}</pre>
-            <span className="flex gap-2 items-center"><input type="radio" name={record.id} disabled={busy} checked={choices[record.id] === version.rev} onChange={() => setChoices(previous => ({ ...previous, [record.id]: version.rev }))} />{t('conflicts.choose')}</span>
+            {!version.valid && <p role="alert">{t('conflicts.invalidVersion')}</p>}
+            <span className="flex gap-2 items-center"><input type="radio" name={record.id} disabled={busy || !version.valid} checked={choices[record.id] === version.rev} onChange={() => setChoices(previous => ({ ...previous, [record.id]: version.rev }))} />{t('conflicts.choose')}</span>
           </label>)}</div>
         </section>)}
       </div>

@@ -337,16 +337,16 @@ describe('countConflicts', () => {
 
 describe('güvenli çözüm ve inceleme', () => {
   it('seçilen içerik yazılamazsa hiçbir yaprak silinmez', async () => {
-    fakeDb.addLeaf('urun:1', '1-a', { updatedAt: '2026-01-01' }, true)
-      .addLeaf('urun:1', '2-b', { updatedAt: '2026-02-01' });
+    fakeDb.addLeaf('urun:1', '1-a', { ad: 'A', updatedAt: '2026-01-01' }, true)
+      .addLeaf('urun:1', '2-b', { ad: 'B', updatedAt: '2026-02-01' });
     fakeDb.put = async () => { throw Object.assign(new Error('conflict'), { status: 409 }); };
     expect((await resolveConflicts('guard')).resolved).toBe(0);
     expect(fakeDb.removeCalls).toHaveLength(0);
     expect(fakeDb.leavesOf('urun:1')).toEqual(['1-a', '2-b']);
   });
   it('inceleme açıkken otomatik LWW veri değiştirmez', async () => {
-    fakeDb.addLeaf('urun:1', '1-a', { updatedAt: '2026-01-01' }, true)
-      .addLeaf('urun:1', '2-b', { updatedAt: '2026-02-01' });
+    fakeDb.addLeaf('urun:1', '1-a', { ad: 'A', updatedAt: '2026-01-01' }, true)
+      .addLeaf('urun:1', '2-b', { ad: 'B', updatedAt: '2026-02-01' });
     setConflictReviewEnabled('review', true);
     expect((await resolveConflicts('review')).resolved).toBe(0);
     expect(fakeDb.putCalls).toHaveLength(0); expect(fakeDb.removeCalls).toHaveLength(0);
@@ -357,4 +357,12 @@ describe('güvenli çözüm ve inceleme', () => {
     await expect(resolveConflicts('guard', 0)).rejects.toThrow();
     await expect(resolveConflicts('guard', 1.5)).rejects.toThrow();
   });
+});
+
+it('P1-3 geçersiz LWW kazananında kopyalama ve dal silme yok', async () => {
+  fakeDb.addLeaf('urun:invalid', '1-a', { ad: 'Valid', updatedAt: '2026-01-01' }, true)
+    .addLeaf('urun:invalid', '2-b', { ad: 42, updatedAt: '2026-02-01' });
+  const stats=await resolveConflicts('invalid');
+  expect(stats.validationRejected).toBe(1);expect(stats.resolved).toBe(0);
+  expect(fakeDb.putCalls).toHaveLength(0);expect(fakeDb.removeCalls).toHaveLength(0);
 });
