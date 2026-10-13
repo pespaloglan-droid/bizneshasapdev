@@ -1,5 +1,7 @@
 # Kimi Code düzeltmeleri — Faz C / D sonuç ve yeniden inceleme
 
+> Ek çalışma: katalog CRUD ve kontrollü PC mirror retry için [KATALOG-MIRROR-EK-DUZELTMELER.md](./KATALOG-MIRROR-EK-DUZELTMELER.md) dosyasına bakın. Ek source commit, testler ve push durumu orada ayrı belirtilmiştir; aşağıdaki önceki CI kanıtı yeni değişikliklerin CI kanıtı değildir.
+
 ## Repo, dal, kaynak ve teslim
 
 - Repo: https://github.com/pespaloglan-droid/bizneshasapdev
