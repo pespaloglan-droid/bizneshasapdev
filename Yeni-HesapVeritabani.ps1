@@ -2,8 +2,8 @@
   Hesap veritabani olusturucu (bilgisayarda ADMIN ile calisir).
 
   Kullanim:
-    .\Yeni-HesapVeritabani.ps1 -Ad "Vitrin Magazet"
-    .\Yeni-HesapVeritabani.ps1 -Veritabani "vitrin_magazet_db"
+    .\Yeni-HesapVeritabani.ps1 -Ad "Vitrin Magazet" -AdminUser "YONETICI_KULLANICISI"
+    .\Yeni-HesapVeritabani.ps1 -Veritabani "vitrin_magazet_db" -AdminUser "YONETICI_KULLANICISI"
 
   Telefonda yeni hesap actiginda, o hesabin veritabani adi
   (Ayarlar > Bulut esitleme kisminda gorunur) burada olusturulur.
@@ -13,14 +13,18 @@
 #>
 param(
   [string]$Ad = 'Hesap',
-  [string]$Veritabani
+  [string]$Veritabani,
+  [Parameter(Mandatory=$true)][ValidateNotNullOrEmpty()][string]$AdminUser,
+  [Security.SecureString]$AdminPassword,
+  [ValidateNotNullOrEmpty()][string]$AppUser = 'biznes_app'
 )
 
 $ErrorActionPreference = 'Stop'
 
-# CouchDB yoneticisi (C:\Program Files\etc\local.d\20-biznes.ini)
-$adminUser = 'biznes'
-$adminPass = 'bh_sync_8fK2mQ7xR4pW'
+# Parola CLI argumani veya kaynak literal olarak girilmez.
+if (-not $AdminPassword) { $AdminPassword = Read-Host 'CouchDB yonetici parolasi' -AsSecureString }
+$credential = New-Object Management.Automation.PSCredential($AdminUser, $AdminPassword)
+$adminPass = $credential.GetNetworkCredential().Password
 $server    = 'http://127.0.0.1:5984'
 
 if (-not $Veritabani) {
@@ -31,7 +35,8 @@ if (-not $Veritabani) {
 # CouchDB veritabani adi izinleri: a-z 0-9 _ $ ( ) + -
 $guvenli = ($Veritabani.ToLower() -replace '[^a-z0-9_$()+-]', '_')
 
-$auth = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($adminUser + ':' + $adminPass))
+try {
+$auth = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($adminUser + ':' + $adminPass))
 $head = @{ Authorization = $auth }
 
 Write-Host ('Hesap      : ' + $Ad)
@@ -53,9 +58,9 @@ try {
       $r = Invoke-WebRequest -Uri ($server + '/' + $guvenli) -Method PUT -Headers $head -UseBasicParsing -TimeoutSec 15
       Write-Host ('Olusturuldu (HTTP ' + $r.StatusCode + ')') -ForegroundColor Green
 
-      $sec = '{"admins":{"names":[],"roles":[]},"members":{"names":["biznes_app"],"roles":[]}}'
+      $sec = @{ admins = @{ names = @(); roles = @() }; members = @{ names = @($AppUser); roles = @() } } | ConvertTo-Json -Depth 4 -Compress
       $null = Invoke-WebRequest -Uri ($server + '/' + $guvenli + '/_security') -Method PUT -Headers $head -ContentType 'application/json' -Body $sec -UseBasicParsing -TimeoutSec 15
-      Write-Host 'Yetki verildi: biznes_app tam erisim' -ForegroundColor Green
+      Write-Host 'Uygulama kullanicisina DB uye erisimi verildi' -ForegroundColor Green
       Write-Host ''
       Write-Host 'Simdi telefonda: Ayarlar > Bulut esitleme > Baglantiyi sina' -ForegroundColor Cyan
     } catch {
@@ -63,5 +68,11 @@ try {
       $status = 1
     }
   }
+}
+} finally {
+  $adminPass = $null
+  $credential = $null
+  $auth = $null
+  $head = $null
 }
 exit $status
