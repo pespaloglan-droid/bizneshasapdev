@@ -17,12 +17,12 @@ export function useAutoConnection(accountId: string, storeDb: string, onStatus?:
         if (conflicts.validationRejected) return;
         if (!active.current || currentDb.current !== storeDb) return;
         if (isConflictReviewEnabled(storeDb) && await hasReviewableConflicts(storeDb)) return;
-        await importPcMirrorsIntoStore(storeDb);
+        await importPcMirrorsIntoStore(storeDb, loadConnection(accountId).historyMonths ?? 0);
         if (active.current && currentDb.current === storeDb) window.dispatchEvent(new CustomEvent(SYNC_IMPORTED_EVENT));
       };
       void run().catch(() => console.warn('[Sync]', 'bridge_failed'));
     }, 1500);
-  }, [storeDb]);
+  }, [storeDb, accountId]);
   useCleanup(() => { stopCurrent(accountId); active.current = false; if (timer.current !== undefined) window.clearTimeout(timer.current); }, [accountId, storeDb]);
   useEffect(() => {
     active.current = true;

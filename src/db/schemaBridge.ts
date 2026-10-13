@@ -1,5 +1,6 @@
 import { setMirrorPending } from './mirrorStatus';
 import type { CartItem, Customer, CustomerType, InvoiceRecord, InvoiceType, PaymentMethod, Product } from '../types';
+import { historyCutoffDay, type SyncHistoryMonths } from './syncSelection';
 import { listDocsByPrefix, upsertDoc, upsertDocsBatch } from './pouch';
 
 /**
@@ -214,6 +215,13 @@ export function pcToApkInvoice(doc: Record<string, unknown>): InvoiceRecord | nu
     createdAt: str(doc.tarih) || new Date().toISOString(),
     cashierName: '',
     warehouseId: optStr(doc.depoId),
+    ...(doc.bhInvoiceState && typeof doc.bhInvoiceState === 'object' ? {
+      draftStatus: (doc.bhInvoiceState as any).draftStatus,
+      remainingDebt: optNum((doc.bhInvoiceState as any).remainingDebt),
+      paidAmount: optNum((doc.bhInvoiceState as any).paidAmount),
+      dueDate: optStr((doc.bhInvoiceState as any).dueDate),
+      creditTermDays: optNum((doc.bhInvoiceState as any).creditTermDays),
+    } : {}),
   };
 }
 
@@ -222,6 +230,8 @@ export function apkInvoiceToPcDoc(invoice: InvoiceRecord): Record<string, unknow
   return {
     _id: `${PC_PREFIX.invoice}${invoice.id}`,
     type: 'fatura',
+    bhInvoiceState: { version: 1, draftStatus: invoice.draftStatus, remainingDebt: invoice.remainingDebt,
+      paidAmount: invoice.paidAmount, dueDate: invoice.dueDate, creditTermDays: invoice.creditTermDays },
     faturaNo: invoice.invoiceNo ?? '',
     faturaTipi: APK_INVOICE_TYPE[invoice.invoiceType] ?? 'satis',
     durum: invoice.status === 'voided' ? 'iptal' : 'onayli',
@@ -264,6 +274,16 @@ function localSyncedAt(doc: Record<string, unknown>): number {
   return Number.isNaN(t) ? 0 : t;
 }
 
+/** Legacy PC formatında taslak bilgisi yok: belirsiz kayıtları veri kaybı pahasına filtreleme. */
+export function shouldSkipPcInvoiceHistory(doc: Record<string, unknown>, months: SyncHistoryMonths, now = new Date()): boolean {
+  if (!months) return false;
+  const state = doc.bhInvoiceState as Record<string, unknown> | undefined;
+  const date = str(doc.tarih);
+  return state?.version === 1 && !state.draftStatus && doc.durum === 'onayli' &&
+    ['nakit', 'kart'].includes(str(doc.odemeTipi)) && /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(date) &&
+    Number.isFinite(Date.parse(date)) && date.slice(0, 10) < historyCutoffDay(months, now);
+}
+
 type MirrorKind = 'product' | 'customer' | 'invoice';
 
 /** Eşzamanlı köprü aktarımlarını sıraya alır (canlı senkron her değişimde tetikler). */
@@ -274,13 +294,13 @@ const bridgeRuns = new Map<string, Promise<number>>();
  * Yalnızca PC tarafı daha yeniyse yazar — böylece iki taraf da kendi
  * son değişikliğini korur.
  */
-export function importPcMirrorsIntoStore(storeDb: string): Promise<number> {
+export function importPcMirrorsIntoStore(storeDb: string, historyMonths: SyncHistoryMonths = 0, now = new Date()): Promise<number> {
   const running=bridgeRuns.get(storeDb); if (running) return running;
-  const task=runBridgeImport(storeDb).finally(()=>{if(bridgeRuns.get(storeDb)===task)bridgeRuns.delete(storeDb);});
+  const task=runBridgeImport(storeDb, historyMonths, now).finally(()=>{if(bridgeRuns.get(storeDb)===task)bridgeRuns.delete(storeDb);});
   bridgeRuns.set(storeDb,task);return task;
 }
 
-async function runBridgeImport(storeDb: string): Promise<number> {
+async function runBridgeImport(storeDb: string, historyMonths: SyncHistoryMonths, now: Date): Promise<number> {
   // Yazılacak belgeler önce toplanır, sonra 100'erlik gruplar halinde yazılır —
   // tek tek yazmak büyük veride arayüzü donduruyordu.
   const writes: { id: string; fields: Record<string, unknown> }[] = [];
@@ -291,7 +311,7 @@ async function runBridgeImport(storeDb: string): Promise<number> {
     const nativeId = stripPrefix(mirror._id, PC_PREFIX.product);
     if (!nativeId) continue;
     const natives = await listDocsByPrefix(storeDb, `${LOCAL_PREFIX.product}${nativeId}`);
-    const native = natives[0];
+    const native = natives.find(doc => doc._id === `${LOCAL_PREFIX.product}${nativeId}`);
     if (native && localSyncedAt(native) > pcUpdatedAt(mirror)) continue;
     const product = pcToApkProduct(mirror);
     if (!product) continue;
@@ -311,7 +331,7 @@ async function runBridgeImport(storeDb: string): Promise<number> {
     const nativeId = stripPrefix(mirror._id, PC_PREFIX.customer);
     if (!nativeId) continue;
     const natives = await listDocsByPrefix(storeDb, `${LOCAL_PREFIX.customer}${nativeId}`);
-    const native = natives[0];
+    const native = natives.find(doc => doc._id === `${LOCAL_PREFIX.customer}${nativeId}`);
     if (native && localSyncedAt(native) > pcUpdatedAt(mirror)) continue;
     const customer = pcToApkCustomer(mirror);
     if (!customer) continue;
@@ -331,8 +351,9 @@ async function runBridgeImport(storeDb: string): Promise<number> {
     const nativeId = stripPrefix(mirror._id, PC_PREFIX.invoice);
     if (!nativeId) continue;
     const natives = await listDocsByPrefix(storeDb, `${LOCAL_PREFIX.invoice}${nativeId}`);
-    const native = natives[0];
+    const native = natives.find(doc => doc._id === `${LOCAL_PREFIX.invoice}${nativeId}`);
     if (native && localSyncedAt(native) > pcUpdatedAt(mirror)) continue;
+    if (shouldSkipPcInvoiceHistory(mirror, historyMonths, now)) continue;
     const invoice = pcToApkInvoice(mirror);
     if (!invoice) continue;
     writes.push({

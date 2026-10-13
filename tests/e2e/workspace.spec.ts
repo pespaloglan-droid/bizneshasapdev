@@ -299,3 +299,16 @@ test('P1-1 kalıcı 100 borç 40 tahsilat ve iptal hesabı sıfır bakiye verir;
     return {unpaid,balance:customer.balance,receipts:(await getMoneyTransactions(name)).filter((tx:any)=>tx.id==='receipt40').length,status:(await getInvoicesForAccount(name)).find((inv:any)=>inv.id===invoice.id).status};
   });expect(result).toEqual({unpaid:60,balance:0,receipts:1,status:'voided'});
 });
+test('P1-2 üç aylık köprü altı aylık kesin faturayı doğurmaz; taslak ve legacy kalır',async({page})=>{
+  const result=await page.evaluate(async()=>{
+    const {getLocalDatabase}=await import('/src/db/pouch.ts');
+    const {apkInvoiceToPcDoc,importPcMirrorsIntoStore}=await import('/src/db/schemaBridge.ts');
+    const name=(window as any).e2e.storeDb,db=getLocalDatabase(name);
+    const inv={invoiceNo:'HISTORY',createdAt:'2026-04-12',paymentMethod:'cash',status:'completed',invoiceType:'sales',items:[],amountDue:10};
+    const old=apkInvoiceToPcDoc({...inv,id:'old-mirror'});
+    const draft=apkInvoiceToPcDoc({...inv,id:'draft-mirror',draftStatus:'pending'});
+    const legacy=apkInvoiceToPcDoc({...inv,id:'legacy-mirror'});delete legacy.bhInvoiceState;
+    await db.bulkDocs([old,draft,legacy]);await importPcMirrorsIntoStore(name,3,new Date('2026-10-12T12:00:00Z'));
+    return (await db.allDocs()).rows.map((row:any)=>row.id);
+  });expect(result).not.toContain('invoice_old-mirror');expect(result).toContain('invoice_draft-mirror');expect(result).toContain('invoice_legacy-mirror');
+});

@@ -43,7 +43,7 @@ export const AccountConnectionPanel: React.FC<Props> = ({ language, storeDb, acc
         </div>
       </div>
 
-      <ConflictResolverModal dbName={storeDb} disabled={!canEdit} />
+      <ConflictResolverModal accountId={account.id} dbName={storeDb} disabled={!canEdit} />
 
       <ConnectionFields
         accountId={account.id}

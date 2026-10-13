@@ -51,7 +51,7 @@ async function start() {
       const target = new PouchDB(`e2e-target-${crypto.randomUUID()}`);
       try {
         await source.bulkDocs([
-          { _id: 'invoice_old', invoice: { status: 'completed', createdAt: '2025-01-01' } },
+          { _id: 'invoice_old', invoice: { status: 'completed', paymentMethod: 'cash', createdAt: '2025-01-01' } },
           { _id: 'invoice_recent', invoice: { status: 'completed', createdAt: '2026-09-01' } },
           { _id: 'invoice_draft', invoice: { status: 'completed', draftStatus: 'pending', createdAt: '2025-01-01' } },
           { _id: 'invoice_void', invoice: { status: 'voided', createdAt: '2025-01-01' } },

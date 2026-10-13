@@ -1,3 +1,4 @@
+import { loadConnection } from '../db/connectionStore';
 import { useEffect, useState } from 'react';
 import { useT } from '../locales/LanguageContext';
 import { CONFLICT_REVIEW_EVENT, isConflictReviewEnabled, setConflictReviewEnabled,
@@ -5,7 +6,7 @@ import { CONFLICT_REVIEW_EVENT, isConflictReviewEnabled, setConflictReviewEnable
 import { importPcMirrorsIntoStore, SYNC_IMPORTED_EVENT } from '../db/schemaBridge';
 
 /** Tercih bu hesap/veritabanı ve cihaz içindir; varsayılan sessiz LWW değişmez. */
-export function ConflictResolverModal({ dbName, disabled = false }: { dbName: string; disabled?: boolean }) {
+export function ConflictResolverModal({ dbName, disabled = false, accountId }: { dbName: string; disabled?: boolean; accountId?: string }) {
   const t = useT();
   const [review, setReview] = useState(() => isConflictReviewEnabled(dbName));
   const [open, setOpen] = useState(false);
@@ -33,7 +34,7 @@ export function ConflictResolverModal({ dbName, disabled = false }: { dbName: st
       try { await resolveReviewedConflict(dbName, record, choices[record.id]); }
       catch { failed = true; }
     }
-    try { if (!await hasReviewableConflicts(dbName)) await importPcMirrorsIntoStore(dbName); } catch { failed = true; }
+    try { if (!await hasReviewableConflicts(dbName)) await importPcMirrorsIntoStore(dbName, accountId ? loadConnection(accountId).historyMonths ?? 0 : 0); } catch { failed = true; }
     window.dispatchEvent(new CustomEvent(SYNC_IMPORTED_EVENT));
     await refresh();
     if (failed) setError(t('conflicts.changed'));
