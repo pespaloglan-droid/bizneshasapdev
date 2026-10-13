@@ -1,3 +1,4 @@
+import type { InvoiceEffectResult } from './useInvoiceEffects';
 import type React from 'react';
 import { useRef } from 'react';
 import { formatMoney } from '../utils/locale';
@@ -27,8 +28,8 @@ interface Options {
   internalNote: string;
   storeDb: string;
   setCompletedInvoices: React.Dispatch<React.SetStateAction<InvoiceRecord[]>>;
-  applyStockChanges: (items: CartItem[], type: InvoiceType, direction?: 1 | -1) => void;
-  applyCustomerBalance: (invoice: InvoiceRecord, direction?: 1 | -1) => void;
+  applyStockChanges: (items: CartItem[], type: InvoiceType, direction?: 1 | -1) => Promise<InvoiceEffectResult>;
+  applyCustomerBalance: (invoice: InvoiceRecord, direction?: 1 | -1) => Promise<InvoiceEffectResult>;
   setActiveReceiptInvoice: React.Dispatch<React.SetStateAction<InvoiceRecord | null>>;
   setToastMessage: React.Dispatch<React.SetStateAction<WorkspaceToast | null>>;
   setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
@@ -100,15 +101,16 @@ const approveCardPayment = async (authCode: string) => {
     }
     setCompletedInvoices(prev => [newInvoice, ...prev]);
 
-    applyStockChanges(cartItems, invoiceType);
-    applyCustomerBalance(newInvoice);
+    const stockResult = await applyStockChanges(cartItems, invoiceType);
+    const balanceResult = await applyCustomerBalance(newInvoice);
+    const failures = (stockResult?.failed.length ?? 0) + (balanceResult?.failed.length ?? 0);
 
     // Çeki Otomatik Aç ve Göster
     setActiveReceiptInvoice(newInvoice);
 
     setToastMessage({
-      type: 'success',
-      text: t('pos.cardApprovedInvoice', { invoice: newInvoice.invoiceNo })
+      type: failures ? 'info' : 'success',
+      text: failures ? t('pos.effectsIncomplete', { count: failures }) : t('pos.cardApprovedInvoice', { invoice: newInvoice.invoiceNo })
     });
 
     // Sepeti Sıfırla
@@ -238,15 +240,16 @@ const completeSale = async () => {
     }
     setCompletedInvoices(prev => [newInvoice, ...prev]);
 
-    applyStockChanges(cartItems, invoiceType);
-    applyCustomerBalance(newInvoice);
+    const stockResult = await applyStockChanges(cartItems, invoiceType);
+    const balanceResult = await applyCustomerBalance(newInvoice);
+    const failures = (stockResult?.failed.length ?? 0) + (balanceResult?.failed.length ?? 0);
 
     // Çek Önizleme Aç
     setActiveReceiptInvoice(newInvoice);
 
     setToastMessage({
-      type: 'success',
-      text: t('pos.saleCompletedInvoice', { invoice: newInvoice.invoiceNo, amount: formatMoney(amountDue, language) })
+      type: failures ? 'info' : 'success',
+      text: failures ? t('pos.effectsIncomplete', { count: failures }) : t('pos.saleCompletedInvoice', { invoice: newInvoice.invoiceNo, amount: formatMoney(amountDue, language) })
     });
 
     // Reset Cart and Notes for next customer

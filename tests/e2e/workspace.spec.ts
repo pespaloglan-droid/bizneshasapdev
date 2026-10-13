@@ -231,3 +231,25 @@ test('P1-3 bozuk conflict kazananı kopyalanmaz ve geçerli seçim çalışır',
   expect(result.stats.validationRejected).toBe(1);expect(result.rejected).toBe(true);
   expect(result.remaining).toBe(1);expect(result.name).toBe('Valid');expect(result.conflicts).toBe(0);
 });
+test('P1-4 stok yazımı reddedilince kayıtlı fatura korunur UI stok değişmez ve uyarı görünür', async ({ page }) => {
+  await page.evaluate(async () => {
+    const { getLocalDatabase } = await import('/src/db/pouch.ts');
+    const db=getLocalDatabase((window as any).e2e.storeDb),put=db.put.bind(db);
+    db.put=async (doc:any,...args:any[])=>{if(doc._id==='product_e2e-product')throw Object.assign(new Error('quota'),{status:507});return put(doc,...args);};
+  });
+  await page.getByText('E2E Tea',{exact:true}).click();await page.keyboard.press('F5');
+  await expect(page.getByText('Invoice saved, but 1 stock/balance writes failed. Check the record; do not repeat this sale.',{exact:true})).toBeVisible();
+  const saved=await state(page);expect(saved.invoices).toHaveLength(1);expect(saved.products[0].stock).toBe(5);
+});
+test('P1-4 eşzamanlı deltalar güncel revision üzerinde birleşir ve SKU korunur', async ({ page }) => {
+  const saved=await page.evaluate(async()=>{
+    const {adjustProductStock,getProductsForAccount}=await import('/src/db/productService.ts');
+    const {adjustCustomerBalance,saveCustomerToDb,getCustomersForAccount}=await import('/src/db/customerService.ts');
+    const name=(window as any).e2e.storeDb;
+    await Promise.all([adjustProductStock('e2e-product',-1,name),adjustProductStock('e2e-product',-1,name)]);
+    await saveCustomerToDb({id:'delta-customer',name:'Delta',balance:100,type:'customer'},name);
+    await Promise.all([adjustCustomerBalance('delta-customer',-40,name),adjustCustomerBalance('delta-customer',-60,name)]);
+    return {product:(await getProductsForAccount(name))[0],customer:(await getCustomersForAccount(name)).find((c:any)=>c.id==='delta-customer')};
+  });
+  expect(saved.product).toMatchObject({stock:3,sku:'00001'});expect(saved.customer.balance).toBe(0);
+});

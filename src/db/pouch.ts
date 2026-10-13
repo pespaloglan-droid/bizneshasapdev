@@ -207,11 +207,12 @@ const writeLocks = new Map<string, Promise<unknown>>();
 
 /** Audit DB'sinin kendi yazmaları ASLA loglanmaz (sonsuz döngü). auditLog.ts'deki AUDIT_DB ile aynı. */
 const AUDIT_DB_NAME = 'audit';
+type DocumentUpdate = Record<string, unknown> | ((current: Record<string, unknown> | undefined) => Record<string, unknown>);
 
 export async function upsertDoc(
   dbName: string,
   id: string,
-  fields: Record<string, unknown>
+  fields: DocumentUpdate
 ): Promise<void> {
   const lockKey = `${dbName}::${id}`;
   const previous = writeLocks.get(lockKey) ?? Promise.resolve();
@@ -222,6 +223,7 @@ export async function upsertDoc(
     // FAZ 2.2 audit: dinamik import — pouch ↔ auditLog döngüsünü kırar.
     // Bayrak kapalıysa logAudit no-op'tur; hata ana akışı bozmaz (kendi içinde yakalanır).
     if (dbName !== AUDIT_DB_NAME) {
+      try {
       const { logAudit, calculateDiff, docTypeFromId } = await import('./auditLog');
       void logAudit({
         action: previousDoc ? 'UPDATE' : 'CREATE',
@@ -230,6 +232,7 @@ export async function upsertDoc(
         storeDb: dbName,
         changes: previousDoc ? calculateDiff(previousDoc, writtenDoc) : undefined,
       });
+      } catch { console.warn('AUDIT_MODULE_UNAVAILABLE'); }
     }
   } finally {
     if (writeLocks.get(lockKey) === task) writeLocks.delete(lockKey);
@@ -240,7 +243,7 @@ export async function upsertDoc(
 async function writeDocWithRetry(
   dbName: string,
   id: string,
-  fields: Record<string, unknown>
+  fields: DocumentUpdate
 ): Promise<{ previousDoc?: Record<string, unknown>; writtenDoc: Record<string, unknown> }> {
   const db = getLocalDatabase(dbName);
   let lastError: unknown;
@@ -262,7 +265,8 @@ async function writeDocWithRetry(
         if (row && 'value' in row) existing = { _id: id, _rev: row.value.rev };
       }
     }
-    const writtenDoc = prepareDocumentForWrite(id, fields, existing);
+    const patch = typeof fields === 'function' ? fields(existing) : fields;
+    const writtenDoc = prepareDocumentForWrite(id, patch, existing);
     try {
       await db.put(writtenDoc as never);
       return { previousDoc, writtenDoc };

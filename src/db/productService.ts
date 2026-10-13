@@ -112,3 +112,17 @@ export function filterProducts(
     return matchesCategory && matchesQuery;
   });
 }
+
+/** Delta en güncel revision üzerinde hesaplanır; UI snapshot'ı geri yazılmaz. */
+export async function adjustProductStock(id: string, delta: number, dbName: string): Promise<Product> {
+  let updated: Product | undefined;
+  await upsertDoc(dbName, `product_${id}`, doc => {
+    const current = doc?.product as Product | undefined;
+    if (!current || !Number.isFinite(current.stock) || !Number.isFinite(delta)) throw new Error('INVALID_PRODUCT_DELTA');
+    updated = { ...current, stock: current.allowNegativeStock ? current.stock + delta : Math.max(0, current.stock + delta) };
+    return { product: updated, syncedAt: new Date().toISOString() };
+  });
+  if (!updated) throw new Error('DELTA_NOT_WRITTEN');
+  try { await mirrorToPc(dbName, 'product', updated); } catch { console.warn('PC_MIRROR_WRITE_FAILED:product'); }
+  return updated;
+}

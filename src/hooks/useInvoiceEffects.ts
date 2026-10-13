@@ -2,9 +2,10 @@ import type React from 'react';
 import { useT } from '../locales/LanguageContext';
 import { CartItem, InvoiceType, InvoiceRecord, Customer, Product } from '../types';
 import { expandCompositionStock } from '../utils/compositionStock';
-import { saveProductToDb } from '../db/productService';
-import { saveCustomerToDb } from '../db/customerService';
+import { adjustProductStock } from '../db/productService';
+import { adjustCustomerBalance } from '../db/customerService';
 
+export interface InvoiceEffectResult { failed: string[] }
 interface Options {
   compositionMapRef: React.MutableRefObject<Map<string, { productId: string; qty: number; }[]>>;
   products: Product[];
@@ -18,11 +19,12 @@ interface Options {
 export function useInvoiceEffects({ compositionMapRef, products, setProducts, storeDb, customers, setCustomers, setSelectedCustomer }: Options) {
   const t = useT();
 
-const applyStockChanges = (items: CartItem[], type: InvoiceType, direction: 1 | -1 = 1) => {
+const applyStockChanges = async (items: CartItem[], type: InvoiceType, direction: 1 | -1 = 1): Promise<InvoiceEffectResult> => {
     // Düzüm böleklerine goşmaça stok üýtgemeleri (setler çykanda).
     const compositionDeltas = expandCompositionStock(compositionMapRef.current, items, type, direction);
 
-    const nextProducts = products.map((prod) => {
+    const deltas = new Map<string, number>();
+    products.forEach((prod) => {
       const cartItem = items.find(ci => ci.productId === prod.id);
 
       // Düzmäni azaldylan haryt (esasy set ýa-da onuň bölegi).
@@ -49,25 +51,22 @@ const applyStockChanges = (items: CartItem[], type: InvoiceType, direction: 1 | 
       if (compositionDelta !== undefined) delta += compositionDelta;
 
       if (delta === 0) return prod;
-      const nextStock = prod.stock + delta;
-      return { ...prod, stock: prod.allowNegativeStock ? nextStock : Math.max(0, nextStock) };
+      deltas.set(prod.id, delta);
     });
-    setProducts(nextProducts);
-    // Ähli üýtgen harytlar (esasy + düzüm bölekleri) ýazylýar.
-    const touched = new Set<string>([
-      ...items.map((item) => item.productId),
-      ...compositionDeltas.keys(),
-    ]);
-    touched.forEach((productId) => {
-      const prod = nextProducts.find((p) => p.id === productId);
-      if (prod) saveProductToDb(prod, storeDb).catch(() => {});
-    });
+    const saved = new Map<string, Product>(); const failed: string[] = [];
+    await Promise.all([...deltas].map(async ([id, delta]) => {
+      try { saved.set(id, await adjustProductStock(id, delta, storeDb)); }
+      catch { failed.push(id); }
+    }));
+    setProducts(prev => prev.map(prod => saved.get(prod.id) ?? prod));
+    return { failed };
+
   };
 
-const applyCustomerBalance = (invoice: InvoiceRecord, direction: 1 | -1 = 1) => {
-    if (!invoice.customerId) return;
+const applyCustomerBalance = async (invoice: InvoiceRecord, direction: 1 | -1 = 1): Promise<InvoiceEffectResult> => {
+    if (!invoice.customerId) return { failed: [] };
     const customer = customers.find((c) => c.id === invoice.customerId);
-    if (!customer) return;
+    if (!customer) return { failed: [invoice.customerId] };
 
     let delta = 0;
     if (invoice.paymentMethod === 'credit') {
@@ -78,12 +77,15 @@ const applyCustomerBalance = (invoice: InvoiceRecord, direction: 1 | -1 = 1) => 
     }
     // Pozmak üçin ters amal: -1 berilende bergi tersine öwrülýär.
     delta *= direction;
-    if (delta === 0) return;
+    if (delta === 0) return { failed: [] };
 
-    const updated: Customer = { ...customer, balance: customer.balance + delta };
-    setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-    setSelectedCustomer((prev) => (prev?.id === updated.id ? updated : prev));
-    saveCustomerToDb(updated, storeDb).catch(() => {});
+    try {
+      const updated = await adjustCustomerBalance(invoice.customerId, delta, storeDb);
+      setCustomers(prev => prev.map(c => c.id === updated.id ? updated : c));
+      setSelectedCustomer(prev => prev?.id === updated.id ? updated : prev);
+      return { failed: [] };
+    } catch { return { failed: [invoice.customerId] }; }
+
   };
 
   return { applyStockChanges, applyCustomerBalance };

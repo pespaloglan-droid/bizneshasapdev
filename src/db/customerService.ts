@@ -104,3 +104,17 @@ export async function ensureGeneralCustomerSeeded(
   await saveCustomerToDb(general, dbName);
   return [general, ...customers];
 }
+
+/** Delta en güncel revision üzerinde hesaplanır; UI snapshot'ı geri yazılmaz. */
+export async function adjustCustomerBalance(id: string, delta: number, dbName: string): Promise<Customer> {
+  let updated: Customer | undefined;
+  await upsertDoc(dbName, `customer_${id}`, doc => {
+    const current = doc?.customer as Customer | undefined;
+    if (!current || !Number.isFinite(current.balance) || !Number.isFinite(delta)) throw new Error('INVALID_CUSTOMER_DELTA');
+    updated = { ...current, balance: current.balance + delta };
+    return { customer: updated, syncedAt: new Date().toISOString() };
+  });
+  if (!updated) throw new Error('DELTA_NOT_WRITTEN');
+  try { await mirrorToPc(dbName, 'customer', updated); } catch { console.warn('PC_MIRROR_WRITE_FAILED:customer'); }
+  return updated;
+}

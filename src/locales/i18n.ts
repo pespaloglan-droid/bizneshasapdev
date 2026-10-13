@@ -103,6 +103,7 @@ export const translations: Record<LanguageCode, {
     finish: string;
   };
   pos: {
+    effectsIncomplete: string;
     saleSaveFailed: string;
     cardInvoiceSaveFailed: string;
     customerAdded: string;
@@ -1872,6 +1873,7 @@ export const translations: Record<LanguageCode, {
       finish: "Bitir",
     },
     pos: {
+      effectsIncomplete: "Fatura kaydedildi ancak {count} stok/bakiye yazımı başarısız. Kaydı kontrol edin; aynı satışı tekrar yapmayın.",
       saleSaveFailed: "Satış kaydedilemedi. Sepet korundu; stok ve bakiye değiştirilmedi.",
       cardInvoiceSaveFailed: "Kart onayı alındı ancak fatura kaydedilemedi. Sepet korundu; ödemeyi tekrar çekmeden kayıt durumunu kontrol edin.",
       customerAdded: "{name} başarıyla eklendi.",
@@ -3541,6 +3543,7 @@ export const translations: Record<LanguageCode, {
       finish: "Tamamla",
     },
     pos: {
+      effectsIncomplete: "Faktura saklandy, emma {count} stok/balans ýazgysy şowsuz. Ýazgyny barlaň; şol satuwy gaýtalamaň.",
       saleSaveFailed: "Satuw saklanyp bilinmedi. Sebet saklandy; stok we balans üýtgedilmedi.",
       cardInvoiceSaveFailed: "Kart tassyklamasy alyndy, emma faktura saklanmady. Sebet saklandy; tölegi gaýtalamazdan ýazgyny barlaň.",
       customerAdded: "{name} üstünlikli goşuldy.",
@@ -5209,6 +5212,7 @@ export const translations: Record<LanguageCode, {
       finish: "Finish",
     },
     pos: {
+      effectsIncomplete: "Invoice saved, but {count} stock/balance writes failed. Check the record; do not repeat this sale.",
       saleSaveFailed: "Sale could not be saved. Cart kept; stock and balance were not changed.",
       cardInvoiceSaveFailed: "Card approval received but invoice was not saved. Cart kept; check the payment before charging again.",
       customerAdded: "{name} added successfully.",
@@ -6877,6 +6881,7 @@ export const translations: Record<LanguageCode, {
       finish: "Завершить",
     },
     pos: {
+      effectsIncomplete: "Счёт сохранён, но {count} записей остатков/баланса не обновлены. Проверьте запись; не повторяйте продажу.",
       saleSaveFailed: "Продажа не сохранена. Корзина сохранена; остатки и баланс не изменены.",
       cardInvoiceSaveFailed: "Оплата картой подтверждена, но счёт не сохранён. Корзина сохранена; проверьте платёж перед повторным списанием.",
       customerAdded: "{name} успешно добавлен.",

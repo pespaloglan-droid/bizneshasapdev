@@ -1,3 +1,4 @@
+import type { InvoiceEffectResult } from './useInvoiceEffects';
 import type React from 'react';
 import { useRef } from 'react';
 import { useT } from '../locales/LanguageContext';
@@ -11,8 +12,8 @@ import { WorkspaceToast } from './useCartActions';
 interface Options {
   setCompletedInvoices: React.Dispatch<React.SetStateAction<InvoiceRecord[]>>;
   storeDb: string;
-  applyStockChanges: (items: CartItem[], type: InvoiceType, direction?: 1 | -1) => void;
-  applyCustomerBalance: (invoice: InvoiceRecord, direction?: 1 | -1) => void;
+  applyStockChanges: (items: CartItem[], type: InvoiceType, direction?: 1 | -1) => Promise<InvoiceEffectResult>;
+  applyCustomerBalance: (invoice: InvoiceRecord, direction?: 1 | -1) => Promise<InvoiceEffectResult>;
   moneyTransactions: import("../types").MoneyTransaction[];
   moneyStore: import("./useMoneyStore").MoneyStore;
   currentUser: User;
@@ -54,26 +55,36 @@ export function useDraftActions({ setCompletedInvoices, storeDb, applyStockChang
   const pendingAccepts = useRef(new Set<string>());
   const completedAccepts = useRef(new Set<string>());
 
-const upsertInvoice = (invoice: InvoiceRecord) => {
+const upsertInvoice = async (invoice: InvoiceRecord) => {
+    await saveInvoiceToDb(invoice, storeDb);
     setCompletedInvoices((prev) => {
       const exists = prev.some((item) => item.id === invoice.id);
       return exists
         ? prev.map((item) => (item.id === invoice.id ? invoice : item))
         : [invoice, ...prev];
     });
-    saveInvoiceToDb(invoice, storeDb).catch(() => {});
+
   };
 
-const handleVoidInvoice = (invoice: InvoiceRecord) => {
+const performVoidInvoice = async (invoice: InvoiceRecord) => {
     if (invoice.status === 'voided') return;
 
+    await upsertInvoice({
+      ...invoice,
+      status: 'voided',
+      voidedAt: new Date().toISOString(),
+      voidedBy: currentUser.name,
+    });
+
+    let failures = 0;
     // Garalama (pending/rejected) modullara täsir etmedi → ters amal gerek däl.
     const effectsApplied =
       invoice.draftStatus !== 'pending' && invoice.draftStatus !== 'rejected';
 
     if (effectsApplied) {
-      applyStockChanges(invoice.items, invoice.invoiceType, -1);
-      applyCustomerBalance(invoice, -1);
+      const stock = await applyStockChanges(invoice.items, invoice.invoiceType, -1);
+      const balance = await applyCustomerBalance(invoice, -1);
+      failures += (stock?.failed.length ?? 0) + (balance?.failed.length ?? 0);
     }
 
     // Şu faktura bagly Kassa/Depder ýazgylaryny aýyrýarys (bakiyeler awtomatik düzelýär).
@@ -81,26 +92,19 @@ const handleVoidInvoice = (invoice: InvoiceRecord) => {
       if (tx.invoiceId === invoice.id) moneyStore.deleteMoneyTransaction(tx);
     }
 
-    upsertInvoice({
-      ...invoice,
-      status: 'voided',
-      voidedAt: new Date().toISOString(),
-      voidedBy: currentUser.name,
-    });
-
-    setToastMessage({ type: 'success', text: t('pos.invoiceVoided', { invoice: invoice.invoiceNo }) });
+    setToastMessage({ type: failures ? 'info' : 'success', text: failures ? t('pos.effectsIncomplete', { count: failures }) : t('pos.invoiceVoided', { invoice: invoice.invoiceNo }) });
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-const handleCreateDraft = (invoice: InvoiceRecord) => {
-    upsertInvoice(invoice);
+const performCreateDraft = async (invoice: InvoiceRecord) => {
+    await upsertInvoice(invoice);
     setIsDraftFormOpen(false);
     setIsGaralamaOpen(true);
     setToastMessage({ type: 'success', text: t('pos.draftCreated', { invoice: invoice.invoiceNo }) });
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-const handleSaveDraftFromCart = () => {
+const performSaveDraftFromCart = async () => {
     if (cartItems.length === 0) {
       setToastMessage({ type: 'info', text: t('pos.cartEmptyAddFirst') });
       setTimeout(() => setToastMessage(null), 3000);
@@ -148,7 +152,7 @@ const handleSaveDraftFromCart = () => {
       ledgerId: draftLedgerId ? draftLedgerId : undefined,
     };
 
-    upsertInvoice(draft);
+    await upsertInvoice(draft);
 
     // Sessiz ýazgy: hiç hili sanaw/modal açylmaýar, diňe gysga bildirim.
     setToastMessage({
@@ -176,8 +180,9 @@ const applyAcceptedDraft = async (accepted: InvoiceRecord): Promise<boolean> => 
     setCompletedInvoices(prev => prev.some(inv => inv.id === accepted.id)
       ? prev.map(inv => inv.id === accepted.id ? accepted : inv) : [accepted, ...prev]);
     completedAccepts.current.add(accepted.id);
-    applyStockChanges(accepted.items, accepted.invoiceType);
-    applyCustomerBalance(accepted);
+    const stockResult = await applyStockChanges(accepted.items, accepted.invoiceType);
+    const balanceResult = await applyCustomerBalance(accepted);
+    const failures = (stockResult?.failed.length ?? 0) + (balanceResult?.failed.length ?? 0);
 
     // Depder saýlanan bolsa we nagt/kart töleg bolsa — depdere degişli ýazgy düşýär.
     if (accepted.ledgerId && accepted.paymentMethod !== 'credit') {
@@ -203,7 +208,7 @@ const applyAcceptedDraft = async (accepted: InvoiceRecord): Promise<boolean> => 
       }
     }
 
-    setToastMessage({ type: 'success', text: t('pos.draftAccepted', { invoice: accepted.invoiceNo }) });
+    setToastMessage({ type: failures ? 'info' : 'success', text: failures ? t('pos.effectsIncomplete', { count: failures }) : t('pos.draftAccepted', { invoice: accepted.invoiceNo }) });
     setTimeout(() => setToastMessage(null), 3000);
     return true;
     } catch {
@@ -275,8 +280,8 @@ const acceptLoadedDraft = async () => {
     if (accepted) clearLoadedDraft();
   };
 
-const handleRejectDraft = (invoice: InvoiceRecord, reason: string) => {
-    upsertInvoice({
+const performRejectDraft = async (invoice: InvoiceRecord, reason: string) => {
+    await upsertInvoice({
       ...invoice,
       draftStatus: 'rejected',
       rejectedReason: reason ? reason : undefined,
@@ -285,5 +290,17 @@ const handleRejectDraft = (invoice: InvoiceRecord, reason: string) => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const pendingWrites = useRef(new Set<string>());
+  const draftWrite = async (key: string, operation: () => Promise<void>) => {
+    if (pendingWrites.current.has(key)) return;
+    pendingWrites.current.add(key);
+    try { await operation(); }
+    catch { setToastMessage({ type: 'info', text: t('pos.saleSaveFailed') }); }
+    finally { pendingWrites.current.delete(key); }
+  };
+  const handleVoidInvoice = (invoice: InvoiceRecord) => draftWrite(`void:${invoice.id}`, () => performVoidInvoice(invoice));
+  const handleCreateDraft = (invoice: InvoiceRecord) => draftWrite(`create:${invoice.id}`, () => performCreateDraft(invoice));
+  const handleSaveDraftFromCart = () => draftWrite('cart-draft', performSaveDraftFromCart);
+  const handleRejectDraft = (invoice: InvoiceRecord, reason: string) => draftWrite(`reject:${invoice.id}`, () => performRejectDraft(invoice, reason));
   return { upsertInvoice, handleVoidInvoice, handleCreateDraft, handleSaveDraftFromCart, applyAcceptedDraft, handleAcceptDraft, handleOpenDraft, clearLoadedDraft, acceptLoadedDraft, handleRejectDraft };
 }
