@@ -312,3 +312,18 @@ test('P1-2 üç aylık köprü altı aylık kesin faturayı doğurmaz; taslak ve
     return (await db.allDocs()).rows.map((row:any)=>row.id);
   });expect(result).not.toContain('invoice_old-mirror');expect(result).toContain('invoice_draft-mirror');expect(result).toContain('invoice_legacy-mirror');
 });
+test('P2-1 silinmiş ürün tekil ve batch aynı ID ile tam alanlarıyla yeniden yaratılır',async({page})=>{
+  const result=await page.evaluate(async()=>{
+    const {getLocalDatabase,upsertDocsBatch,upsertDoc,removeDoc}=await import('/src/db/pouch.ts');
+    const name=(window as any).e2e.storeDb,db=getLocalDatabase(name);
+    const fields={docType:'product',product:{id:'recreate',name:'Recreated',sku:'000012',barcode:'000345',price:10,stock:3,category:'QA',imageType:'default'}};
+    await upsertDoc(name,'product_recreate',fields);await removeDoc(name,'product_recreate');
+    await upsertDoc(name,'product_recreate',{...fields,product:{...fields.product,stock:4}});
+    const single=(await db.get('product_recreate')).product;
+    await removeDoc(name,'product_recreate');
+    const batch=await upsertDocsBatch(name,[{id:'product_recreate',fields}]);
+    return {single,batch,after:(await db.get('product_recreate')).product};
+  });expect(result.single).toMatchObject({stock:4,sku:'000012',barcode:'000345'});
+  expect(result.batch.written).toBe(1);expect(result.batch.failed).toHaveLength(0);
+  expect(result.after).toMatchObject({stock:3,name:'Recreated',sku:'000012',barcode:'000345'});
+});
