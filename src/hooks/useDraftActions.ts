@@ -1,3 +1,4 @@
+import { creditVoidRemainingDebt, readVoidSnapshot } from '../db/creditVoid';
 import type { InvoiceEffectResult } from './useInvoiceEffects';
 import type React from 'react';
 import { useRef } from 'react';
@@ -66,8 +67,15 @@ const upsertInvoice = async (invoice: InvoiceRecord) => {
 
   };
 
-const performVoidInvoice = async (invoice: InvoiceRecord) => {
+const performVoidInvoice = async (requested: InvoiceRecord) => {
+    const { invoice, transactions } = await readVoidSnapshot(storeDb, requested.id);
     if (invoice.status === 'voided') return;
+    const effectsApplied = invoice.draftStatus !== 'pending' && invoice.draftStatus !== 'rejected';
+    let remainingDebt = invoice.remainingDebt;
+    if (effectsApplied) {
+      try { remainingDebt = creditVoidRemainingDebt(invoice, transactions); }
+      catch { setToastMessage({ type: 'info', text: t('pos.creditVoidNeedsAllocation') }); return; }
+    }
 
     await upsertInvoice({
       ...invoice,
@@ -78,18 +86,17 @@ const performVoidInvoice = async (invoice: InvoiceRecord) => {
 
     let failures = 0;
     // Garalama (pending/rejected) modullara täsir etmedi → ters amal gerek däl.
-    const effectsApplied =
-      invoice.draftStatus !== 'pending' && invoice.draftStatus !== 'rejected';
 
     if (effectsApplied) {
       const stock = await applyStockChanges(invoice.items, invoice.invoiceType, -1);
-      const balance = await applyCustomerBalance(invoice, -1);
+      const balance = await applyCustomerBalance({ ...invoice, remainingDebt }, -1);
       failures += (stock?.failed.length ?? 0) + (balance?.failed.length ?? 0);
     }
 
     // Şu faktura bagly Kassa/Depder ýazgylaryny aýyrýarys (bakiyeler awtomatik düzelýär).
-    for (const tx of moneyTransactions) {
-      if (tx.invoiceId === invoice.id && !await moneyStore.deleteMoneyTransaction(tx)) failures++;
+    for (const tx of transactions) {
+      // Gerçek tahsilat korunur. İade ayrı, açık bir mali işlemdir.
+      if (tx.category !== 'weresiye_yygnamak' && tx.invoiceId === invoice.id && !await moneyStore.deleteMoneyTransaction(tx)) failures++;
     }
 
     setToastMessage({ type: failures ? 'info' : 'success', text: failures ? t('pos.effectsIncomplete', { count: failures }) : t('pos.invoiceVoided', { invoice: invoice.invoiceNo }) });

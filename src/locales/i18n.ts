@@ -103,6 +103,10 @@ export const translations: Record<LanguageCode, {
     finish: string;
   };
   pos: {
+    creditVoidNeedsAllocation: string;
+    receiptInvoice: string;
+    unallocatedReceipt: string;
+    receiptInvoiceInvalid: string;
     moneyWriteFailed: string;
     pcMirrorPending: string;
     effectsIncomplete: string;
@@ -1875,6 +1879,10 @@ export const translations: Record<LanguageCode, {
       finish: "Bitir",
     },
     pos: {
+      creditVoidNeedsAllocation: "İptal durduruldu: bu müşterinin tahsilatlarını doğru faturaya bağlayın; fazla veya uyumsuz tahsilatları kontrol edin. Tahsilatlar otomatik silinmez/iade edilmez.",
+      receiptInvoice: "Tahsilatın faturası",
+      unallocatedReceipt: "Faturaya bağlanmamış / açılış bakiyesi",
+      receiptInvoiceInvalid: "Fatura bağlantısı geçersiz veya fatura henüz yüklenmedi. İlgili faturayı yükleyip kontrol edin.",
       moneyWriteFailed: "Para hareketi veya bağlı bakiye güncellenemedi. Kaydı kontrol edin; tekrar tahsilat yapmadan DB durumunu doğrulayın.",
       pcMirrorPending: "PC ayna yazımı tamamlanmadı. Yerel kayıt korunuyor ancak PC’de eksik veya eski görünebilir; eşitleme kaydını kontrol edin.",
       effectsIncomplete: "Fatura kaydedildi ancak {count} stok/bakiye yazımı başarısız. Kaydı kontrol edin; aynı satışı tekrar yapmayın.",
@@ -3547,6 +3555,10 @@ export const translations: Record<LanguageCode, {
       finish: "Tamamla",
     },
     pos: {
+      creditVoidNeedsAllocation: "Ýatyrmak duruzyldy: müşderiniň töleglerini dogry faktura baglaň we artykmaç tölegi barlaň. Tölegler awtomatik pozulmaýar/gaýtarylmaýar.",
+      receiptInvoice: "Tölegiň fakturasy",
+      unallocatedReceipt: "Faktura baglanmadyk / başlangyç galyndy",
+      receiptInvoiceInvalid: "Faktura baglanyşygy nädogry ýa-da faktura ýüklenmedi. Fakturany ýükläp barlaň.",
       moneyWriteFailed: "Pul hereketi ýa-da bagly balans täzelenmedi. Ýazgyny barlaň; tölegi gaýtalamazdan DB ýagdaýyny barlaň.",
       pcMirrorPending: "PC aýna ýazgysy tamamlanmady. Ýerli ýazgy saklanýar, emma PC-de ýok ýa-da köne bolup biler; sinhron ýazgyny barlaň.",
       effectsIncomplete: "Faktura saklandy, emma {count} stok/balans ýazgysy şowsuz. Ýazgyny barlaň; şol satuwy gaýtalamaň.",
@@ -5218,6 +5230,10 @@ export const translations: Record<LanguageCode, {
       finish: "Finish",
     },
     pos: {
+      creditVoidNeedsAllocation: "Void blocked: link this customer's collections to the correct invoice and review excess or inconsistent payments. Collections are not automatically deleted/refunded.",
+      receiptInvoice: "Collection invoice",
+      unallocatedReceipt: "Unallocated / opening balance",
+      receiptInvoiceInvalid: "Invoice link is invalid or the invoice is not loaded yet. Load and verify the invoice.",
       moneyWriteFailed: "Money movement or related balance could not be updated. Check the saved record before repeating a collection.",
       pcMirrorPending: "PC mirror write is pending. Local record is kept, but the PC may show missing or older data; check synchronization.",
       effectsIncomplete: "Invoice saved, but {count} stock/balance writes failed. Check the record; do not repeat this sale.",
@@ -6889,6 +6905,10 @@ export const translations: Record<LanguageCode, {
       finish: "Завершить",
     },
     pos: {
+      creditVoidNeedsAllocation: "Отмена остановлена: привяжите платежи клиента к нужным счетам и проверьте избыточные/несогласованные суммы. Платежи не удаляются и не возвращаются автоматически.",
+      receiptInvoice: "Счёт платежа",
+      unallocatedReceipt: "Без привязки / начальный баланс",
+      receiptInvoiceInvalid: "Привязка неверна или счёт ещё не загружен. Загрузите и проверьте счёт.",
       moneyWriteFailed: "Денежная операция или связанный баланс не обновлены. Проверьте запись перед повторным получением платежа.",
       pcMirrorPending: "Запись для ПК не завершена. Локальная запись сохранена, но на ПК данные могут отсутствовать или быть устаревшими; проверьте синхронизацию.",
       effectsIncomplete: "Счёт сохранён, но {count} записей остатков/баланса не обновлены. Проверьте запись; не повторяйте продажу.",

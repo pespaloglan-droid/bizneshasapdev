@@ -229,6 +229,7 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
   if (activeTab === 'ledger') {
     return (
       <DepderWorkspace
+        invoices={invoices}
         ledgers={visibleLedgers}
         transactions={moneyStore.moneyTransactions}
         customers={customers}

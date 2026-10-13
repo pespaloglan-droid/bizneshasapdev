@@ -216,6 +216,7 @@ export const KassaWorkspace: React.FC<KassaWorkspaceProps> = ({
 
       {isFormOpen && (
         <MoneyFormModal
+          invoices={invoices}
           language={language}
           customers={customers}
           appUsers={appUsers}

@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import type {
   AppUser,
+  InvoiceRecord,
   Customer,
   LanguageCode,
   MoneyCategoryId,
@@ -31,6 +32,7 @@ import { useT } from '../../locales/LanguageContext';
 interface MoneyFormModalProps {
   language: LanguageCode;
   customers: readonly Customer[];
+  invoices?: readonly InvoiceRecord[];
   appUsers: readonly AppUser[];
   initialType: MoneyTxType;
   editingTransaction: MoneyTransaction | null;
@@ -49,6 +51,7 @@ const PAYMENT_METHODS = Object.keys(PAYMENT_METHOD_LABELS) as MoneyPaymentMethod
 export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
   language,
   customers,
+  invoices = [],
   appUsers,
   initialType,
   editingTransaction,
@@ -77,7 +80,7 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
   const selectedCustomer = customers.find((customer) => customer.id === form.customerId) ?? null;
 
   const patch = (partial: Partial<MoneyFormState>) =>
-    setForm((prev) => ({ ...prev, ...partial }));
+    setForm((prev) => ({ ...prev, ...partial, ...(partial.customerId !== undefined && partial.customerId !== prev.customerId ? { invoiceId: '' } : {}) }));
 
   const handleQuickAdd = (name: string) => {
     const created = onQuickAddCustomer(name);
@@ -100,6 +103,14 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
     if (nextError) {
       setError(nextError);
       return;
+    }
+    if (form.category === 'weresiye_yygnamak' && form.invoiceId) {
+      const linked = invoices.find(inv => inv.id === form.invoiceId);
+      if (!linked || linked.customerId !== form.customerId || linked.paymentMethod !== 'credit' ||
+          linked.status !== 'completed' || ['pending', 'rejected'].includes(linked.draftStatus ?? '') ||
+          !['sales', 'other_out'].includes(linked.invoiceType)) {
+        setError(t('pos.receiptInvoiceInvalid')); return;
+      }
     }
     submitting.current=true;
     try {await onSave(buildMoneyTransaction(form, editingTransaction, ledgerId));}
@@ -206,6 +217,7 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
                     category: e.target.value as MoneyCategoryId,
                     subCategory: '',
                     customerId: '',
+                    invoiceId: '',
                     personName: '',
                     staffUserId: '',
                   }))
@@ -231,6 +243,22 @@ export const MoneyFormModal: React.FC<MoneyFormModalProps> = ({
             patch={patch}
             onQuickAdd={handleQuickAdd}
           />
+
+          {form.category === 'weresiye_yygnamak' && (
+            <div>
+              <label className={LABEL} htmlFor="receipt-invoice">{t('pos.receiptInvoice')}</label>
+              <select id="receipt-invoice" className={INPUT} value={form.invoiceId ?? ''}
+                onChange={e => patch({ invoiceId: e.target.value })}>
+                <option value="">{t('pos.unallocatedReceipt')}</option>
+                {form.invoiceId && !invoices.some(inv => inv.id === form.invoiceId) &&
+                  <option value={form.invoiceId}>{form.invoiceId}</option>}
+                {invoices.filter(inv => inv.customerId === form.customerId && inv.paymentMethod === 'credit' &&
+                  inv.status === 'completed' && !['pending', 'rejected'].includes(inv.draftStatus ?? '') &&
+                  ['sales', 'other_out'].includes(inv.invoiceType)).map(inv =>
+                    <option key={inv.id} value={inv.id}>{inv.invoiceNo} · {formatMoney(inv.amountDue)}</option>)}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className={LABEL}>{t('kassa.colDesc')}</label>

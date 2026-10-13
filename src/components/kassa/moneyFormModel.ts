@@ -26,6 +26,7 @@ export interface MoneyFormState {
   personName: string;
   staffUserId: string;
   description: string;
+  invoiceId?: string;
 }
 
 export function defaultCategory(type: MoneyTxType): MoneyCategoryId {
@@ -45,6 +46,7 @@ export function emptyMoneyForm(type: MoneyTxType): MoneyFormState {
     personName: '',
     staffUserId: '',
     description: '',
+    invoiceId: '',
   };
 }
 
@@ -60,6 +62,7 @@ export function moneyFormFromTransaction(transaction: MoneyTransaction): MoneyFo
     personName: transaction.personName ?? '',
     staffUserId: transaction.staffUserId ?? '',
     description: transaction.description ?? '',
+    invoiceId: transaction.invoiceId ?? '',
   };
 }
 
@@ -128,8 +131,7 @@ export function buildMoneyTransaction(
   if (description) {
     transaction.description = description;
   }
-  if (editing?.invoiceId) {
-    transaction.invoiceId = editing.invoiceId;
-  }
+  const invoiceId = form.invoiceId ?? editing?.invoiceId;
+  if (invoiceId) transaction.invoiceId = invoiceId;
   return transaction;
 }

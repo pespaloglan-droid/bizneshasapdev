@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type {
   AppUser,
+  InvoiceRecord,
   CurrencyRate,
   Customer,
   LanguageCode,
@@ -24,6 +25,7 @@ import { MoneyFormModal } from '../kassa/MoneyFormModal';
 
 interface DepderWorkspaceProps {
   ledgers: readonly Ledger[];
+  invoices?: readonly InvoiceRecord[];
   transactions: readonly MoneyTransaction[];
   customers: readonly Customer[];
   appUsers: readonly AppUser[];
@@ -40,6 +42,7 @@ interface DepderWorkspaceProps {
 
 export const DepderWorkspace: React.FC<DepderWorkspaceProps> = ({
   ledgers,
+  invoices = [],
   transactions,
   customers,
   appUsers,
@@ -106,6 +109,7 @@ export const DepderWorkspace: React.FC<DepderWorkspaceProps> = ({
 
         {isMoneyFormOpen && (
           <MoneyFormModal
+          invoices={invoices}
             language={language}
             customers={customers}
             appUsers={appUsers}

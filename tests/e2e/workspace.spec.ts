@@ -281,3 +281,21 @@ test('P2-4 legacy para kategorisi düzenlenirken aynı değer korunur', async ({
     return (await getMoneyTransactions(name)).find((t:any)=>t.id===tx.id).category;
   });expect(category).toBe('legacy-custom-category');
 });
+test('P1-1 kalıcı 100 borç 40 tahsilat ve iptal hesabı sıfır bakiye verir; tahsilat korunur', async ({page})=>{
+  const result=await page.evaluate(async()=>{
+    const {saveInvoiceToDb,getInvoicesForAccount}=await import('/src/db/salesService.ts');
+    const {saveCustomerToDb,adjustCustomerBalance}=await import('/src/db/customerService.ts');
+    const {saveMoneyTransactionToDb,getMoneyTransactions}=await import('/src/db/moneyService.ts');
+    const {creditVoidRemainingDebt,readVoidSnapshot}=await import('/src/db/creditVoid.ts');
+    const name=(window as any).e2e.storeDb;
+    await saveCustomerToDb({id:'void-c',name:'Void QA',balance:100,type:'customer'},name);
+    const invoice={id:'void-credit',invoiceNo:'VOID-QA',invoiceType:'sales',customerId:'void-c',customerName:'Void QA',items:[],itemCount:0,subtotal:100,discountTotal:0,taxTotal:0,amountDue:100,paymentMethod:'credit',remainingDebt:100,status:'completed',createdAt:'2026-10-12',cashierName:'QA',cashReceived:0,changeDue:0};
+    await saveInvoiceToDb(invoice,name);
+    await saveMoneyTransactionToDb({id:'receipt40',invoiceId:invoice.id,customerId:'void-c',type:'income',date:'2026-10-12',amount:40,paymentMethod:'cash',category:'weresiye_yygnamak',createdAt:'2026-10-12'},name);
+    await adjustCustomerBalance('void-c',-40,name);
+    const snapshot=await readVoidSnapshot(name,invoice.id);const unpaid=creditVoidRemainingDebt(snapshot.invoice,snapshot.transactions);
+    await saveInvoiceToDb({...snapshot.invoice,status:'voided'},name);
+    const customer=await adjustCustomerBalance('void-c',-unpaid,name);
+    return {unpaid,balance:customer.balance,receipts:(await getMoneyTransactions(name)).filter((tx:any)=>tx.id==='receipt40').length,status:(await getInvoicesForAccount(name)).find((inv:any)=>inv.id===invoice.id).status};
+  });expect(result).toEqual({unpaid:60,balance:0,receipts:1,status:'voided'});
+});
