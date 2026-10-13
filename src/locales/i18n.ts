@@ -103,6 +103,7 @@ export const translations: Record<LanguageCode, {
     finish: string;
   };
   pos: {
+    pcMirrorPending: string;
     effectsIncomplete: string;
     saleSaveFailed: string;
     cardInvoiceSaveFailed: string;
@@ -1873,6 +1874,7 @@ export const translations: Record<LanguageCode, {
       finish: "Bitir",
     },
     pos: {
+      pcMirrorPending: "PC ayna yazımı tamamlanmadı. Yerel kayıt korunuyor ancak PC’de eksik veya eski görünebilir; eşitleme kaydını kontrol edin.",
       effectsIncomplete: "Fatura kaydedildi ancak {count} stok/bakiye yazımı başarısız. Kaydı kontrol edin; aynı satışı tekrar yapmayın.",
       saleSaveFailed: "Satış kaydedilemedi. Sepet korundu; stok ve bakiye değiştirilmedi.",
       cardInvoiceSaveFailed: "Kart onayı alındı ancak fatura kaydedilemedi. Sepet korundu; ödemeyi tekrar çekmeden kayıt durumunu kontrol edin.",
@@ -3543,6 +3545,7 @@ export const translations: Record<LanguageCode, {
       finish: "Tamamla",
     },
     pos: {
+      pcMirrorPending: "PC aýna ýazgysy tamamlanmady. Ýerli ýazgy saklanýar, emma PC-de ýok ýa-da köne bolup biler; sinhron ýazgyny barlaň.",
       effectsIncomplete: "Faktura saklandy, emma {count} stok/balans ýazgysy şowsuz. Ýazgyny barlaň; şol satuwy gaýtalamaň.",
       saleSaveFailed: "Satuw saklanyp bilinmedi. Sebet saklandy; stok we balans üýtgedilmedi.",
       cardInvoiceSaveFailed: "Kart tassyklamasy alyndy, emma faktura saklanmady. Sebet saklandy; tölegi gaýtalamazdan ýazgyny barlaň.",
@@ -5212,6 +5215,7 @@ export const translations: Record<LanguageCode, {
       finish: "Finish",
     },
     pos: {
+      pcMirrorPending: "PC mirror write is pending. Local record is kept, but the PC may show missing or older data; check synchronization.",
       effectsIncomplete: "Invoice saved, but {count} stock/balance writes failed. Check the record; do not repeat this sale.",
       saleSaveFailed: "Sale could not be saved. Cart kept; stock and balance were not changed.",
       cardInvoiceSaveFailed: "Card approval received but invoice was not saved. Cart kept; check the payment before charging again.",
@@ -6881,6 +6885,7 @@ export const translations: Record<LanguageCode, {
       finish: "Завершить",
     },
     pos: {
+      pcMirrorPending: "Запись для ПК не завершена. Локальная запись сохранена, но на ПК данные могут отсутствовать или быть устаревшими; проверьте синхронизацию.",
       effectsIncomplete: "Счёт сохранён, но {count} записей остатков/баланса не обновлены. Проверьте запись; не повторяйте продажу.",
       saleSaveFailed: "Продажа не сохранена. Корзина сохранена; остатки и баланс не изменены.",
       cardInvoiceSaveFailed: "Оплата картой подтверждена, но счёт не сохранён. Корзина сохранена; проверьте платёж перед повторным списанием.",

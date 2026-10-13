@@ -34,11 +34,12 @@ export async function saveProductsBatchDb(
   // PC'nin okuyabilmesi için ayna kayıt (urun:<id>) — diňe ýazylanlar üçin.
   const failedIds = new Set(result.failed.map((f) => f.id));
   const mirrored = products.filter((p) => !failedIds.has(productDocId(p.id)));
-  await Promise.allSettled(mirrored.map((p) => mirrorToPc(dbName, 'product', p)));
+  const mirrorResults = await Promise.allSettled(mirrored.map((p) => mirrorToPc(dbName, 'product', p)));
 
   // Ýalňyşlyk raporty haryt ID-si bilen işlänligi üçin docId → harytId.
   return {
     written: result.written,
+    mirrorFailed: mirrorResults.filter(result => result.status === 'rejected').length,
     failed: result.failed.map((f) => ({
       id: f.id.startsWith('product_') ? f.id.slice('product_'.length) : f.id,
       error: f.error,

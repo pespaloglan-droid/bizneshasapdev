@@ -1,3 +1,4 @@
+import { setMirrorPending } from './mirrorStatus';
 import type { CartItem, Customer, CustomerType, InvoiceRecord, InvoiceType, PaymentMethod, Product } from '../types';
 import { listDocsByPrefix, upsertDoc, upsertDocsBatch } from './pouch';
 
@@ -359,5 +360,11 @@ export async function mirrorToPc(storeDb: string, kind: MirrorKind, entity: unkn
         ? apkCustomerToPcDoc(entity as Customer)
         : apkInvoiceToPcDoc(entity as InvoiceRecord);
   if (!doc || typeof doc._id !== 'string') return;
-  await upsertDoc(storeDb, doc._id, doc);
+  try {
+    await upsertDoc(storeDb, doc._id, doc);
+  } catch(error) {
+    await setMirrorPending(storeDb, doc._id, true);
+    throw error;
+  }
+  await setMirrorPending(storeDb, doc._id, false);
 }

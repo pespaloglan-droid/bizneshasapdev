@@ -33,11 +33,12 @@ export async function saveCustomersBatchDb(
   // PC'nin okuyabilmesi için ayna kayıt (kagent:<id>) — diňe ýazylanlar üçin.
   const failedIds = new Set(result.failed.map((f) => f.id));
   const mirrored = customers.filter((c) => !failedIds.has(customerDocId(c.id)));
-  await Promise.allSettled(mirrored.map((c) => mirrorToPc(dbName, 'customer', c)));
+  const mirrorResults = await Promise.allSettled(mirrored.map((c) => mirrorToPc(dbName, 'customer', c)));
 
   // Ýalňyşlyk raporty müşderi ID-si bilen işlänligi üçin docId → müşderiId.
   return {
     written: result.written,
+    mirrorFailed: mirrorResults.filter(result => result.status === 'rejected').length,
     failed: result.failed.map((f) => ({
       id: f.id.startsWith('customer_') ? f.id.slice('customer_'.length) : f.id,
       error: f.error,

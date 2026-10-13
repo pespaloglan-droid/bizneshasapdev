@@ -1,3 +1,4 @@
+import { MirrorSyncWarning } from './MirrorSyncWarning';
 import { ResetCheckoutModal } from './ResetCheckoutModal';
 import { WorkspaceToastView } from './WorkspaceToast';
 import { FirstRunWizard } from '../FirstRunWizard';
@@ -1634,6 +1635,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
 
       <FirstRunWizard key={storeDb} account={activeAccount} dbName={storeDb} language={language} isAdmin={isAdminUser(currentUser, stores.appUsers)} />
 
+      <MirrorSyncWarning dbName={storeDb} />
       {toastMessage && <WorkspaceToastView {...toastMessage} />}
 
     </div>

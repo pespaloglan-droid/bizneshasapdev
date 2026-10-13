@@ -253,3 +253,22 @@ test('P1-4 eşzamanlı deltalar güncel revision üzerinde birleşir ve SKU koru
   });
   expect(saved.product).toMatchObject({stock:3,sku:'00001'});expect(saved.customer.balance).toBe(0);
 });
+test('P1-5 PC mirror hatası kalıcı uyarı üretir, native başarı korunur ve başarılı mirror uyarıyı temizler', async ({ page }) => {
+  const before=await page.evaluate(async()=>{
+    const {getLocalDatabase}=await import('/src/db/pouch.ts');const {saveProductToDb,getProductsForAccount}=await import('/src/db/productService.ts');
+    const {pendingMirrorCount}=await import('/src/db/mirrorStatus.ts');
+    const name=(window as any).e2e.storeDb, db=getLocalDatabase(name),put=db.put.bind(db);
+    (window as any).e2e.restorePut=()=>{db.put=put;};
+    db.put=async(doc:any,...args:any[])=>{if(doc._id==='urun:e2e-product')throw Object.assign(new Error('fixture'),{status:507});return put(doc,...args);};
+    const product=(await getProductsForAccount(name))[0];await saveProductToDb({...product,price:20},name);
+    return {price:(await getProductsForAccount(name))[0].price,pending:await pendingMirrorCount(name)};
+  });
+  expect(before).toEqual({price:20,pending:1});
+  await expect(page.getByText(await text(page,'pos.pcMirrorPending'),{exact:true})).toBeVisible();
+  await page.evaluate(async()=>{
+    (window as any).e2e.restorePut();
+    const {saveProductToDb,getProductsForAccount}=await import('/src/db/productService.ts');
+    const name=(window as any).e2e.storeDb;await saveProductToDb((await getProductsForAccount(name))[0],name);
+  });
+  await expect(page.getByText(await text(page,'pos.pcMirrorPending'),{exact:true})).not.toBeVisible();
+});

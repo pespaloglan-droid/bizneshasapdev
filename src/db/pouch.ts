@@ -222,7 +222,7 @@ export async function upsertDoc(
     const { previousDoc, writtenDoc } = await task;
     // FAZ 2.2 audit: dinamik import — pouch ↔ auditLog döngüsünü kırar.
     // Bayrak kapalıysa logAudit no-op'tur; hata ana akışı bozmaz (kendi içinde yakalanır).
-    if (dbName !== AUDIT_DB_NAME) {
+    if (dbName !== AUDIT_DB_NAME && !id.startsWith('_local/')) {
       try {
       const { logAudit, calculateDiff, docTypeFromId } = await import('./auditLog');
       void logAudit({
@@ -314,6 +314,8 @@ export interface BatchWriteFailure {
 /** Toplu yazma jemi — ýazylan/şowsuz sanawy bilen (import hasabaty üçin). */
 export interface BatchWriteResult {
   written: number;
+  /** Birincil başarı sayısını değiştirmeyen, ayrıca raporlanan PC ayna hataları. */
+  mirrorFailed?: number;
   failed: BatchWriteFailure[];
 }
 
