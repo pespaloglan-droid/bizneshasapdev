@@ -105,6 +105,7 @@ export const translations: Record<LanguageCode, {
     finish: string;
   };
   pos: {
+    invoiceDeleteFailed: string;
     creditVoidNeedsAllocation: string;
     receiptInvoice: string;
     unallocatedReceipt: string;
@@ -1883,6 +1884,7 @@ export const translations: Record<LanguageCode, {
       finish: "Bitir",
     },
     pos: {
+      invoiceDeleteFailed: "{count} fatura silinemedi; listede ve seçili kaldı. Tekrar denemeden önce veritabanını kontrol edin.",
       creditVoidNeedsAllocation: "İptal durduruldu: bu müşterinin tahsilatlarını doğru faturaya bağlayın; fazla veya uyumsuz tahsilatları kontrol edin. Tahsilatlar otomatik silinmez/iade edilmez.",
       receiptInvoice: "Tahsilatın faturası",
       unallocatedReceipt: "Faturaya bağlanmamış / açılış bakiyesi",
@@ -3561,6 +3563,7 @@ export const translations: Record<LanguageCode, {
       finish: "Tamamla",
     },
     pos: {
+      invoiceDeleteFailed: "{count} faktura pozulmady; sanawda we saýlanan görnüşde galdy. Gaýtalamazdan öň maglumat bazasyny barlaň.",
       creditVoidNeedsAllocation: "Ýatyrmak duruzyldy: müşderiniň töleglerini dogry faktura baglaň we artykmaç tölegi barlaň. Tölegler awtomatik pozulmaýar/gaýtarylmaýar.",
       receiptInvoice: "Tölegiň fakturasy",
       unallocatedReceipt: "Faktura baglanmadyk / başlangyç galyndy",
@@ -5238,6 +5241,7 @@ export const translations: Record<LanguageCode, {
       finish: "Finish",
     },
     pos: {
+      invoiceDeleteFailed: "{count} invoices could not be deleted; they remain listed and selected. Check the database before retrying.",
       creditVoidNeedsAllocation: "Void blocked: link this customer's collections to the correct invoice and review excess or inconsistent payments. Collections are not automatically deleted/refunded.",
       receiptInvoice: "Collection invoice",
       unallocatedReceipt: "Unallocated / opening balance",
@@ -6915,6 +6919,7 @@ export const translations: Record<LanguageCode, {
       finish: "Завершить",
     },
     pos: {
+      invoiceDeleteFailed: "Не удалось удалить счетов: {count}. Они остались в списке и выделенными. Перед повтором проверьте базу.",
       creditVoidNeedsAllocation: "Отмена остановлена: привяжите платежи клиента к нужным счетам и проверьте избыточные/несогласованные суммы. Платежи не удаляются и не возвращаются автоматически.",
       receiptInvoice: "Счёт платежа",
       unallocatedReceipt: "Без привязки / начальный баланс",

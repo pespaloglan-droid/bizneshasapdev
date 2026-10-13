@@ -1,0 +1,20 @@
+import React from 'react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, expect, it, vi } from 'vitest';
+vi.mock('../../src/db/salesService',()=>({deleteInvoicePermanently:vi.fn()}));
+import { deleteInvoicePermanently } from '../../src/db/salesService';
+import { DeletedInvoicesModal } from '../../src/components/pos/DeletedInvoicesModal';
+import { LanguageProvider } from '../../src/locales/LanguageContext';
+import { translate } from '../../src/locales/i18n';
+afterEach(()=>{cleanup();vi.clearAllMocks();});
+it('P3 yalnız başarılı silinen ID bildirilir; false/throw kalan seçimi ve uyarıyı korur',async()=>{
+  vi.mocked(deleteInvoicePermanently).mockResolvedValueOnce(true).mockResolvedValueOnce(false).mockRejectedValueOnce(new Error('fixture'));
+  const onDeleted=vi.fn();const invoices=['a','b','c'].map(id=>({id,invoiceNo:id,status:'voided',amountDue:10,createdAt:'2026-10-12'})) as any;
+  render(<LanguageProvider language="en"><DeletedInvoicesModal invoices={invoices} storeDb="QA" language="en" onClose={()=>{}} onDeleted={onDeleted}/></LanguageProvider>);
+  const user=userEvent.setup();await user.click(screen.getByRole('button',{name:translate('en','invoices.deleteAll')}));
+  await user.click(screen.getByRole('button',{name:translate('en','invoices.permConfirm')}));
+  expect(onDeleted).toHaveBeenCalledWith(['a']);expect(screen.getByRole('alert').textContent).toContain('2 invoices');
+  const selected=screen.getByRole('button',{name:translate('en','invoices.deleteSelected',{count:2})});
+  expect(selected.hasAttribute('disabled')).toBe(false);
+});

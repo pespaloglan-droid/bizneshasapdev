@@ -46,6 +46,7 @@ export const DeletedInvoicesModal: React.FC<DeletedInvoicesModalProps> = ({
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [confirmMode, setConfirmMode] = useState<'' | 'selected' | 'all'>('');
   const [busy, setBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const toggle = (id: string) => {
     const next = new Set(selected);
@@ -67,19 +68,19 @@ export const DeletedInvoicesModal: React.FC<DeletedInvoicesModalProps> = ({
 
   const runDelete = async (ids: string[]) => {
     if (ids.length === 0) return;
-    setBusy(true);
-    let ok = 0;
-    for (const id of ids) {
-      const removed = await deleteInvoicePermanently(id, storeDb);
-      if (removed) ok += 1;
-    }
-    setBusy(false);
-    setConfirmMode('');
-    setSelected(new Set());
-    onDeleted(ids);
-    if (ok === 0) {
-      // Pozulýp bolmasa-da penjire ýapylýar; çağyryjy sanawy täzeläp biler.
-    }
+    setBusy(true); setDeleteError('');
+    const removedIds: string[] = [];
+    try {
+      for (const id of ids) {
+        try { if (await deleteInvoicePermanently(id, storeDb)) removedIds.push(id); }
+        catch { /* Diğer kayıtlara devam; yalnız başarılı ID'leri bildir. */ }
+      }
+      const failed = ids.filter(id => !removedIds.includes(id));
+      setSelected(new Set(failed));
+      setConfirmMode('');
+      if (removedIds.length) onDeleted(removedIds);
+      if (failed.length) setDeleteError(t('pos.invoiceDeleteFailed', { count: failed.length }));
+    } finally { setBusy(false); }
   };
 
   return (
@@ -152,6 +153,7 @@ export const DeletedInvoicesModal: React.FC<DeletedInvoicesModalProps> = ({
           )}
         </div>
 
+        {deleteError && <p role="alert" className="text-red-700 text-xs px-4 py-2">{deleteError}</p>}
         <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-4 py-2.5 flex-shrink-0">
           <button
             type="button"
@@ -202,6 +204,7 @@ export const DeletedInvoicesModal: React.FC<DeletedInvoicesModalProps> = ({
               </button>
               <button
                 type="button"
+                disabled={busy}
                 onClick={() => void runDelete(confirmMode === 'all' ? invoices.map((i) => i.id) : [...selected])}
                 className="h-9 px-5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs"
               >
