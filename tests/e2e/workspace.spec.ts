@@ -161,3 +161,29 @@ test('checkout: F10 iptal sepeti korur, onay temizler ve satış yazmaz', async 
   await page.keyboard.press('F5');
   expect((await state(page)).invoices).toEqual([]); expect((await state(page)).products[0].stock).toBe(5);
 });
+
+test('P0-1 serverOnly: yerel reset uzak belgeleri silmez ve cihaz lisansını korur', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const PouchDB = (await import('/node_modules/.vite/deps/pouchdb-browser.js')).default;
+    const { getLocalDatabase, resetLocalDatabaseForReplacement } = await import('/src/db/pouch.ts');
+    const { clearLocalData } = await import('/src/db/connectionStore.ts');
+    const name = `replacement-${crypto.randomUUID()}`;
+    const remote = new PouchDB(`remote-${name}`);
+    try {
+      await remote.bulkDocs([{ _id: 'product_shared', value: 'remote' }, { _id: 'customer_shared', value: 'remote' }]);
+      let local = getLocalDatabase(name);
+      await remote.replicate.to(local);
+      await local.put({ _id: 'product_only_local', value: 'discarded by explicit choice' });
+      await local.put({ _id: 'license', device: 'local-device' });
+      await clearLocalData(name);
+      local = getLocalDatabase(name);
+      await remote.replicate.to(local);
+      await local.replicate.to(remote, { filter: (doc: any) => doc._id !== 'license' });
+      return { remote: (await remote.allDocs()).rows.map((r: any) => r.id),
+        local: (await local.allDocs()).rows.map((r: any) => r.id), license: (await local.get('license')).device };
+    } finally { await remote.destroy(); await resetLocalDatabaseForReplacement(name); }
+  });
+  expect(result.remote).toEqual(['customer_shared', 'product_shared']);
+  expect(result.local).toEqual(['customer_shared', 'license', 'product_shared']);
+  expect(result.license).toBe('local-device');
+});

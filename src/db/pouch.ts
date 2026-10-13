@@ -548,6 +548,18 @@ export function startCouchDbSync(
   }
 }
 
+/** Server-only: aktif yerel kovayı siler; replike olabilen tombstone üretmez.
+ * Hesap silme yordamından farklı olarak destroy hatası yutulmaz ve diğer
+ * (şifreli/düz) kovaya dokunulmaz. Çağıran canlı sync'i önce durdurmalıdır.
+ */
+export async function resetLocalDatabaseForReplacement(dbName: string): Promise<void> {
+  const key = sanitizeDbName(dbName);
+  stopCouchDbSync(dbName);
+  const db = getLocalDatabase(dbName);
+  await db.destroy();
+  dbInstances.delete(key);
+}
+
 export async function destroyLocalDatabase(dbName: string): Promise<void> {
   const sanitizedName = sanitizeDbName(dbName);
   stopCouchDbSync(dbName);

@@ -1,3 +1,4 @@
+import { NON_SYNCED_DOC_IDS } from './schemaBridge';
 export const SYNC_DOCS_CHANGED_EVENT = 'bh:sync-docs-changed';
 import {
   basicAuth,
@@ -6,7 +7,7 @@ import {
   parseCouchDbAddress,
   type ParsedAddress,
 } from './couchAddress';
-import { startCouchDbSync, getLocalDatabase, upsertDocsBatch, type CouchAuth, type SyncStatus } from './pouch';
+import { startCouchDbSync, getLocalDatabase, resetLocalDatabaseForReplacement, type CouchAuth, type SyncStatus } from './pouch';
 import type { SyncHistoryMonths } from './syncSelection';
 import type { LanguageCode } from '../types';
 import { translations } from '../locales/i18n';
@@ -257,18 +258,17 @@ export async function checkMergeNeeded(
   return { needsChoice: hasLocalData && remoteCount > 0, localCount, remoteCount };
 }
 
-/** "Sadece sunucudakini al" — yerel hesap verilerini tombstone ile temizler. */
+/** Server-only: yerel kovayı yeniden oluştur; uzak DB'ye silme gönderme. */
 export async function clearLocalData(storeDb: string): Promise<void> {
   const db = getLocalDatabase(storeDb);
-  const res = await db.allDocs();
-  const ids = res.rows
-    .map((r) => r.key)
-    .filter((k): k is string => typeof k === 'string' && !k.startsWith('_design/'));
-  if (ids.length === 0) return;
-  await upsertDocsBatch(
-    storeDb,
-    ids.map((id) => ({ id, fields: { _deleted: true, tombstone: true, deletedAt: Date.now() } }))
-  );
+  const result = await db.allDocs({ keys: [...NON_SYNCED_DOC_IDS], include_docs: true });
+  const deviceDocs = result.rows.flatMap(row => 'doc' in row && row.doc ? [row.doc] : []);
+  await resetLocalDatabaseForReplacement(storeDb);
+  const fresh = getLocalDatabase(storeDb);
+  for (const doc of deviceDocs) {
+    const { _rev, ...body } = doc;
+    await fresh.put(body as any);
+  }
 }
 
 /** İlk aktarımın ilerlemesi. */
@@ -341,11 +341,10 @@ export async function startConnection(opts: StartOptions): Promise<TestResult> {
     const prompt = await checkMergeNeeded(storeDb, addr);
     if (prompt.needsChoice) {
       choice = await opts.onMergeNeeded(prompt);
-      if (choice === 'serverOnly') {
-        await clearLocalData(storeDb);
-      }
     }
   }
+
+  if (choice === 'serverOnly') await clearLocalData(storeDb);
 
   const auth: CouchAuth = { username: addr.username, password: addr.password };
   const okState = (msg: string): LinkStatusMap =>
