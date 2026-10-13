@@ -123,7 +123,7 @@
 - KГ¶prГј testi: **51/51 geГ§ti** (ГјrГјn/mГјЕџteri/fatura dГ¶nГјЕџГјmleri, gidiЕџ-dГ¶nГјЕџ, tГјm fatura tipleri, iptalв†’voided, bozuk veri dayanД±klД±lД±ДџД±, `license` senkronizasyon dД±ЕџД±).
 - Sunucudaki `license` belgesi silindi (cihaz kimliДџi sunucuya gitmemeli).
 
-**Г‡alД±ЕџtД±rmak iГ§in:** PC'de CouchDB servisi aГ§Д±k olmalД± (otomatik baЕџlar). Telefonda Ayarlar в†’ Bulut eЕџitleme в†’ aГ§, LAN adresi `http://192.168.1.8:5984`, kullanД±cД± `biznes_app`, Еџifre `bh_app_4nR7yT9wK3sD` в†’ "BaДџlantД±yД± sД±na" в†’ "Kaydet". AynД± anda PC'de Launcher'dan `biznes_hasap` profiline tД±kla.
+**Г‡alД±ЕџtД±rmak iГ§in:** PC'de CouchDB servisi aГ§Д±k olmalД± (otomatik baЕџlar). Telefonda Ayarlar в†’ Bulut eЕџitleme в†’ aГ§, LAN adresi `http://192.168.1.8:5984`, kullanД±cД± `biznes_app`, Еџifre `[REDACTED-ROTATION-REQUIRED]` в†’ "BaДџlantД±yД± sД±na" в†’ "Kaydet". AynД± anda PC'de Launcher'dan `biznes_hasap` profiline tД±kla.
 
 - SГјrГјm: versionName 1.2.5, versionCode 12 в†’ `bizneshasap-apk/BiznesHasap-v1.2.5.apk` (16.81MB)
 
@@ -259,8 +259,8 @@ olmayan veritabani icin net sebep (`dbMissing`).
 ### Sunucu bilgileri
 | Rol | Kullanici | Parola |
 |---|---|---|
-| Uygulama | `biznes_app` | `bh_app_4nR7yT9wK3sD` |
-| Yonetici | `biznes` | `bh_sync_8fK2mQ7xR4pW` |
+| Uygulama | `biznes_app` | `[REDACTED-ROTATION-REQUIRED]` |
+| Yonetici | `biznes` | `[REDACTED-ROTATION-REQUIRED]` |
 
 - Surum: versionName 1.2.9, versionCode 16 -> `bizneshasap-apk/BiznesHasap-v1.2.9.apk` (16.81MB)
 

@@ -86,8 +86,8 @@ describe('basicAuth', () => {
 
 describe('redactSecrets', () => {
   it('parola metinden silinir', () => {
-    const out = redactSecrets('Hata: http://user:HMX2004@sunucu açılamadı', ['HMX2004']);
-    expect(out).not.toContain('HMX2004');
+    const out = redactSecrets('Hata: http://user:fixture-password-not-live@sunucu açılamadı', ['fixture-password-not-live']);
+    expect(out).not.toContain('fixture-password-not-live');
   });
 
   it('URL kullanıcı:parola@ kalıbı temizlenir', () => {

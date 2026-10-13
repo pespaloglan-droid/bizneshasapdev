@@ -18,7 +18,7 @@ yapılandırılır (PC: config dosyası · APK: hesap ayarında yapıştırılan
 {
   "url": "http://127.0.0.1:5984",
   "username": "bizneshasap",
-  "password": "HMX2004",
+  "password": "[REDACTED-ROTATION-REQUIRED]",
   "businessName": "BIM MARKET"
 }
 ```
@@ -72,8 +72,8 @@ PC uygulamasında **bulunmaz**.
 Kullanıcı adresi bu biçimde yapıştırır:
 
 ```
-http://bizneshasap:HMX2004@192.168.1.8:5984/bim_market
-http://bizneshasap:HMX2004@dbpanel.hmxagent.cfd:5984/bim_market
+http://bizneshasap:[REDACTED-ROTATION-REQUIRED]@192.168.1.8:5984/bim_market
+http://bizneshasap:[REDACTED-ROTATION-REQUIRED]@dbpanel.hmxagent.cfd:5984/bim_market
 ```
 
 - Parola URL-kodlü olabilir (`%40` = `@`) — otomatik çözülür
@@ -244,7 +244,7 @@ New-NetFirewallRule -DisplayName 'BiznesHasap CouchDB 5984' `
 
 ```powershell
 $auth = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes('BIZNES:HASH'))
-$doc = '{"_id":"org.couchdb.user:bizneshasap","name":"bizneshasap","type":"user","roles":[],"password":"HMX2004"}'
+$doc = '{"_id":"org.couchdb.user:bizneshasap","name":"bizneshasap","type":"user","roles":[],"password":"[REDACTED-ROTATION-REQUIRED]"}'
 Invoke-WebRequest -Uri 'http://127.0.0.1:5984/_users/org.couchdb.user:bizneshasap' `
   -Method PUT -Headers @{Authorization=$auth} -ContentType 'application/json' -Body $doc
 ```

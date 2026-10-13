@@ -2,8 +2,8 @@
  * CouchDB adres ayrıştırıcı.
  *
  * Kullanıcı yapıştırabileceği biçim:
- *   http://bizneshasap:HMX2004@192.168.1.8:5984/bim_market
- *   http://bizneshasap:HMX2004@dbpanel.hmxagent.cfd:5984/bim_market
+ *   http://bizneshasap:EXAMPLE_PASSWORD@192.168.1.8:5984/bim_market
+ *   http://bizneshasap:EXAMPLE_PASSWORD@dbpanel.hmxagent.cfd:5984/bim_market
  *
  * Parola URL-kodlü olabilir (`%40` = @ gibi) — çözülür.
  * Kullanıcı/parola adresten çıkarılır ve Basic Auth header'ı olarak gönderilir
