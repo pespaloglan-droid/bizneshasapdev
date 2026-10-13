@@ -49,7 +49,7 @@ Bu kod dağıtık kilit veya tam transactional outbox değildir. Native yazımı
 - `npx tsc --noEmit`: geçti. `npm run build`: geçti; mevcut büyük bundle uyarısı sürüyor.
 - `git diff --check`: geçti. Main uzak ref'i değişmedi: `a229c6f507ada4a088839df1d76807d0723c02db`.
 - Yerel commitler: `c008a3c` katalog; `e5051db` retry/tombstone; `57cdbc0` takip hatası uyarısı ve dört UI regresyonu.
-- Çalışma ortamı yenilendiği için dört commit oturumdaki ZIP yedeğinden geri yüklendi. Her patch için stable patch-id birebir eşleşti; yukarıdaki source ID geri yüklenen gerçek committir. Önceki yerel test kanıtı aynı kaynak içeriğine aittir. Yeni GitHub CI sonucu ayrıca doğrulanacaktır; yerel test başarısı GitHub CI başarısı olarak sunulmaz.
+- Çalışma ortamı yenilendiği için dört commit oturumdaki ZIP yedeğinden geri yüklendi. Her patch için stable patch-id birebir eşleşti; yukarıdaki source ID geri yüklenen gerçek committir. Önceki yerel test kanıtı aynı kaynak içeriğine aittir. Push sonrası GitHub CI sonucu da aşağıdaki çalışmada doğrulandı.
 
 ## Ayrı görev A: iki cihazın aynı taslağı kabulü
 
@@ -82,3 +82,12 @@ Kabul testleri: iki cihaz aynı anda/online, network partition, iki defa gelen i
 - Vault, çalışan renderer'ın kullanması gereken sırları bellekte tamamen yok etmez; XSS/ele geçirilmiş işlem için tam koruma iddiası yapılmaz. URL/Basic/token log redaksiyonu ve HTTP uyarısı korunur.
 
 Kabul testleri: Unicode ve percent-encoding roundtrip, migration kesilmesi, vault erişim reddi, ciphertext bozma/account substitution, kilitli/eksik keyring, Android anahtar kaybı, hesap silme, backup/export ve loglarda sır olmaması. Gerçek Windows/Android cihaz testleri olmadan vault tamamlandı sayılmaz.
+
+## GitHub teslim ve CI kanıtı
+
+- Push hedefi: `faz-c-d/altyapi-hazirlik`. Main değiştirilmedi.
+- GitHub üzerinde test edilen commit: `8234252b6601ae0f0b872c4acd5fc6b69f7fada8`.
+- CI: https://github.com/pespaloglan-droid/bizneshasapdev/actions/runs/38383292175 — **completed / success**.
+- CI günlüğü: **34 dosya / 376 unit test**, **27 E2E test** geçti; web TypeScript/build adımı da başarılı.
+- Bu CI kanıtını ekleyen sonraki commit yalnız belgedir; test edilen uygulama kaynağı değişmez.
+- Yeni APK/release yoktur. İki cihaz ortak kabul protokolü ve native credential vault yukarıdaki ayrı görevler olarak kalır.
