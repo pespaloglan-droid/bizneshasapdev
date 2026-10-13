@@ -102,6 +102,8 @@ export const translations: Record<LanguageCode, {
     finish: string;
   };
   pos: {
+    saleSaveFailed: string;
+    cardInvoiceSaveFailed: string;
     customerAdded: string;
     invoiceVoided: string;
     draftCreated: string;
@@ -1868,6 +1870,8 @@ export const translations: Record<LanguageCode, {
       finish: "Bitir",
     },
     pos: {
+      saleSaveFailed: "Satış kaydedilemedi. Sepet korundu; stok ve bakiye değiştirilmedi.",
+      cardInvoiceSaveFailed: "Kart onayı alındı ancak fatura kaydedilemedi. Sepet korundu; ödemeyi tekrar çekmeden kayıt durumunu kontrol edin.",
       customerAdded: "{name} başarıyla eklendi.",
       invoiceVoided: "Fatura iptal edildi: {invoice}",
       draftCreated: "Taslak oluşturuldu: {invoice}",
@@ -3534,6 +3538,8 @@ export const translations: Record<LanguageCode, {
       finish: "Tamamla",
     },
     pos: {
+      saleSaveFailed: "Satuw saklanyp bilinmedi. Sebet saklandy; stok we balans üýtgedilmedi.",
+      cardInvoiceSaveFailed: "Kart tassyklamasy alyndy, emma faktura saklanmady. Sebet saklandy; tölegi gaýtalamazdan ýazgyny barlaň.",
       customerAdded: "{name} üstünlikli goşuldy.",
       invoiceVoided: "Faktura pozuldy: {invoice}",
       draftCreated: "Garalama döredildi: {invoice}",
@@ -5199,6 +5205,8 @@ export const translations: Record<LanguageCode, {
       finish: "Finish",
     },
     pos: {
+      saleSaveFailed: "Sale could not be saved. Cart kept; stock and balance were not changed.",
+      cardInvoiceSaveFailed: "Card approval received but invoice was not saved. Cart kept; check the payment before charging again.",
       customerAdded: "{name} added successfully.",
       invoiceVoided: "Invoice voided: {invoice}",
       draftCreated: "Draft created: {invoice}",
@@ -6864,6 +6872,8 @@ export const translations: Record<LanguageCode, {
       finish: "Завершить",
     },
     pos: {
+      saleSaveFailed: "Продажа не сохранена. Корзина сохранена; остатки и баланс не изменены.",
+      cardInvoiceSaveFailed: "Оплата картой подтверждена, но счёт не сохранён. Корзина сохранена; проверьте платёж перед повторным списанием.",
       customerAdded: "{name} успешно добавлен.",
       invoiceVoided: "Счёт отменён: {invoice}",
       draftCreated: "Черновик создан: {invoice}",

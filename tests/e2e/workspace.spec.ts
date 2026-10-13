@@ -187,3 +187,19 @@ test('P0-1 serverOnly: yerel reset uzak belgeleri silmez ve cihaz lisansını ko
   expect(result.local).toEqual(['customer_shared', 'license', 'product_shared']);
   expect(result.license).toBe('local-device');
 });
+test('P0-2 reddedilen satış: fatura stok ve bakiye değişmez; sepet korunur', async ({ page }) => {
+  const before = await state(page);
+  await page.evaluate(async () => {
+    const { getLocalDatabase } = await import('/src/db/pouch.ts');
+    const db = getLocalDatabase((window as any).e2e.storeDb); const put = db.put.bind(db);
+    db.put = async (doc: any, ...args: any[]) => {
+      if (doc._id.startsWith('invoice_')) throw Object.assign(new Error('fixture-rejection'), { status: 403 });
+      return put(doc, ...args);
+    };
+  });
+  await page.getByText('E2E Tea', { exact: true }).click(); await page.keyboard.press('F5');
+  await expect(page.getByText(await text(page, 'pos.saleSaveFailed'), { exact: true })).toBeVisible();
+  const after = await state(page); expect(after.invoices).toEqual([]); expect(after.products).toEqual(before.products);
+  expect(after.customers).toEqual(before.customers);
+  await expect(page.locator('input[type=number]')).not.toHaveCount(0);
+});

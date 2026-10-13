@@ -2,7 +2,6 @@ import { Product, ProductCategory } from '../types';
 import { listDocsByPrefix, removeDoc, upsertDoc, upsertDocsBatch, type BatchWriteResult } from './pouch';
 import { sanitizeProduct } from './sanitize';
 import { mirrorToPc } from './schemaBridge';
-import { DocumentValidationError } from './validation';
 
 function productDocId(productId: string): string {
   return `product_${productId}`;
@@ -48,19 +47,11 @@ export async function saveProductsBatchDb(
 }
 
 export async function saveProductToDb(product: Product, dbName: string = 'default_store'): Promise<Product> {
-  try {
-    const syncedAt = new Date().toISOString();
-    await upsertDoc(dbName, productDocId(product.id), {
-      docType: 'product',
-      product,
-      syncedAt,
-    });
-    // PC'nin okuyabilmesi için ayna kayıt (urun:<id>)
-    await mirrorToPc(dbName, 'product', product);
-  } catch (error) {
-    console.error('Failed to save product to PouchDB', error);
-    if (error instanceof DocumentValidationError) throw error;
-  }
+  const syncedAt = new Date().toISOString();
+  // Birincil yazım başarısızlığı çağırana ulaşır; başarı gibi gösterilmez.
+  await upsertDoc(dbName, productDocId(product.id), { docType: 'product', product, syncedAt });
+  try { await mirrorToPc(dbName, 'product', product); }
+  catch { console.warn('PC_MIRROR_WRITE_FAILED:product'); }
   return product;
 }
 

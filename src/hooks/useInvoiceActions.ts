@@ -91,7 +91,11 @@ const handleCardPaymentApproved = async (authCode: string) => {
       internalNote: internalNote.trim() ? internalNote.trim() : undefined
     };
 
-    await saveInvoiceToDb(newInvoice, storeDb);
+    try { await saveInvoiceToDb(newInvoice, storeDb); }
+    catch {
+      setToastMessage({ type: 'info', text: t('pos.cardInvoiceSaveFailed') });
+      return;
+    }
     setCompletedInvoices(prev => [newInvoice, ...prev]);
 
     applyStockChanges(cartItems, invoiceType);
@@ -225,7 +229,11 @@ const handleCompleteSale = async () => {
       ...creditFields(amountDue)
     };
 
-    await saveInvoiceToDb(newInvoice, storeDb);
+    try { await saveInvoiceToDb(newInvoice, storeDb); }
+    catch {
+      setToastMessage({ type: 'info', text: t('pos.saleSaveFailed') });
+      return;
+    }
     setCompletedInvoices(prev => [newInvoice, ...prev]);
 
     applyStockChanges(cartItems, invoiceType);

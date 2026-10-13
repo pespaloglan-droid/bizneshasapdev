@@ -2,22 +2,13 @@ import { InvoiceRecord } from '../types';
 import { listDocsByPrefix, removeDoc, upsertDoc } from './pouch';
 import { sanitizeInvoice } from './sanitize';
 import { mirrorToPc } from './schemaBridge';
-import { DocumentValidationError } from './validation';
 
 export async function saveInvoiceToDb(invoice: InvoiceRecord, dbName: string = 'default_store'): Promise<InvoiceRecord> {
-  try {
-    const syncedAt = new Date().toISOString();
-    await upsertDoc(dbName, `invoice_${invoice.id}`, {
-      docType: 'invoice',
-      invoice,
-      syncedAt,
-    });
-    // PC'nin okuyabilmesi için ayna kayıt (fatura:<id>)
-    await mirrorToPc(dbName, 'invoice', invoice);
-  } catch (error) {
-    console.error('Failed to save invoice to PouchDB', error);
-    if (error instanceof DocumentValidationError) throw error;
-  }
+  const syncedAt = new Date().toISOString();
+  // Birincil yazım başarısızlığı çağırana ulaşır; başarı gibi gösterilmez.
+  await upsertDoc(dbName, `invoice_${invoice.id}`, { docType: 'invoice', invoice, syncedAt });
+  try { await mirrorToPc(dbName, 'invoice', invoice); }
+  catch { console.warn('PC_MIRROR_WRITE_FAILED:invoice'); }
   return invoice;
 }
 
