@@ -126,60 +126,75 @@ bool SaveInstallSecret(const uint8_t secret[32]) {
   DATA_BLOB in, out;
   in.pbData = (BYTE*)secret;
   in.cbData = 32;
-  
+
   if (!CryptProtectData(&in, L"PosLicense", nullptr, nullptr, nullptr,
                         CRYPTPROTECT_LOCAL_MACHINE, &out))
     return false;
-  
-  HKEY hKey;
-  if (RegCreateKeyExA(HKEY_LOCAL_MACHINE,
+
+  // Önce HKLM dene; admin yetkisi yoksa HKCU'ya düş
+  HKEY hKey = nullptr;
+  LSTATUS st = RegCreateKeyExA(HKEY_LOCAL_MACHINE,
       "SOFTWARE\\BiznesHasap\\License", 0, nullptr, 0, KEY_WRITE, nullptr,
-      &hKey, nullptr) != ERROR_SUCCESS) {
+      &hKey, nullptr);
+  if (st != ERROR_SUCCESS) {
+    st = RegCreateKeyExA(HKEY_CURRENT_USER,
+        "SOFTWARE\\BiznesHasap\\License", 0, nullptr, 0, KEY_WRITE, nullptr,
+        &hKey, nullptr);
+  }
+  if (st != ERROR_SUCCESS) {
     LocalFree(out.pbData);
     return false;
   }
-  
+
   RegSetValueExA(hKey, "InstallSecret", 0, REG_BINARY, out.pbData, out.cbData);
   RegCloseKey(hKey);
   LocalFree(out.pbData);
-  
+
   return true;
 }
 
 bool LoadInstallSecret(uint8_t secret[32]) {
-  HKEY hKey;
-  if (RegOpenKeyExA(HKEY_LOCAL_MACHINE,
-      "SOFTWARE\\BiznesHasap\\License", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
-    return false;
-  
-  BYTE buf[256];
-  DWORD sz = sizeof buf;
-  DWORD type;
-  
-  if (RegQueryValueExA(hKey, "InstallSecret", nullptr, &type, buf, &sz) != ERROR_SUCCESS ||
-      type != REG_BINARY) {
+  // HKLM sonra HKCU dene; blob boyutunu önce sor (sabit tampon büyük blob'da
+  // ERROR_MORE_DATA veriyordu — InitState hiç başarılı olamıyordu)
+  for (HKEY root : { HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER }) {
+    HKEY hKey;
+    if (RegOpenKeyExA(root, "SOFTWARE\\BiznesHasap\\License", 0, KEY_READ,
+                      &hKey) != ERROR_SUCCESS)
+      continue;
+
+    DWORD sz = 0;
+    DWORD type = 0;
+    if (RegQueryValueExA(hKey, "InstallSecret", nullptr, &type, nullptr, &sz) != ERROR_SUCCESS ||
+        type != REG_BINARY || sz == 0 || sz > 1024) {
+      RegCloseKey(hKey);
+      continue;
+    }
+
+    BYTE buf[1024];
+    if (RegQueryValueExA(hKey, "InstallSecret", nullptr, &type, buf, &sz) != ERROR_SUCCESS) {
+      RegCloseKey(hKey);
+      continue;
+    }
     RegCloseKey(hKey);
-    return false;
-  }
-  
-  RegCloseKey(hKey);
-  
-  DATA_BLOB in, out;
-  in.pbData = buf;
-  in.cbData = sz;
-  
-  if (!CryptUnprotectData(&in, nullptr, nullptr, nullptr, nullptr, 0, &out))
-    return false;
-  
-  if (out.cbData != 32) {
+
+    DATA_BLOB in, out;
+    in.pbData = buf;
+    in.cbData = sz;
+
+    if (!CryptUnprotectData(&in, nullptr, nullptr, nullptr, nullptr, 0, &out))
+      continue;
+
+    if (out.cbData != 32) {
+      LocalFree(out.pbData);
+      continue;
+    }
+
+    memcpy(secret, out.pbData, 32);
     LocalFree(out.pbData);
-    return false;
+    return true;
   }
-  
-  memcpy(secret, out.pbData, 32);
-  LocalFree(out.pbData);
-  
-  return true;
+
+  return false;
 }
 
 #else
