@@ -1,5 +1,6 @@
 import { encodeStoredValue, decodeStoredValue, splitStoredAddress } from './credentialStorage';
 import { startCouchDbSync, stopCouchDbSync, type CouchAuth, type SyncStatus } from './pouch';
+import { electronBridge } from '../utils/electron';
 
 /**
  * Bulut eşitleme — hesap (base) başına ayrı veritabanı.
@@ -226,6 +227,23 @@ export async function resolveEndpoint(
     }
     const ensured = await ensureRemoteDatabase(endpoint.url, remoteDb, auth);
     if (ensured === 'failed' || ensured === 'forbidden') {
+      // PC (Electron) + yerel sunucu: admin yapılandırması varsa veritabanını
+      // otomatik aç (APK'da bu yok — telefon DB açamaz, güvenlik gereği).
+      const bridge = electronBridge();
+      if (isLocalhost(endpoint.url) && bridge.provisionCouchDb) {
+        const base = serverRootOf(endpoint.url, remoteDb);
+        const prov = base ? await bridge.provisionCouchDb(remoteDb, base) : null;
+        if (prov?.ok) {
+          const retry = await ensureRemoteDatabase(endpoint.url, remoteDb, auth);
+          if (retry === 'exists' || retry === 'created') {
+            attempts.push({ url: endpoint.url, kind: endpoint.kind, ok: true });
+            return {
+              resolved: { endpoint, remoteDb, remoteDbUrl: buildRemoteDbUrl(endpoint.url, remoteDb) },
+              attempts,
+            };
+          }
+        }
+      }
       attempts.push({ url: endpoint.url, kind: endpoint.kind, ok: false, failure: 'dbMissing' });
       continue;
     }

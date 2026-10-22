@@ -36,5 +36,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   guardLicense: (moduleName, licenseId) => ipcRenderer.invoke('license-guard', moduleName, licenseId),
 
   // Pano — Electron file:// context'inde navigator.clipboard çalışmaz
-  copyToClipboard: (text) => ipcRenderer.invoke('clipboard-write', text)
+  copyToClipboard: (text) => ipcRenderer.invoke('clipboard-write', text),
+
+  // Yeni mağaza DB'sini yerel CouchDB'de otomatik açma (yalnız PC, loopback)
+  provisionCouchDb: (dbName, serverUrl) => ipcRenderer.invoke('couch-provision-db', dbName, serverUrl)
 });

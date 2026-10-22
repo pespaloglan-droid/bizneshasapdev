@@ -25,6 +25,14 @@ interface ElectronBridge {
   readonly printHtml?: (options: PrintHtmlOptions) => Promise<PrintTestResult>;
   /** F11 — Excel eksporty: "Sakla" diýalogy + faýl ýazmak. */
   readonly saveFileAs?: (options: SaveFileAsOptions) => Promise<SaveFileAsResult>;
+  /** Yeni mağaza DB'sini yerel CouchDB'de açar (yalnız PC + loopback). */
+  readonly provisionCouchDb?: (dbName: string, serverUrl: string) => Promise<ProvisionResult>;
+}
+
+export interface ProvisionResult {
+  readonly ok: boolean;
+  readonly created?: boolean;
+  readonly reason?: string;
 }
 
 export interface SaveFileAsOptions {

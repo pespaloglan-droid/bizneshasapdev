@@ -295,6 +295,40 @@ if (!gotTheLock) {
       }
     });
 
+    // Yeni mağaza veritabanını yerel CouchDB'de otomatik açar.
+    // Admin parolası yalnızca bu bilgisayarda userData/server-admin.json'da durur
+    // (repoya/APK'ya girmez). Yalnızca loopback sunucuya izin verilir.
+    trustedIPC('couch-provision-db', async (_e, dbName, serverUrl) => {
+      try {
+        const name = String(dbName || '').toLowerCase();
+        if (!/^[a-z][a-z0-9_$()+-]{0,59}$/.test(name) || name.startsWith('_')) {
+          return { ok: false, reason: 'bad-name' };
+        }
+        const base = String(serverUrl || '').trim().replace(/\/+$/, '');
+        if (!/^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/i.test(base)) {
+          return { ok: false, reason: 'not-loopback' };
+        }
+        const cfgPath = path.join(app.getPath('userData'), 'server-admin.json');
+        if (!fs.existsSync(cfgPath)) return { ok: false, reason: 'no-config' };
+        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+        const auth = 'Basic ' + Buffer.from(`${cfg.adminUser}:${cfg.adminPass}`).toString('base64');
+        const appUser = cfg.appUser || 'biznes_app';
+
+        const put = await fetch(`${base}/${name}`, { method: 'PUT', headers: { Authorization: auth } });
+        if (!put.ok && put.status !== 412) return { ok: false, reason: `http-${put.status}` };
+
+        const sec = await fetch(`${base}/${name}/_security`, {
+          method: 'PUT',
+          headers: { Authorization: auth, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ members: { names: [appUser], roles: ['_admin'] }, admins: { roles: ['_admin'] } }),
+        });
+        if (!sec.ok) return { ok: false, reason: `security-${sec.status}` };
+        return { ok: true, created: put.ok };
+      } catch (err) {
+        return { ok: false, reason: redactSecrets(String((err && err.message) || err)) };
+      }
+    });
+
     // Hesap bazlı lisans IPC'leri (spec v3 §4)
     trustedIPC('license-info', async (_e, licenseId) => {
       try {
