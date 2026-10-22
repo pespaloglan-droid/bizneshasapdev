@@ -11,6 +11,7 @@ import {
   startConnection,
   stopCurrent,
   testAddress,
+  withAccountDatabase,
   type ConnectionKind,
   type LinkStatusMap,
   type MergePrompt,
@@ -117,7 +118,7 @@ export const ConnectionFields: React.FC<ConnectionFieldsProps> = ({
   const handleTestOnly = useCallback(
     async (kind: ConnectionKind) => {
       setBusy(kind);
-      const r = await testAddress(conn[kind]);
+      const r = await testAddress(withAccountDatabase(conn[kind], accountId));
       // Başarılı TEST "bağlı" demek değildir → 'ok' (bağlan düğmesi "başlat" kalır)
       setStatus((prev) => ({
         ...prev,

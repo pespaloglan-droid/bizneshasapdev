@@ -319,9 +319,29 @@ export interface StartOptions {
   language?: LanguageCode;
 }
 
+/** Adreste DB adı yoksa hesabın databaseName'ini ekler (kullanıcı sadece sunucu adresi yapıştırabilsin diye). */
+export function withAccountDatabase(raw: string, accountId: string): string {
+  try {
+    parseCouchDbAddress(raw);
+    return raw;
+  } catch (err) {
+    if (!(err instanceof Error) || err.message !== 'noDatabase') return raw;
+  }
+  try {
+    const all = JSON.parse(localStorage.getItem('biznes_hasap_accounts_v1') || '[]');
+    const acc = Array.isArray(all)
+      ? all.find((a: { id?: string; databaseName?: string }) => a && a.id === accountId)
+      : undefined;
+    const db = acc && typeof acc.databaseName === 'string' ? acc.databaseName.trim() : '';
+    if (db) return raw.replace(/\/+$/, '') + '/' + encodeURIComponent(db);
+  } catch { /* hesap bulunamazsa olduğu gibi bırak */ }
+  return raw;
+}
+
 /** Bağlantıyı başlatır. Önce test eder, sonra canlı senkron açar. */
 export async function startConnection(opts: StartOptions): Promise<TestResult> {
-  const { accountId, storeDb, kind, raw, onStatus, onDocsChanged } = opts;
+  const { accountId, storeDb, kind, onStatus, onDocsChanged } = opts;
+  const raw = withAccountDatabase(opts.raw, accountId);
   const language: LanguageCode = opts.language ?? 'tr';
   const generation=++connectionGeneration; pendingAccount=accountId;
   const current=()=>generation===connectionGeneration;
