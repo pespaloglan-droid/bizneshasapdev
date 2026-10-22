@@ -227,10 +227,11 @@ export async function resolveEndpoint(
     }
     const ensured = await ensureRemoteDatabase(endpoint.url, remoteDb, auth);
     if (ensured === 'failed' || ensured === 'forbidden') {
-      // PC (Electron) + yerel sunucu: admin yapılandırması varsa veritabanını
-      // otomatik aç (APK'da bu yok — telefon DB açamaz, güvenlik gereği).
+      // PC (Electron) + bu makinenin sunucusu: admin yapılandırması varsa
+      // veritabanını otomatik aç. Ana süreç hedefin bu bilgisayar olduğunu
+      // doğrular (loopback veya kendi ağ IP'leri); APK'da bu yol yok.
       const bridge = electronBridge();
-      if (isLocalhost(endpoint.url) && bridge.provisionCouchDb) {
+      if (bridge.provisionCouchDb) {
         const base = serverRootOf(endpoint.url, remoteDb);
         const prov = base ? await bridge.provisionCouchDb(remoteDb, base) : null;
         if (prov?.ok) {

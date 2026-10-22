@@ -5,6 +5,7 @@ import { FlagIcon } from '../common/FlagIcon';
 import { LanguageMenu } from '../menus/LanguageMenu';
 import { PrinterMenu } from '../menus/PrinterMenu';
 import { useT } from '../../locales/LanguageContext';
+import pkg from '../../../package.json';
 
 interface PosFooterProps {
   language: LanguageCode;
@@ -106,9 +107,7 @@ export const PosFooter: React.FC<PosFooterProps> = ({
         <div className="text-[11px] text-gray-300 font-mono hidden md:flex items-center space-x-1.5">
           <span className="font-semibold text-white">Biznes Hasap</span>
           <span className="text-gray-500">|</span>
-          <span>v2.1.0</span>
-          <span className="text-gray-500">•</span>
-          <span>22 May 2025</span>
+          <span>v{pkg.version}</span>
         </div>
 
         {/* Dil Seçici Dropdown */}

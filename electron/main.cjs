@@ -305,9 +305,16 @@ if (!gotTheLock) {
           return { ok: false, reason: 'bad-name' };
         }
         const base = String(serverUrl || '').trim().replace(/\/+$/, '');
-        if (!/^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/i.test(base)) {
-          return { ok: false, reason: 'not-loopback' };
+        const m = base.match(/^https?:\/\/([^/:]+)(:\d+)?$/i);
+        if (!m) return { ok: false, reason: 'not-loopback' };
+        const host = m[1].toLowerCase();
+        let local = host === '127.0.0.1' || host === 'localhost' || host === '[::1]';
+        if (!local) {
+          // Bu bilgisayarın kendi ağ adresleri de kabul (PC = sunucu makinesi)
+          const nets = require('os').networkInterfaces();
+          local = Object.values(nets).flat().some((n) => n && n.address === m[1]);
         }
+        if (!local) return { ok: false, reason: 'not-loopback' };
         const cfgPath = path.join(app.getPath('userData'), 'server-admin.json');
         if (!fs.existsSync(cfgPath)) return { ok: false, reason: 'no-config' };
         const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
