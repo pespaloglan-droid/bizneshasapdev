@@ -174,8 +174,9 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
 
   const storeDb = getAccountStoreKey(activeAccount);
 
-  // CouchDB: son aktif baglantiyi acilista otomatik baslat
-  useAutoConnection(activeAccount.id, storeDb);
+  // CouchDB: son aktif baglantiyi acilista otomatik baslat;
+  // PC'de hiç bağlantı yoksa yerel sunucuda otomatik kurulum yapılır
+  useAutoConnection(activeAccount.id, storeDb, activeAccount.databaseName);
 
   // Customer & Barcode
   const [customers, setCustomers] = useState<Customer[]>([]);

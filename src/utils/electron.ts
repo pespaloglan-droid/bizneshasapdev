@@ -27,6 +27,15 @@ interface ElectronBridge {
   readonly saveFileAs?: (options: SaveFileAsOptions) => Promise<SaveFileAsResult>;
   /** Yeni mağaza DB'sini yerel CouchDB'de açar (yalnız PC + loopback). */
   readonly provisionCouchDb?: (dbName: string, serverUrl: string) => Promise<ProvisionResult>;
+  /** Tam otomatik: DB'yi açar + hazır bağlantı adresi döndürür (yalnız PC). */
+  readonly couchAutoSetup?: (dbName: string) => Promise<AutoSetupResult>;
+}
+
+export interface AutoSetupResult {
+  readonly ok: boolean;
+  readonly created?: boolean;
+  readonly address?: string;
+  readonly reason?: string;
 }
 
 export interface ProvisionResult {

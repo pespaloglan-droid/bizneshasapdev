@@ -336,6 +336,47 @@ if (!gotTheLock) {
       }
     });
 
+    // Tam otomatik kurulum: hesabın DB'sini yerel sunucuda açar (yoksa) ve
+    // kullanıcıya hazır bağlantı adresini döndürür. Kullanıcı hiçbir şey yazmaz.
+    // Kimlikler yalnızca bu bilgisayardaki userData/server-admin.json'dan okunur.
+    trustedIPC('couch-auto-setup', async (_e, dbName) => {
+      try {
+        const name = String(dbName || '').toLowerCase();
+        if (!/^[a-z][a-z0-9_$()+-]{0,59}$/.test(name) || name.startsWith('_')) {
+          return { ok: false, reason: 'bad-name' };
+        }
+        const cfgPath = path.join(app.getPath('userData'), 'server-admin.json');
+        if (!fs.existsSync(cfgPath)) return { ok: false, reason: 'no-config' };
+        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+        if (!cfg.adminUser || !cfg.adminPass || !cfg.appUser || !cfg.appPass) {
+          return { ok: false, reason: 'no-config' };
+        }
+        const base = String(cfg.serverUrl || 'http://127.0.0.1:5984').replace(/\/+$/, '');
+        const auth = 'Basic ' + Buffer.from(`${cfg.adminUser}:${cfg.adminPass}`).toString('base64');
+
+        const head = await fetch(`${base}/${name}`, { method: 'HEAD', headers: { Authorization: auth } });
+        let created = false;
+        if (head.status === 404) {
+          const put = await fetch(`${base}/${name}`, { method: 'PUT', headers: { Authorization: auth } });
+          if (!put.ok && put.status !== 412) return { ok: false, reason: `http-${put.status}` };
+          created = put.ok;
+          await fetch(`${base}/${name}/_security`, {
+            method: 'PUT',
+            headers: { Authorization: auth, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ members: { names: [cfg.appUser], roles: ['_admin'] }, admins: { roles: ['_admin'] } }),
+          });
+        } else if (!head.ok) {
+          return { ok: false, reason: `http-${head.status}` };
+        }
+
+        const host = base.replace(/^http:\/\//i, '');
+        const address = `http://${encodeURIComponent(cfg.appUser)}:${encodeURIComponent(cfg.appPass)}@${host}/${name}`;
+        return { ok: true, created, address };
+      } catch (err) {
+        return { ok: false, reason: redactSecrets(String((err && err.message) || err)) };
+      }
+    });
+
     // Hesap bazlı lisans IPC'leri (spec v3 §4)
     trustedIPC('license-info', async (_e, licenseId) => {
       try {

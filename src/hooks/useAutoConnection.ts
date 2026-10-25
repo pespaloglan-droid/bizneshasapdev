@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { loadConnection, resumeLastConnection, stopCurrent, SYNC_DOCS_CHANGED_EVENT, type LinkStatusMap } from '../db/connectionStore';
+import { loadConnection, resumeLastConnection, stopCurrent, autoProvisionLocal, SYNC_DOCS_CHANGED_EVENT, type LinkStatusMap } from '../db/connectionStore';
 import { importPcMirrorsIntoStore, SYNC_IMPORTED_EVENT } from '../db/schemaBridge';
 import { resolveConflicts, isConflictReviewEnabled, hasReviewableConflicts } from '../db/conflictResolver';
 import { useCleanup } from './useCleanup';
 /** Çakışma seçilmeden köprü random CouchDB kazananını APK'ya kopyalayamaz. */
-export function useAutoConnection(accountId: string, storeDb: string, onStatus?: (s: LinkStatusMap) => void): void {
+export function useAutoConnection(accountId: string, storeDb: string, databaseName?: string, onStatus?: (s: LinkStatusMap) => void): void {
   const timer = useRef<number>(); const active = useRef(false); const currentDb = useRef(storeDb);
   currentDb.current = storeDb;
   const pullIn = useCallback(() => {
@@ -28,10 +28,21 @@ export function useAutoConnection(accountId: string, storeDb: string, onStatus?:
     active.current = true;
     const changed = (event: Event) => { if ((event as CustomEvent).detail === storeDb) pullIn(); };
     window.addEventListener(SYNC_DOCS_CHANGED_EVENT, changed);
-    if (accountId && storeDb && loadConnection(accountId).active) {
-      pullIn(); void resumeLastConnection(accountId, storeDb, onStatus ?? (() => {}), pullIn)
-        .catch(() => console.warn('[Sync]', 'resume_failed'));
+    if (accountId && storeDb) {
+      if (loadConnection(accountId).active) {
+        pullIn(); void resumeLastConnection(accountId, storeDb, onStatus ?? (() => {}), pullIn)
+          .catch(() => console.warn('[Sync]', 'resume_failed'));
+      } else if (databaseName) {
+        // PC'de hiç bağlantı kaydı yoksa: yerel sunucuda DB'yi otomatik aç,
+        // adresi kaydet ve bağlan (kullanıcı hiçbir şey yazmaz).
+        void autoProvisionLocal(accountId, databaseName).then((ok) => {
+          if (ok && active.current && currentDb.current === storeDb) {
+            void resumeLastConnection(accountId, storeDb, onStatus ?? (() => {}), pullIn)
+              .catch(() => console.warn('[Sync]', 'resume_failed'));
+          }
+        });
+      }
     }
     return () => window.removeEventListener(SYNC_DOCS_CHANGED_EVENT, changed);
-  }, [accountId, storeDb, onStatus, pullIn]);
+  }, [accountId, storeDb, databaseName, onStatus, pullIn]);
 }

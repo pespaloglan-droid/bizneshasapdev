@@ -39,5 +39,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   copyToClipboard: (text) => ipcRenderer.invoke('clipboard-write', text),
 
   // Yeni mağaza DB'sini yerel CouchDB'de otomatik açma (yalnız PC, loopback)
-  provisionCouchDb: (dbName, serverUrl) => ipcRenderer.invoke('couch-provision-db', dbName, serverUrl)
+  provisionCouchDb: (dbName, serverUrl) => ipcRenderer.invoke('couch-provision-db', dbName, serverUrl),
+
+  // Tam otomatik: DB'yi açar + hazır bağlantı adresi döndürür (yalnız PC)
+  couchAutoSetup: (dbName) => ipcRenderer.invoke('couch-auto-setup', dbName)
 });

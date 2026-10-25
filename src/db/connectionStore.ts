@@ -12,6 +12,7 @@ import { startCouchDbSync, getLocalDatabase, resetLocalDatabaseForReplacement, t
 import type { SyncHistoryMonths } from './syncSelection';
 import type { LanguageCode } from '../types';
 import { translations } from '../locales/i18n';
+import { electronBridge } from '../utils/electron';
 
 /** Bağlantı durum metinleri seçili dilde döner (tek dil kuralı). */
 function syncMessage(s: SyncStatus, db: string, language: LanguageCode): string {
@@ -338,6 +339,26 @@ export function withAccountDatabase(raw: string, accountId: string): string {
   return raw;
 }
 
+/**
+ * PC'de hesabın hiç bağlantı kaydı yoksa: yerel sunucuda hesabın DB'sini
+ * otomatik açar ve hazır adresi kaydeder (kullanıcı hiçbir şey yazmaz).
+ * APK'da (köprü yok) veya bağlantı zaten varsa hiçbir şey yapmaz.
+ */
+export async function autoProvisionLocal(accountId: string, databaseName?: string): Promise<boolean> {
+  const bridge = electronBridge();
+  if (!bridge.couchAutoSetup || !databaseName) return false;
+  const existing = loadConnection(accountId);
+  if (existing.active || existing.local || existing.online) return false;
+  try {
+    const res = await bridge.couchAutoSetup(databaseName);
+    if (!res?.ok || !res.address) return false;
+    saveConnection(accountId, { local: res.address, online: '', active: 'local' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Bağlantıyı başlatır. Önce test eder, sonra canlı senkron açar. */
 export async function startConnection(opts: StartOptions): Promise<TestResult> {
   const { accountId, storeDb, kind, onStatus, onDocsChanged } = opts;
@@ -351,7 +372,20 @@ export async function startConnection(opts: StartOptions): Promise<TestResult> {
   const tConn = translations[language]?.conn ?? translations.en.conn;
   onStatus({ local: { state: 'connecting', message: tConn.connecting }, online: { state: 'connecting', message: tConn.connecting } });
 
-  const test = await testAddress(raw);
+  let test = await testAddress(raw);
+  if (!current()) return cancelled();
+  if (!test.ok && test.step === 'db') {
+    // Sunucu erişilebilir ama DB yok — PC'deysek otomatik açmayı dene
+    const bridge = electronBridge();
+    if (bridge.provisionCouchDb) {
+      try {
+        const a = parseCouchDbAddress(raw);
+        const prov = await bridge.provisionCouchDb(a.database, `${a.protocol}://${a.host}:${a.port}`);
+        if (!current()) return cancelled();
+        if (prov?.ok) test = await testAddress(raw);
+      } catch { /* provision yoksa eski hata akışına düş */ }
+    }
+  }
   if (!current()) return cancelled();
   if (!test.ok) {
     const state: LinkStatus = {
