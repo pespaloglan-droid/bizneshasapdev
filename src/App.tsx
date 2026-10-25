@@ -18,6 +18,7 @@ import { AppState, loadStoredState, saveAccountsState } from './store/accountSto
 import { destroyLocalDatabase, getAccountStoreKey } from './db/pouch';
 import type { LicenseInfo } from './types/license';
 import { setLicenseId } from './utils/gateMiddleware';
+import { createMobileLicenseId, getMobileLicenseInfo } from './utils/licenseMobile';
 import { prepareEncryption } from './init/prepareEncryption';
 import { setAuditEnabled, setAuditUser } from './db/auditLog';
 import { syncLanguageToDb } from './db/settingsService';
@@ -115,7 +116,10 @@ const AppContent: React.FC<AppContentProps> = ({ state, setState, onLanguageChan
     void (async () => {
       const ids = new Map<string, string>();
       for (const account of missing) {
-        const id = await window.electronAPI?.createLicenseId?.();
+        // PC: native modül üretir; APK: saf-JS codec ile yerel üretilir.
+        const id = window.electronAPI?.createLicenseId
+          ? await window.electronAPI.createLicenseId()
+          : createMobileLicenseId();
         if (id && LICENSE_ID_PATTERN.test(id)) {
           ids.set(account.id, id);
         }
@@ -143,9 +147,15 @@ const AppContent: React.FC<AppContentProps> = ({ state, setState, onLanguageChan
       // Gate kontrolü (renderer'daki sekme kontrolleri) bu hesabın lisansını
       // sorgulasın diye kimliği burada sabitliyoruz.
       setLicenseId(account.licenseId);
-      await window.electronAPI?.selectLicenseAccount?.(account.licenseId);
-      const info = await window.electronAPI?.getLicenseInfo?.(account.licenseId);
-      return info ?? null;
+      if (window.electronAPI?.getLicenseInfo) {
+        // PC yolu — native modül (DOKUNMA)
+        await window.electronAPI?.selectLicenseAccount?.(account.licenseId);
+        const info = await window.electronAPI?.getLicenseInfo?.(account.licenseId);
+        return info ?? null;
+      }
+      // APK yolu — saf-JS mobil lisans
+      if (!account.licenseId) return null;
+      return await getMobileLicenseInfo(account.licenseId);
     } catch {
       return null;
     }

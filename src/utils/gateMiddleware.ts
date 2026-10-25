@@ -1,9 +1,9 @@
 // gateMiddleware.ts — Lisans kapısı UI/navigasyon koruması
 import type { LicenseInfo, GateResult } from '../types/license';
+import { getMobileLicenseInfo } from './licenseMobile';
 
 // Route → gerekli modül eşleşmesi
-export const ROUTE_GUARDS = {
-  // Satış/Fatura
+export const ROUTE_GUARDS = {  // Satış/Fatura
   'checkout': 'SATIS',
   'invoice': 'SATIS',
   'faktura': 'SATIS',
@@ -59,6 +59,16 @@ export type ModuleName = typeof ROUTE_GUARDS[RouteName];
 export type { GateResult };
 
 /**
+ * Modül → lisans features bit'i (license-native/gate.js FEATURE_FOR ile aynı).
+ * Yalnızca bu tablodaki modüller feature bit'i ister; diğerleri OK yeterlidir.
+ */
+const MODULE_FEATURE_BIT: Partial<Record<ModuleName, number>> = {
+  STOK: 1 << 1,  // FEAT_STOCK
+  RAPOR: 1 << 2, // FEAT_ADV_REPORTS
+  KASA: 1 << 0,  // FEAT_MULTI_REGISTER (çoklu kasa için)
+};
+
+/**
  * Giriş yapılan hesabın lisans Hesap ID'si. Lisans ekranında gösterilen ve
  * admin'e gönderilen kod bu hesaba aittir (spec v3 §6).
  */
@@ -93,14 +103,9 @@ export async function checkRouteAccess(routeName: string): Promise<GateResult> {
     };
   }
 
-  // Electron ortamı dışında (web build) kontrol yolu yok — izin ver.
+  // Electron dışında (APK/WebView) mobil lisans kontrolü — artık kör izin YOK.
   if (typeof window === 'undefined' || !window.electronAPI?.guardLicense) {
-    return {
-      allowed: true,
-      status: 1,
-      reason: 'GATE_UNAVAILABLE',
-      info: null
-    };
+    return checkMobileRouteAccess(moduleName);
   }
 
   try {
@@ -119,6 +124,40 @@ export async function checkRouteAccess(routeName: string): Promise<GateResult> {
       info: null
     };
   }
+}
+
+/**
+ * APK/WebView kapı kontrolü — license-native/gate.js guard() mantığının mobil portu.
+ * Fail-closed: lisanssız / süresi dolmuş / feature bit'i yoksa İZİN VERMEZ.
+ */
+async function checkMobileRouteAccess(moduleName: ModuleName): Promise<GateResult> {
+  if (!currentLicenseId) {
+    return { allowed: false, status: -5, reason: 'NO_ACCOUNT', info: null };
+  }
+
+  let info: LicenseInfo;
+  try {
+    info = await getMobileLicenseInfo(currentLicenseId);
+  } catch {
+    return { allowed: false, status: -9, reason: 'STORAGE_ERROR', info: null };
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+
+  if (info.status === -1 || (info.graceUntil !== undefined && now > info.graceUntil)) {
+    return { allowed: false, status: -1, reason: 'EXPIRED', info };
+  }
+
+  if (info.status !== 1) {
+    return { allowed: false, status: info.status, reason: 'NO_LICENSE', info };
+  }
+
+  const featureBit = MODULE_FEATURE_BIT[moduleName];
+  if (featureBit && !((info.features ?? 0) & featureBit)) {
+    return { allowed: false, status: 0, reason: 'FEATURE_LOCKED', info };
+  }
+
+  return { allowed: true, status: 1, reason: 'OK', info };
 }
 
 // Electron renderer için navigasyon koruması

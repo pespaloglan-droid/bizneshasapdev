@@ -32,9 +32,10 @@ Dosya adı: `BiznesHasap-vX.Y.Z.apk` — klasörde saklanır.
 | 1.3.9 | 2026-10-13 | **21 güvenlik/veri kaybı düzeltmesi (P0-P3):** "Sadece sunucudakini al" artık sunucuyu silmiyor (destroy+recreate); satış yazımı başarısızsa stok/bakiye etkilenmiyor; çift tık duplicate satış/taslak onayı kapandı; kısmi tahsilatlı void bakiyeyi doğru düşürüyor; selective sync köprü sızıntısı kapandı; conflict çözümü validation'dan geçiyor; PC silmeleri APK'ya yansıyor; parolalar repodan temizlendi; credential'lar obfuske saklanıyor. Kaynak: `c722aed` |
 | 1.3.10 | 2026-10-13 | **Ek düzeltmeler (katalog + mirror retry):** ürün/müşteri yazımları DB sonucunu bekliyor (hata bildirimi, form koruma, çift gönderim engeli); PC mirror otomatik retry kuyruğu (1s/5s/30s × 3 tur, güncel belge okuma, PC-newer/tombstone guard); silmeler PC'ye tombstone olarak aktarılıyor. Kaynak: `57cdbc0` (+belge commit'leri) |
 | 1.3.11 | 2026-10-25 | **Lisans depolama düzeltmesi + tam otomatik CouchDB kurulumu:** lisans aktivasyonundaki -9 STORAGE_ERROR giderildi (DPAPI tampon boyutu + HKCU fallback — adminsiz PC'lerde de aktivasyon çalışır); PC'de yeni hesap açınca CouchDB veritabanı otomatik oluşur ve bağlanır (kullanıcı adres yazmaz); bağlantı adresinde DB adı eksikse hesaptan tamamlanır; alt bilgide gerçek sürüm gösterilir. Kaynak: `ff46402` |
+| 1.3.12 | 2026-10-25 | **Mobil lisans sistemi (tam):** APK'da artık gerçek lisans kontrolü var — anahtar hesaba VE cihaza bağlı (Ed25519 imza + accountId + cihaz anchor'ı; başka hesapta/başka telefonda çalışmaz), talep kodu üretimi PC ile aynı formatta, süre/replay/feature-bit kontrolleri PC ile aynı kodlar. Önceden APK'da lisans kapısı yoktu (her şey açıktı) ve lisans ekranı mobilde kırıktı. PC yolu satır satır korundu |
 
-Kaynak `versionCode`: 28. Son üretilmiş test APK: v1.3.11 / versionCode 28.
-Dosya: `BiznesHasap-v1.3.11.apk`; paket: `com.bizneshasap.pos`.
+Kaynak `versionCode`: 29. Son üretilmiş test APK: v1.3.12 / versionCode 29.
+Dosya: `BiznesHasap-v1.3.12.apk`; paket: `com.bizneshasap.pos`.
 
 **İmza notu:** v1.3.8 APK başka ortamın debug anahtarıyla imzalanmıştı (v1.3.7 ile
 uyumsuz). v1.3.9 ve v1.3.10, v1.3.7'nin imza anahtarının bulunduğu makinede

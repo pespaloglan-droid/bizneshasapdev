@@ -2,6 +2,17 @@ import React, { useState, useEffect } from 'react';
 import type { LicenseInfo, LicenseStatus } from '../types/license';
 import { localeFor } from '../utils/locale';
 import { useLanguage, useT } from '../locales/LanguageContext';
+import {
+  activateMobileLicense,
+  getMobileLicenseInfo,
+  getMobileRequestCode,
+  setMobileRootCode,
+} from '../utils/licenseMobile';
+
+/** Electron ana süreci varsa PC (native modül) yolu, yoksa APK (saf-JS) yolu. */
+function isDesktopLicense(): boolean {
+  return typeof window !== 'undefined' && !!window.electronAPI?.getLicenseInfo;
+}
 
 const STATUS_KEYS: Record<LicenseStatus, string> = {
   1: 'license.statusActive',
@@ -57,13 +68,26 @@ export default function LicenseScreen({ licenseId, accountName, onClose, blocked
 
   async function loadLicenseInfo() {
     try {
-      const data = await window.electronAPI.getLicenseInfo(licenseId);
-      setInfo(data);
-      setAccountId(data.accountId || '');
+      if (isDesktopLicense()) {
+        // PC yolu — native modül (DOKUNMA)
+        const data = await window.electronAPI.getLicenseInfo(licenseId);
+        setInfo(data);
+        setAccountId(data.accountId || '');
 
-      if (data.accountId) {
-        const code = await window.electronAPI.getLicenseRequestCode(licenseId);
-        setReqCode(code || '');
+        if (data.accountId) {
+          const code = await window.electronAPI.getLicenseRequestCode(licenseId);
+          setReqCode(code || '');
+        }
+      } else {
+        // APK yolu — saf-JS lisans (licenseMobile)
+        const data = await getMobileLicenseInfo(licenseId);
+        setInfo(data);
+        setAccountId(data.accountId || '');
+
+        if (data.accountId) {
+          const code = await getMobileRequestCode(licenseId);
+          setReqCode(code || '');
+        }
       }
     } catch (err) {
       setMessage({ type: 'error', text: t('license.loadFailed', { error: String(err) }) });
@@ -81,10 +105,15 @@ export default function LicenseScreen({ licenseId, accountName, onClose, blocked
       return;
     }
     try {
-      // Electron ana süreç üzerinden kopyala (file:// context'inde
-      // navigator.clipboard güvenlik kısıtlamalarına takılır).
-      const ok = await window.electronAPI.copyToClipboard(text);
-      if (ok === false) throw new Error('clipboard-write failed');
+      if (isDesktopLicense()) {
+        // Electron ana süreç üzerinden kopyala (file:// context'inde
+        // navigator.clipboard güvenlik kısıtlamalarına takılır).
+        const ok = await window.electronAPI.copyToClipboard(text);
+        if (ok === false) throw new Error('clipboard-write failed');
+      } else {
+        // APK WebView'inde navigator.clipboard kullanılabilir (https/context).
+        await navigator.clipboard.writeText(text);
+      }
       setMessage({ type: 'success', text: t('license.copied', { label }) });
       setTimeout(() => setMessage(null), 2000);
     } catch {
@@ -106,7 +135,9 @@ export default function LicenseScreen({ licenseId, accountName, onClose, blocked
     try {
       // İlk kullanımda kök kod gerekli
       if (rootCode.trim()) {
-        const rootStatus = await window.electronAPI.setLicenseRoot(licenseId, rootCode.trim());
+        const rootStatus = isDesktopLicense()
+          ? await window.electronAPI.setLicenseRoot(licenseId, rootCode.trim())
+          : await setMobileRootCode(licenseId, rootCode.trim());
         if (rootStatus !== 1) {
           setMessage({ type: 'error', text: t('license.rootInvalid', { status: rootStatus }) });
           setLoading(false);
@@ -115,7 +146,9 @@ export default function LicenseScreen({ licenseId, accountName, onClose, blocked
       }
 
       // Lisans anahtarını aktive et
-      const status = await window.electronAPI.activateLicense(licenseId, licenseKey.trim());
+      const status = isDesktopLicense()
+        ? await window.electronAPI.activateLicense(licenseId, licenseKey.trim())
+        : await activateMobileLicense(licenseId, licenseKey.trim());
       
       if (status === 1) {
         setMessage({ type: 'success', text: t('license.activated') });
