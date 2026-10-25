@@ -612,3 +612,22 @@ Bu yalnızca workflow düzeltmesidir; APK'nın kaynak kodu ve SHA-256'sı deği�
 ### Doğrulama komutları (bu makinede)
 - `npm test -- --run` ✓ · `npm run build:mobile` ✓ · `gradlew assembleDebug` ✓
 - aapt2: versionCode='26'/'27' · apksigner digest v1.3.7 ile eşleşti
+
+## 2026-10-25 — v1.3.11: lisans düzeltmesi + tam otomatik CouchDB kurulumu
+
+### İçerik (kaynak `ff46402`)
+- Lisans -9 STORAGE_ERROR düzeltmesi (state.cc: dinamik tampon + HKCU fallback)
+- Tam otomatik kurulum: PC'de yeni hesap → couch-auto-setup IPC ile DB açılır,
+  adres kaydedilir, bağlanılır (kullanıcı hiçbir şey yazmaz)
+- Bağlantı adresinde DB adı eksikse hesabın databaseName'i ile tamamlanır
+- db 404 durumunda provision + tek retest (elle girilen adresler için de)
+- PosFooter gerçek sürüm (package.json)
+
+### Canlı doğrulama (kullanıcı testi)
+- "taze_ay" hesabı açıldı → taze_ay_db CouchDB'de otomatik oluştu ✓
+- Yeni ürün ("test", 101 TMT) anında sunucuya + PC aynasına yazıldı ✓
+- 34 dosya / 376 birim testi yeşil
+
+### Sürüm
+- versionName 1.3.11, versionCode 28
+- İmza v1.3.7 ile aynı (448b851b…) — veri korunarak güncelleme

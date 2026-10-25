@@ -31,9 +31,10 @@ Dosya adı: `BiznesHasap-vX.Y.Z.apk` — klasörde saklanır.
 | 1.3.8 | 2026-10-12 | FAZ C1–C4 ve D1–D9 kaynak uygulaması; ExcelJS/manuel kolon eşleme, Zod, POS refactor, conflict inceleme, E2E, açık izinli telemetri, güvenli seçici sync ve ilk kurulum. Android debug APK başarıyla derlendi; imzalı Windows/canlı servis ve fiziksel cihaz testleri ayrı bekliyor. |
 | 1.3.9 | 2026-10-13 | **21 güvenlik/veri kaybı düzeltmesi (P0-P3):** "Sadece sunucudakini al" artık sunucuyu silmiyor (destroy+recreate); satış yazımı başarısızsa stok/bakiye etkilenmiyor; çift tık duplicate satış/taslak onayı kapandı; kısmi tahsilatlı void bakiyeyi doğru düşürüyor; selective sync köprü sızıntısı kapandı; conflict çözümü validation'dan geçiyor; PC silmeleri APK'ya yansıyor; parolalar repodan temizlendi; credential'lar obfuske saklanıyor. Kaynak: `c722aed` |
 | 1.3.10 | 2026-10-13 | **Ek düzeltmeler (katalog + mirror retry):** ürün/müşteri yazımları DB sonucunu bekliyor (hata bildirimi, form koruma, çift gönderim engeli); PC mirror otomatik retry kuyruğu (1s/5s/30s × 3 tur, güncel belge okuma, PC-newer/tombstone guard); silmeler PC'ye tombstone olarak aktarılıyor. Kaynak: `57cdbc0` (+belge commit'leri) |
+| 1.3.11 | 2026-10-25 | **Lisans depolama düzeltmesi + tam otomatik CouchDB kurulumu:** lisans aktivasyonundaki -9 STORAGE_ERROR giderildi (DPAPI tampon boyutu + HKCU fallback — adminsiz PC'lerde de aktivasyon çalışır); PC'de yeni hesap açınca CouchDB veritabanı otomatik oluşur ve bağlanır (kullanıcı adres yazmaz); bağlantı adresinde DB adı eksikse hesaptan tamamlanır; alt bilgide gerçek sürüm gösterilir. Kaynak: `ff46402` |
 
-Kaynak `versionCode`: 27. Son üretilmiş test APK: v1.3.10 / versionCode 27.
-Dosya: `BiznesHasap-v1.3.10.apk`; paket: `com.bizneshasap.pos`.
+Kaynak `versionCode`: 28. Son üretilmiş test APK: v1.3.11 / versionCode 28.
+Dosya: `BiznesHasap-v1.3.11.apk`; paket: `com.bizneshasap.pos`.
 
 **İmza notu:** v1.3.8 APK başka ortamın debug anahtarıyla imzalanmıştı (v1.3.7 ile
 uyumsuz). v1.3.9 ve v1.3.10, v1.3.7'nin imza anahtarının bulunduğu makinede
