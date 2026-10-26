@@ -35,7 +35,7 @@ Dosya adı: `BiznesHasap-vX.Y.Z.apk` — klasörde saklanır.
 | 1.3.12 | 2026-10-25 | **Mobil lisans sistemi (tam):** APK'da artık gerçek lisans kontrolü var — anahtar hesaba VE cihaza bağlı (Ed25519 imza + accountId + cihaz anchor'ı; başka hesapta/başka telefonda çalışmaz), talep kodu üretimi PC ile aynı formatta, süre/replay/feature-bit kontrolleri PC ile aynı kodlar. Önceden APK'da lisans kapısı yoktu (her şey açıktı) ve lisans ekranı mobilde kırıktı. PC yolu satır satır korundu |
 | 1.4.0 | 2026-10-27 | **İLK RELEASE-İMZALI APK:** dağıtım için kalıcı release keystore üretildi (`C:\Users\User\bizneshasap-keys\`, repoya girmez) ve `assembleRelease` ile imzalandı. İçerik v1.3.12 ile aynı + yeni imza altyapısı. ⚠️ Debug imzalı eski sürümlerin ÜZERİNE KURULAMAZ (imza farklı) — kurmadan önce veri yedeği/sync, sonra eski uygulamayı kaldırıp yenisini kur. Bundan sonra tüm sürümler aynı release anahtarıyla imzalanacak |
 
-Kaynak `versionCode`: 31 (v1.4.1 adayı; APK henüz derlenmedi). Son üretilmiş APK: v1.4.0 / versionCode 30 (RELEASE).
+Kaynak `versionCode`: 32 (v1.4.2 adayı; imzalı dağıtım APK’sı üretilmedi). Son üretilmiş release APK: v1.4.0 / versionCode 30 (RELEASE).
 Dosya: `BiznesHasap-v1.4.0.apk`; paket: `com.bizneshasap.pos`.
 Release imza SHA-256: `8bee627bfd5316ce064305807345da0e52963f8966a4472913e695ae8a2d5852`.
 
@@ -51,3 +51,14 @@ sürüm değildir.
 - Android `versionCode`: 31. **Bu sürüm için APK henüz üretilmedi/imzalanmadı.**
 - Kullanıcının mevcut release `.jks` anahtarı korunacak; yeni anahtar oluşturulmayacak.
 - Fiziksel cihaz ve Windows açılış süresi doğrulaması bekliyor.
+
+
+## v1.4.2 — kaynak adayı (2026-10-27)
+- Atiyaclik: 10 seçimli kapsam, şifreli export, hesap kontrolü, önizleme/onay, kısmi hata raporu ve geri yüklemede sync duraklatma.
+- Satış/fatura stok/borç/kassa Excel çıktıları; 30 günlük yedek hatırlatması; sağlık paneli.
+- Aynı GitHub kaynağından APK sürüm bildirimi; mobil lisans anahtar türetme ve hesap bazlı DB key cache düzeltmesi.
+- Yeni kurulumda Android cihaz kimliği anchor'ı. Var olan UUID lisansları bozulmaz; eski kurulumların sil-kur/rebind sınırı devam eder.
+- `@capacitor/app`, `@capacitor/browser`, `@capacitor/device` 6.x eklentileri senkronize edildi.
+- Windows'a özel keystore yolu korunur; CI/Linux için dış imzalama properties/env değişkenleri eklendi. JKS veya parolaları Git'e eklenmez.
+- Kaynak `versionName=1.4.2`, `versionCode=32`. **Mevcut JKS alias/parolaları olmadan imzalı release yok; v1.4.0 son release olarak kalır.**
+- Gerçek Documents export/import, lisans/sync ve donanım kabul testleri bekliyor. Test sonuçları kökteki uygulama raporunda.

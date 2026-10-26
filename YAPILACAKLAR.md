@@ -235,3 +235,46 @@ ayırıp yalnızca gerekenin gerektiğinde yüklenmesi. Açılış hızını art
 - Donanım modeli, offline finalize politikası, E5 tercihi, servis anahtarları, sertifika ve sunucu erişimi gereken işler ayrıca netleştirilecek.
 - G2/G3/G4 tamamlanmadı; main'e merge, release ve sunucu değişikliği yapılmadı.
 - İlk GitHub gönderimi eski token ile `403 Resource not accessible by personal access token` verdi; bu nedenle önce yerel yama hazırlandı. Yeni token ile `fix/backup-startup-20261027` dalı oluşturuldu; bu kayıt ilk etap gönderiminin parçasıdır. Main'e merge ve release yapılmadı.
+
+
+## UYGULAMA DURUMU — 27 Ekim 2026, ikinci etap
+
+Bu bölüm önceki etap kaydını günceller; eski kayıt tarihçe olarak korunur. Çalışma dalı: `fix/backup-startup-20261027`. Main ve canlı sunucu değiştirilmedi.
+
+| Madde | Durum | Uygulama / kalan kabul koşulu |
+|---|---|---|
+| A1 | Kısmi | Lazy ekranlar, ExcelJS'nin gecikmeli yüklenmesi ve vendor ayrımı var. Aynı Windows PC'de EXE açılış profili/önce-sonra ölçümü yapılmadı. |
+| A2 | Kod düzeltildi, cihaz testi bekliyor | Büyük gzip yedek kilidi, eksik başlık/uzunluk denetimi, APK lisans anahtarı türetme ve hesaplar arası anahtar önbelleği ayrımı düzeltildi. |
+| B1 | Uygulandı, fiziksel kabul bekliyor | Ayrı Atiyaclik sekmesi, varsayılan seçili 10 kapsam, zorunlu şifreli `.bhbak`, önizleme/tekrar seçim/açık onay, hesap kontrolü ve belge bazlı kısmi hata özeti. Hesap ekranındaki import da aynı yolu kullanır. |
+| B2 | Kısmi | Satış, fatura satırlarından stok, borç/tahsilat ve kassa Excel'leri; tarih/müşteri filtreleri ve sabit Türkmençe başlıklar var. Tam tarihsel stok ledger'ı ve tarih-sonu cari bakiye üretilmez. |
+| B3 | Uygulandı | Hesap başına son başarılı yedek tarihi, 30 gün eşiği, oturumda tek hatırlatma, Atiyaclik'e yönlendirme; otomatik yedek yok. |
+| C4 | Kısmi | Modüller ayrıldı; ExcelJS ve giriş chunk'ında 500 kB uyarısı hâlâ var. Uyarı eşiği yükseltilerek gizlenmedi. |
+| D1 | Uygulandı, canlı APK testi bekliyor | PC ile aynı GitHub release kaynağı, APK dosya sürümü üzerinden karşılaştırma, bildirim ve kullanıcının bastığı indirme bağlantısı. Sessiz indirme/kurma yok. |
+| D2 | Bekliyor | Kantar marka/modeli, seri protokolü ve fiziksel cihaz yok; placeholder gerçek entegrasyon diye sunulmadı. |
+| D3 | Uygulandı, cihaz testi bekliyor | Canlı sync durumları, pending mirror, son yedek, lisans günü, depolama kotası/uyarısı ve açıkça etiketli JSON veri boyutu tahmini. Bu tahmin fiziksel PouchDB dosya boyutu değildir. |
+| D4 | Uygulanmadı | Güvenli tek kullanımlık eşleştirme için doğrulayan uç nokta/anahtar teslim protokolü gerekli. Parola QR'a konulmadı; maskeli parola çalışan eşleştirme diye sunulmadı. |
+| D5 | Uygulanmadı | Mevcut faturada güvenilir kampanya kimliği/maliyet anlık görüntüsü yok. Eski satışları bugünkü kampanyaya bağlayan uydurma kâr raporu eklenmedi. |
+| E1 | Uygulanmadı | Ortak kabul otoritesi ve offline-finalize kararı gerekli; yalnız yerel lock, çift cihaz CAS çözümü sayılmadı. |
+| E2 | Kısmi | PC `server-admin.json` → main-process safeStorage kasası, geri okuyup doğruladıktan sonra kaynak silme. Diğer bağlantı kimlikleri ve Android Keystore geçişi henüz yok. |
+| E3 | Uygulanmadı | Satış/iptal/tahsilat crash-recovery journal'ı E1 ile birlikte tasarlanmalı. Mevcut çok-belgeli finansal akışlar yeni, doğrulanmamış journal ile değiştirilmedi. |
+| E4 | Yeni kurulum kodu uygulandı | Yeni APK kimliği `Device.getId()` anchor'ı; UUID fallback ve mevcut lisansı bozmamak için eski UUID korunur. Eski UUID lisansının sil-kur sonrası bir defalık rebind gereksinimi tamamen giderilmiş değildir. |
+| E5 | Özellik korundu / kısmi | Otomatik CouchDB oluşturma kaldırılmadı. Mevcut PC admin dosyası güvenli kasaya taşınır; önceden toplu DB açma tercih edilmedi. |
+| F | Bekliyor | Sentry/PostHog hesap/anahtarları ve açık kullanıcı izni olmadan canlıya bağlanmadı; varsayılan kapalı. |
+| G1 | İmzalama hazırlığı var, release APK yok | Mevcut JKS kullanılacak; yeni release anahtarı üretilmedi. Dış properties/env ile Linux/Windows imzalama yolu hazır. Alias ve iki parola olmadan imzalı release üretilemez. |
+| G2 | Bekliyor | Kullanıcının Windows OV/EV sertifikası gerekli. Sertifika SmartScreen itibarını tek başına garanti etmez. |
+| G3 | Onay bekliyor | Feature dalına kod gönderilir; main merge ve GitHub Release yapılmaz. |
+| G4 | Bekliyor | Fiziksel PC/telefon, lisans DLL, Documents, kamera, yazıcı, updater kabul testi yapılmadı. |
+| H1–H3 | Bekliyor | Replikator, uzak sunucu parola rotasyonu ve `_security` için yetkili sunucu erişimi gerekir. Canlı sunucuya müdahale edilmedi. |
+
+### Yedek geri yükleme sözleşmesi
+- Yalnızca açık allowlist'teki iş belgeleri taşınır. Lisans, cihaz anchor'ı, bağlantı parolası, crypto metadata, journal ve tasarım belgeleri aktarılmaz.
+- Kaynak revizyonlar/tombstone'lar uygulanmaz. Seçilen geçerli kayıtlar ID bazında birleştirilir; diğer kayıtlar silinmez, fatura yan etkileri yeniden oynatılmaz.
+- Güncel yedeklerde ortak lisans/mağaza bağı kontrol edilir. Yerel PC/telefon UUID'sinin farklı olması tek başına aynı mağazanın geri yüklenmesini engellemez. Eski hesapsız JSON açık risk onayı ister.
+- Başka lisansın şifreli yedeği önce şifre çözmede reddedilebilir; JSON içi hesap kontrolü şifre çözme yerine geçmez.
+- Geri yükleme sırasında aktif sync kalıcı olarak duraklatılır. Sonuç incelendikten sonra Bulut Eşitleme'den kullanıcı yeniden açmalıdır; yarım import otomatik olarak sunucuya yayılmaz.
+- Kapsamlar arası referansları korumak için ilişkili ürün/müşteri/fatura belgeleri birlikte seçilmelidir. Bu, veritabanının atomik disk imajı veya çok-belgeli transaction değildir.
+- Fatura stok Excel'i manuel stok ayarlarını, geçmiş ikinci birim katsayısını veya bileşen tüketimini geriye dönük uydurmaz. Borç çıktısındaki kalan tutar günceldir; tarih aralığı sonundaki bakiye değildir. Para birimleri birleştirilmez.
+
+### Doğrulama ve dağıtım
+Ayrıntılı komutlar, sonuçlar ve kalan gereksinimler: `UYGULAMA-RAPORU-2026-10-27.md`.
+Android kaynak adayı: **v1.4.2 / versionCode 32**. Bu değişiklikler imzalı release veya fiziksel cihaz onayı anlamına gelmez.
