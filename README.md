@@ -4,32 +4,33 @@ PC ile Android arasında veri aktarımı PouchDB replikasyonu ile yapılır.
 PC verileri bilgisayardaki CouchDB'ye, telefon verileri de aynı sunucuya akar.
 
 **Kodda hiçbir sabit IP veya domain yoktur.** Tüm adresler kullanıcı tarafından
-yapılandırılır (PC: config dosyası · APK: hesap ayarında yapıştırılan adres).
+yapılandırılır (PC: Sazlamalar → Bulut eşitleme veya tam otomatik kurulum ·
+APK: hesap ayarında yapıştırılan adres).
 
 ---
 
 ## 1. PC tarafı
 
-### Yapılandırma (TEK dosya)
+### Bağlantı ayarları
 
-`public/couchdb.config.json`
+**Sazlamalar → Bulut eşitleme** panelinden yapılandırılır (her hesap için ayrı).
+Adres biçimi: `http://kullanici:parola@sunucu:5984/veritabani`.
+Adresin sonunda veritabanı adı yoksa hesabın `databaseName` alanından
+**otomatik tamamlanır** — sadece sunucu adresini yapıştırmak yeterli.
 
-```json
-{
-  "url": "http://127.0.0.1:5984",
-  "username": "bizneshasap",
-  "password": "[REDACTED-ROTATION-REQUIRED]",
-  "businessName": "BIM MARKET"
-}
-```
+### Tam otomatik kurulum (yeni hesap)
 
-| Alan | Açıklama |
-|---|---|
-| `url` | CouchDB adresi |
-| `username` / `password` | Sunucu kullanıcısı |
-| `businessName` | İşletme adı → veritabanı adı bundan türetilir |
+Yeni hesap açıp girdiğinizde, PC'de bağlantı kaydı yoksa uygulama kendiliğinden:
 
-`businessName` değişince veritabanı adı otomatik değişir:
+1. Hesabın veritabanını yerel CouchDB'de **otomatik oluşturur** (`couch-auto-setup`)
+2. `biznes_app` kullanıcısını o DB'nin `_security` üyesi yapar
+3. Hazır bağlantı adresini kaydeder ve senkronu başlatır
+
+Bu otomasyonun kimlikleri **yalnızca PC'de** `%APPDATA%/biznes-hasap-pc/server-admin.json`
+dosyasında tutulur (repoya/APK'ya girmez). Dosya yoksa otomatik kurulum yapılmaz;
+o durumda adres elle girilir.
+
+`databaseName` işletme adından türetilir (veya elle düzenlenir):
 
 ```
 "BIM MARKET"      → bim_market
@@ -43,18 +44,17 @@ küçük harf, boşluk/özel karakter → `_`, harfle başlar, en fazla 60 karak
 
 ### Otomatik çalışma
 
-PC'de **hiçbir ayar ekranı yoktur.** Uygulama açılır açılmaz:
+Uygulama açılır açılmaz (bağlantı kaydı varsa):
 
-1. `couchdb.config.json` okunur
-2. Veritabanı adı türetilir
-3. Veritabanı sunucuda yoksa **otomatik oluşturulur**
-4. İki yönlü canlı senkron başlar (`live: true, retry: true`)
-5. Sunucu erişilemezse uygulama **çalışmaya devam eder**, 10 saniyede bir yeniden dener
+1. Kayıtlı adresle 3 kademeli test yapılır
+2. Veritabanı yoksa PC'de **otomatik oluşturulur**
+3. İki yönlü canlı senkron başlar (`live: true, retry: true`)
+4. Sunucu erişilemezse uygulama **çalışmaya devam eder**, yeniden dener
 
 Sağ üstteki küçük rozet durumu gösterir: **Bağlı · Eşitleniyor · Bağlanıyor · Çevrimdışı · Hata**
 
 Domain / `_replicator` / uzak sunucu ile ilgili hiçbir ekran, buton veya kod
-PC uygulamasında **bulunmaz**.
+PC uygulamasında **bulunmaz** — o işler CouchDB panelinden (Fauxton) yönetilir.
 
 ---
 
@@ -108,6 +108,12 @@ kaydetme anında gerçek hesap kimliğine taşınır.
 - Uygulama yeniden açıldığında **son kullanılan bağlantı otomatik başlar**
 - Bağlantı koparsa PouchDB `retry` ile kendiliğinden yeniden dener
 - Local ↔ Online geçişinde veri kaybolmaz (aynı veritabanı, farklı yol)
+
+### Veritabanı oluşturma
+
+APK (telefon) **veritabanı oluşturamaz** — CouchDB'de DB açmak admin yetkisi ister.
+Yeni hesabın DB'si PC'de otomatik açılır (yukarıdaki tam otomatik kurulum);
+telefon o DB'ye bağlanır. Adresin sonunda DB adı yoksa hesaptan otomatik tamamlanır.
 
 ### Düz HTTP sunucular (mixed content)
 
@@ -263,8 +269,8 @@ Invoke-WebRequest -Uri 'http://127.0.0.1:5984/_users/org.couchdb.user:bizneshasa
 | Belirti | Sebep / Çözüm |
 |---|---|
 | "Sunucuya ulaşılamıyor" | Güvenlik duvarı (profil `Private` ise `Any` yap), farklı Wi-Fi, ya da bilgisayar IP'si değişmiş |
-| "Kullanıcı adı veya şifre hatalı" | `couchdb.config.json` / yapıştırılan adres bilgileri |
-| "Veritabanı bulunamadı" | Sunucuda o hesabın veritabanı yok; `Yeni-HesapVeritabani.ps1` ile açılır |
+| "Kullanıcı adı veya şifre hatalı" | Bulut eşitleme ayarlarındaki adres/kimlik bilgileri |
+| "Veritabanı bulunamadı" | Sunucuda o hesabın veritabanı yok; PC'de otomatik açılır, elle açmak istersen `Yeni-HesapVeritabani.ps1` (admin ister) |
 | CORS hatası (konsol) | `cors/origins` içinde uygulamanın origin'i yok |
 | Telefonda veri gelmiyor | Adres `127.0.0.1` ise telefonda kendini gösterir; bilgisayarın **Wi-Fi IP'si** yazılmalı |
 
