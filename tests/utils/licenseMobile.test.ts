@@ -20,6 +20,7 @@ import {
 } from '../../src/utils/licenseMobileCodec';
 import {
   STATUS,
+  deriveMobileLicenseKey,
   activateMobileLicense,
   createMobileLicenseId,
   getMobileDeviceAnchor,
@@ -354,5 +355,74 @@ describe('licenseMobile — aktivasyon akışı', () => {
     const a2 = await getMobileDeviceAnchor();
     expect(Array.from(a1)).toEqual(Array.from(a2));
     expect(a1.length).toBe(4);
+  });
+});
+
+
+describe('mobil anahtar türetme — PC algoritma uyumu', () => {
+  it('lisanstan önce anahtar vermez', async () => {
+    expect(await deriveMobileLicenseKey(createMobileLicenseId(), 'db')).toBeNull();
+  });
+  it('native SHA-512 girdisi ile aynı anahtarı üretir ve amaçları ayırır', async () => {
+    const id = createMobileLicenseId(); const accountId = decodeAccountId(id)!;
+    await setMobileRootCode(id, makeRootCode(accountId));
+    const deviceAnchor = await getMobileDeviceAnchor();
+    expect(await activateMobileLicense(id, makeKey({ accountId, deviceAnchor, plan: 1, seq: 1 }))).toBe(STATUS.OK);
+    const root = nacl.sign.detached(concatBytes(utf8Bytes('root-v1'), accountId), kp.secretKey);
+    const expected = new Uint8Array(await crypto.subtle.digest('SHA-512', concatBytes(utf8Bytes('lic-key-v1'), utf8Bytes('backup'), root, accountId))).slice(0,32);
+    expect(await deriveMobileLicenseKey(id, 'backup')).toEqual(expected);
+    expect(await deriveMobileLicenseKey(id, 'db')).not.toEqual(expected);
+    expect(await deriveMobileLicenseKey(id, 'a'.repeat(65))).toBeNull();
+  });
+  it('bozuk root imzasıyla anahtar türetmez', async () => {
+    const id = createMobileLicenseId(); const accountId = decodeAccountId(id)!;
+    await setMobileRootCode(id, makeRootCode(accountId));
+    expect(await activateMobileLicense(id, makeKey({ accountId, deviceAnchor: await getMobileDeviceAnchor(), plan: 1, seq: 1 }))).toBe(STATUS.OK);
+    const { value } = await Preferences.get({ key: 'bh.license.' + id });
+    const rec = JSON.parse(value!); rec.rootSigHex = '00'.repeat(64);
+    await Preferences.set({ key: 'bh.license.' + id, value: JSON.stringify(rec) });
+    expect(await deriveMobileLicenseKey(id, 'db')).toBeNull();
+  });
+});
+
+const hardwareIdentity = vi.hoisted(() => ({ getId: vi.fn().mockResolvedValue({ identifier: 'abcdef0123456789' }) }));
+vi.mock('@capacitor/device', () => ({ Device: hardwareIdentity }));
+import { compareMobileVersions, findMobileUpdate } from '../../src/utils/mobileUpdates';
+
+describe('kalıcı mobil kimlik ve güncelleme seçimi', () => {
+  it('yeni Android kimliği sil-kur simülasyonunda aynı anchorı verir', async () => {
+    const old = (window as any).Capacitor;
+    (window as any).Capacitor = { isNativePlatform: () => true };
+    try {
+      const first = await getMobileDeviceAnchor();
+      await Preferences.clear();
+      const second = await getMobileDeviceAnchor();
+      expect(second).toEqual(first);
+      expect((await Preferences.get({ key: 'bh.device.uuid' })).value).toBe('hardware-v1:abcdef0123456789');
+    } finally { (window as any).Capacitor = old; }
+  });
+  it('var olan UUID eski lisansı geçersiz kılmadan korunur', async () => {
+    const old = (window as any).Capacitor; (window as any).Capacitor = { isNativePlatform: () => true };
+    try {
+      await Preferences.set({ key: 'bh.device.uuid', value: 'old-license-uuid' });
+      const expected = new Uint8Array(await crypto.subtle.digest('SHA-256', utf8Bytes('old-license-uuid'))).slice(0,4);
+      expect(await getMobileDeviceAnchor()).toEqual(expected);
+    } finally { (window as any).Capacitor = old; }
+  });
+  it('ilk kimlik istekleri yarışsa da aynı anchorı alır', async () => {
+    const anchors = await Promise.all(Array.from({length:10},()=>getMobileDeviceAnchor()));
+    for (const anchor of anchors) expect(anchor).toEqual(anchors[0]);
+  });
+  it('sürüm karşılaştırması sayısaldır ve keyfi tag kabul etmez', () => {
+    expect(compareMobileVersions('1.4.10','1.4.9')).toBe(1);
+    expect(compareMobileVersions('1.4.1','1.4.1')).toBe(0);
+    expect(()=>compareMobileVersions('latest','1.4.1')).toThrow('INVALID_VERSION');
+  });
+  it('Windows tagi yerine APK asset sürümünü karşılaştırır; yabancı URL ve prerelease reddedilir', () => {
+    const release = { tag_name:'v1.150.0', html_url:'https://github.com/pespaloglan-droid/bizneshasapdev/releases/tag/v1.150.0', assets:[{name:'BiznesHasap-v1.4.2.apk',browser_download_url:'https://github.com/pespaloglan-droid/bizneshasapdev/releases/download/v1.150.0/BiznesHasap-v1.4.2.apk'}] };
+    expect(findMobileUpdate([release],'1.4.1')?.version).toBe('1.4.2');
+    expect(findMobileUpdate([release],'1.4.2')).toBeNull();
+    expect(findMobileUpdate([{...release,prerelease:true}],'1.4.1')).toBeNull();
+    expect(findMobileUpdate([{...release,assets:[{...release.assets[0],browser_download_url:'https://evil.example/a.apk'}]}],'1.4.1')).toBeNull();
   });
 });

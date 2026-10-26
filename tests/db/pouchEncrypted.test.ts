@@ -1,3 +1,4 @@
+import { setLicenseId } from '../../src/utils/gateMiddleware';
 /**
  * getLocalDatabase — şifreleme dalı (FAZ 1.1).
  *
@@ -40,6 +41,7 @@ import {
   destroyLocalDatabase,
   getLocalDatabase,
   resetDatabaseKeyCacheForTests,
+  getDatabaseKey,
 } from '../../src/db/pouch';
 import {
   applyEncryptionFlag,
@@ -131,4 +133,16 @@ describe('getLocalDatabase — şifreleme dalı', () => {
     const db = getLocalDatabase('enc_t7');
     await expect(db.put({ _id: 'x' } as never)).rejects.toThrow('WRONG_KEY');
   });
+});
+
+
+it('hesap değişince önceki hesabın 60sn anahtar önbelleği kullanılmaz', async () => {
+  resetDatabaseKeyCacheForTests();
+  try {
+    setLicenseId('ACCOUNT-A'); deriveMock().mockResolvedValue(new Uint8Array(32).fill(1));
+    expect(await getDatabaseKey()).toEqual(Array(32).fill(1));
+    setLicenseId('ACCOUNT-B'); deriveMock().mockResolvedValue(null);
+    expect(await getDatabaseKey()).toBeNull();
+    expect(deriveMock()).toHaveBeenLastCalledWith('ACCOUNT-B', 'db');
+  } finally { setLicenseId(undefined); resetDatabaseKeyCacheForTests(); }
 });

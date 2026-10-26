@@ -277,17 +277,10 @@ export async function exportStoreData(storeDb: string): Promise<string> {
   );
 }
 
-export async function importStoreData(storeDb: string, json: string): Promise<number> {
-  const parsed = JSON.parse(json) as { docs?: Array<Record<string, unknown>> };
-  const docs = Array.isArray(parsed.docs) ? parsed.docs : [];
-  let imported = 0;
-  for (const doc of docs) {
-    const id = typeof doc._id === 'string' ? doc._id : '';
-    if (!id) continue;
-    const { _rev, ...fields } = doc;
-    void _rev;
-    await upsertDoc(storeDb, id, fields);
-    imported += 1;
-  }
-  return imported;
+export async function importStoreData(storeDb: string, json: string, accountId?: string, allowLegacy = false): Promise<number> {
+  const { inspectBackup, restoreSelectedBackup } = await import('./backupService');
+  const backup = inspectBackup(json);
+  const result = await restoreSelectedBackup(storeDb, accountId ?? storeDb, backup, backup.scopes, allowLegacy);
+  if (result.failed.length) throw new Error(`BACKUP_PARTIAL_FAILURE:${result.failed.length}`);
+  return Object.values(result.written).reduce((a, b) => a + b, 0);
 }
