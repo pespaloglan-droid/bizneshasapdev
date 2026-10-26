@@ -650,3 +650,10 @@ Release imzası debug imzadan FARKLI → debug kurulu telefonlara ÜZERİNE KURU
 Geçiş: (1) önce sync/veri yedeği, (2) eski uygulamayı kaldır, (3) v1.4.0'ı kur.
 Veriler CouchDB'de olduğundan yeniden kurulumda sync geri getirir.
 Bundan sonra tüm APK'lar aynı release anahtarıyla imzalanır (üzerine güncelleme çalışır).
+
+## 2026-10-27 — v1.4.1 kaynak hazırlığı
+- Baz dal: `faz-c-d/altyapi-hazirlik` (`08dd3dd`); main'e birleştirilmedi.
+- Büyük yedekte okuma/yazma sıralamasından kaynaklanan gzip backpressure kilidi giderildi. V1/V2/JSON uyumluluğu korunur.
+- Lazy ekranlar ve gecikmeli ExcelJS yüklemesi eklendi; dört dil için mevcut yükleniyor çevirisi kullanılır.
+- Sürüm kaynağı 1.4.1 / 31 olarak hazırlandı. APK üretimi, imzalama ve gerçek cihaz testleri BEKLİYOR.
+- İmza anahtarı/parolaları repoya eklenmedi; `.jks`/`.keystore` ve yerel imza properties dosyaları ignore edildi.

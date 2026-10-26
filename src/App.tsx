@@ -1,5 +1,5 @@
 import { markFirstRunPending } from './utils/onboarding';
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { TitleBar } from './components/TitleBar';
 import { LeftAccountPanel } from './components/LeftAccountPanel';
 import { RightLoginForm } from './components/RightLoginForm';
@@ -10,9 +10,7 @@ import { DeleteAccountModal } from './components/modals/DeleteAccountModal';
 import { ImportDataModal } from './components/modals/ImportDataModal';
 import { OtherAccountsModal } from './components/modals/OtherAccountsModal';
 import { ShortcutsModal } from './components/modals/ShortcutsModal';
-import { PosWorkspace } from './components/pos/PosWorkspace';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import LicenseScreen from './components/LicenseScreen';
 import { Account, LanguageCode, PrinterMode, User } from './types';
 import { AppState, loadStoredState, saveAccountsState } from './store/accountStore';
 import { destroyLocalDatabase, getAccountStoreKey } from './db/pouch';
@@ -23,6 +21,10 @@ import { prepareEncryption } from './init/prepareEncryption';
 import { setAuditEnabled, setAuditUser } from './db/auditLog';
 import { syncLanguageToDb } from './db/settingsService';
 import { LanguageProvider } from './locales/LanguageContext';
+import { LoadingScreen } from './components/common/LoadingScreen';
+
+const PosWorkspace = lazy(() => import('./components/pos/PosWorkspace').then(m => ({ default: m.PosWorkspace })));
+const LicenseScreen = lazy(() => import('./components/LicenseScreen'));
 
 /**
  * Açılış akışı (spec v3 §2):
@@ -53,7 +55,11 @@ export const App: React.FC = () => {
 
   return (
     <LanguageProvider language={state.language} onLanguageChange={handleLanguageChange}>
-      <AppContent state={state} setState={setState} onLanguageChange={handleLanguageChange} />
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingScreen />}>
+          <AppContent state={state} setState={setState} onLanguageChange={handleLanguageChange} />
+        </Suspense>
+      </ErrorBoundary>
     </LanguageProvider>
   );
 };

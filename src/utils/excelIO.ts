@@ -1,4 +1,4 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
 import type { LanguageCode } from '../types';
 import { translate } from '../locales/i18n';
 import { getActiveLanguage } from './locale';
@@ -45,6 +45,7 @@ export async function readSheet(file: File): Promise<SheetData> {
   if (/\.xls$/i.test(file.name)) throw new ExcelReadError('XLS_NOT_SUPPORTED');
   if (!/\.xlsx$/i.test(file.name)) throw new ExcelReadError('XLSX_ONLY');
 
+  const { default: ExcelJS } = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
   try {
     await workbook.xlsx.load(await file.arrayBuffer());
