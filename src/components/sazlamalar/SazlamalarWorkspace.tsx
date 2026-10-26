@@ -1,3 +1,5 @@
+import { HealthPanel } from './HealthPanel';
+import { BackupPanel } from './BackupPanel';
 import { TelemetrySettingsPanel } from './TelemetrySettingsPanel';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
@@ -5,10 +7,8 @@ import type { Account, AppSettings, InvoiceRecord, LanguageCode, Product, RoleTe
 import type { MeasurementUnit } from '../../db/unitService';
 import {
   defaultSettings,
-  exportStoreData,
   getAppSettings,
   getRoleTemplates,
-  importStoreData,
   saveAppSettings,
   saveRoleTemplates,
 } from '../../db/settingsService';
@@ -33,8 +33,6 @@ import {
 } from './SettingsSidebar';
 import { isNative } from '../../utils/platform';
 import { useT } from '../../locales/LanguageContext';
-import { saveFileAs } from '../../utils/electron';
-import { bytesToBase64, decodeBhbak, encodeBhbak } from '../../utils/bhbak';
 
 interface SazlamalarWorkspaceProps {
   language: LanguageCode;
@@ -53,6 +51,9 @@ interface SazlamalarWorkspaceProps {
   canEditSettings?: boolean;
   /** Administrator mı? — "Silinen fakturalar" bölümi diňe şolara görkezilýär. */
   isAdmin?: boolean;
+  backupRequest?: number;
+  syncStates?: readonly string[];
+  licenseDays?: number;
 }
 
 const APP_VERSION = '2.1.0';
@@ -75,16 +76,20 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
   onDeleteUnit,
   canEditSettings = true,
   isAdmin = true,
+  backupRequest = 0,
+  syncStates,
+  licenseDays,
 }) => {
   const t = useT();
   const [saved, setSaved] = useState<AppSettings | null>(null);
   const [draft, setDraft] = useState<AppSettings | null>(null);
   const [savedTemplates, setSavedTemplates] = useState<RoleTemplates>({});
   const [draftTemplates, setDraftTemplates] = useState<RoleTemplates>({});
-  const [section, setSection] = useState<SettingsSection>('printer');
+  const [backupFile, setBackupFile] = useState<File | undefined>();
+  const [section, setSection] = useState<SettingsSection>(backupRequest ? 'backup' : 'printer');
   const [pendingSection, setPendingSection] = useState<SettingsSection | null>(null);
   // Mobil: önce bölüm listesi, dokununca detay (geri tuşlu).
-  const [mobileDetail, setMobileDetail] = useState(false);
+  const [mobileDetail, setMobileDetail] = useState(!!backupRequest);
   const native = isNative();
   const [notice, setNotice] = useState<
     { tone: 'success' | 'error' | 'info'; text: string } | null
@@ -96,7 +101,7 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
   // "Silinen fakturalar" diňe administrator görýär.
   const visibleSections = isAdmin
     ? SETTINGS_SECTIONS
-    : SETTINGS_SECTIONS.filter((s) => s.id !== 'deleted');
+    : SETTINGS_SECTIONS.filter((s) => s.id !== 'deleted' && s.id !== 'backup');
 
   useEffect(() => {
     let cancelled = false;
@@ -133,6 +138,8 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
         sync: false,
         audit: false,
         general: false,
+        backup: false,
+        health: false,
       };
     }
     return {
@@ -153,11 +160,14 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
       sync: false,
       // Günlük görüntüleyici salt-okunur — kaydedilecek taslağı yok.
       audit: false,
+      backup: false,
+      health: false,
       general: !same(draft.general, saved.general),
     };
   }, [draft, saved, draftTemplates, savedTemplates]);
 
   const handleSelectSection = (next: SettingsSection) => {
+    if (next === 'backup' && !isAdmin) { setNotice({ tone: 'error', text: t('sazlamalar.noEditPerm') }); return; }
     if (next === 'deleted') {
       // "Silinen fakturalar" — özi penjire bolup açylýar (F9 bilen deň).
       if (isAdmin) setIsDeletedOpen(true);
@@ -174,6 +184,10 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
     setSection(next);
     if (native) setMobileDetail(true);
   };
+
+  useEffect(() => {
+    if (backupRequest) handleSelectSection('backup');
+  }, [backupRequest]);
 
   const handleSave = async (target: SettingsSection) => {
     if (!draft) return;
@@ -216,38 +230,10 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
     setNotice(null);
   };
 
-  const handleExport = async () => {
-    try {
-      const json = await exportStoreData(storeDb);
-      const bytes = await encodeBhbak(json);
-      const saved = await saveFileAs({
-        title: t('sazlamalar.backupSaveTitle'),
-        defaultName: `biznes-hasap-${new Date().toISOString().slice(0, 10)}.bhbak`,
-        data: bytesToBase64(bytes),
-        filters: [{ name: t('sazlamalar.backupFilterName'), extensions: ['bhbak'] }],
-      });
-      setNotice(
-        saved
-          ? { tone: 'success', text: t('sazlamalar.backupSaved') }
-          : { tone: 'error', text: t('sazlamalar.exportCancelled') }
-      );
-    } catch {
-      setNotice({ tone: 'error', text: t('sazlamalar.exportFailed') });
-    }
-  };
-
-  const handleImport = async (file: File) => {
-    try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const json = await decodeBhbak(bytes);
-      const count = await importStoreData(storeDb, json);
-      setNotice({ tone: 'success', text: t('sazlamalar.importDone', { count }) });
-    } catch {
-      setNotice({
-        tone: 'error',
-        text: t('sazlamalar.importFailed'),
-      });
-    }
+  const handleExport = () => handleSelectSection('backup');
+  const handleImport = (file: File) => {
+    setBackupFile(file);
+    handleSelectSection('backup');
   };
 
   if (!draft || !saved) {
@@ -392,6 +378,10 @@ export const SazlamalarWorkspace: React.FC<SazlamalarWorkspaceProps> = ({
         )}
 
         {section === 'audit' && <AuditLogPanel />}
+
+        {section === 'health' && <HealthPanel storeDb={storeDb} syncStates={syncStates} licenseDays={licenseDays} />}
+
+        {section === 'backup' && <BackupPanel key={storeDb} storeDb={storeDb} accountId={account?.id ?? storeDb} canRestore={canEditSettings && isAdmin} initialFile={backupFile} accountName={companyName} licenseId={account?.licenseId} databaseName={account?.databaseName} />}
 
         {section === 'general' && (
           <div className="space-y-3">

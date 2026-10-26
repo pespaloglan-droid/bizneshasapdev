@@ -12,6 +12,8 @@ export type SettingsSection =
   | 'deleted'
   | 'sync'
   | 'audit'
+  | 'health'
+  | 'backup'
   | 'general';
 
 export const SETTINGS_SECTIONS: {
@@ -28,6 +30,8 @@ export const SETTINGS_SECTIONS: {
   { id: 'deleted', labelKey: 'sazlamalar.secDeleted', icon: <Trash2 className="w-4 h-4" /> },
   { id: 'sync', labelKey: 'sazlamalar.secSync', icon: <Cloud className="w-4 h-4" /> },
   { id: 'audit', labelKey: 'sazlamalar.secAudit', icon: <ScrollText className="w-4 h-4" /> },
+  { id: 'health', labelKey: 'backup.health', icon: <ListChecks className="w-4 h-4" /> },
+  { id: 'backup', labelKey: 'backup.title', icon: <ScrollText className="w-4 h-4" /> },
   { id: 'general', labelKey: 'sazlamalar.secGeneral', icon: <Settings className="w-4 h-4" /> },
 ];
 

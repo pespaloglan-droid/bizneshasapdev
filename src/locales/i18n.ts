@@ -2,6 +2,62 @@ import { LanguageCode } from '../types';
 import pkg from '../../package.json';
 
 export const translations: Record<LanguageCode, {
+  backup: {
+    syncPaused: string;
+    excelTitle: string;
+    excelHint: string;
+    from: string;
+    to: string;
+    allCustomers: string;
+    invalidDates: string;
+    excelSales: string;
+    excelStock: string;
+    excelDebt: string;
+    excelCash: string;
+    title: string;
+    hint: string;
+    products: string;
+    customers: string;
+    users: string;
+    invoices: string;
+    money: string;
+    ledgers: string;
+    currencies: string;
+    targow: string;
+    warehouses: string;
+    settings: string;
+    export: string;
+    pick: string;
+    restore: string;
+    confirm: string;
+    legacy: string;
+    agree: string;
+    mismatch: string;
+    failed: string;
+    saved: string;
+    cancelled: string;
+    summary: string;
+    issues: string;
+    row: string;
+    code: string;
+    last: string;
+    never: string;
+    reminder: string;
+    open: string;
+    dismiss: string;
+    busy: string;
+    refresh: string;
+    health: string;
+    dbSize: string;
+    pending: string;
+    storage: string;
+    licenseDays: string;
+    unknown: string;
+    sync: string;
+    lowStorage: string;
+    partial: string;
+    legacyBlocked: string;
+  };
   windowTitle: string;
   languageMenuTitle: string;
   otherAccounts: string;
@@ -877,6 +933,9 @@ export const translations: Record<LanguageCode, {
   };
   /** Mobil (telefon) arayüzü — components/mobile. */
   mobile: {
+    updateAvailable: string;
+    updateDownload: string;
+    updateFailed: string;
     customerSearchTitle: string;
   };
   /** Çek / fiş çıktısı. */
@@ -1711,6 +1770,63 @@ export const translations: Record<LanguageCode, {
   thanksMsg: string;
 }> = {
   tr: {
+    backup: {
+      syncPaused: "Canlı eşitleme durduruldu. Sonucu kontrol ettikten sonra Bulut eşitleme bölümünden yeniden başlatın.",
+      excelTitle: "Excel raporları",
+      excelHint: "Stok raporu kaydedilmiş fatura satırlarına dayanır; manuel stok değişiklikleri ve geçmiş bileşen dönüşümleri kayıtlı olmadığından gösterilmez. Dövizler toplanmaz. Cari rapordaki kalan borç bugünkü değerdir; geçmiş tarih bakiyesi değildir.",
+      from: "Başlangıç tarihi",
+      to: "Bitiş tarihi",
+      allCustomers: "Tüm müşteriler",
+      invalidDates: "Tarih aralığı geçersiz.",
+      excelSales: "Satış / fatura geçmişi",
+      excelStock: "Fatura kaynaklı stok hareketleri",
+      excelDebt: "Borç ve tahsilat kayıtları",
+      excelCash: "Kassa hareketleri",
+
+      "title": "Atiyaclik — Yedekleme",
+      "hint": "Kapsamları seçip tek bir .bhbak dosyası oluşturun. Cihaz lisansı ve sunucu parolaları aktarılmaz.",
+      "products": "Ürünler",
+      "customers": "Müşteriler",
+      "users": "Kullanıcılar ve yetkiler",
+      "invoices": "Faturalar ve taslaklar",
+      "money": "Kassa hareketleri",
+      "ledgers": "Depder / borç defteri",
+      "currencies": "Döviz kurları",
+      "targow": "Satışçılar ve bölgeler",
+      "warehouses": "Depolar",
+      "settings": "Firma, yazıcı ve genel ayarlar",
+      "export": "Yedeği kaydet",
+      "pick": "Yedek dosyası seç",
+      "restore": "Seçilenleri geri yükle",
+      "confirm": "Mevcut kayıtlarla birleştirilecek. Aynı kimlikli kayıtlarda yedekteki alanlar mevcut alanların üzerine yazılacak. Diğer kayıtlar silinmeyecek. Finansal etkiler yeniden çalıştırılmaz. Önce mevcut verinin yedeğini alın.",
+      "legacy": "Bu eski yedekte hesap kimliği yok. Doğru mağazaya ait olduğunu doğrulayın.",
+      "agree": "Hesabı ve birleştirme işlemini doğruladım",
+      "mismatch": "Yedek başka bir hesaba ait. Hiçbir veri yazılmadı.",
+      "failed": "Yedek işlemi başarısız. Dosya, lisans veya depolama izinlerini kontrol edin.",
+      "saved": "Yedek dosyası kaydedildi.",
+      "cancelled": "Kayıt iptal edildi veya dosya kaydedilemedi.",
+      "summary": "Yazılan: {written} · Hatalı: {failed} · Atlanan: {skipped}",
+      "issues": "Belge hata raporu",
+      "row": "Satır",
+      "code": "Hata kodu",
+      "last": "Son yedek",
+      "never": "Henüz yok",
+      "reminder": "Son yedeğinizin üzerinden 30 gün geçti. Verilerinizi yedekleyin.",
+      "open": "Yedeklemeyi aç",
+      "dismiss": "Kapat",
+      "busy": "İşlem sürüyor…",
+      "refresh": "Yenile",
+      "health": "Sağlık raporu",
+      "dbSize": "Veritabanı boyutu (tahmini)",
+      "pending": "Bekleyen PC aynası",
+      "storage": "Depolama kullanımı / kota",
+      "licenseDays": "Lisans kalan gün",
+      "unknown": "Bilinmiyor",
+      "sync": "Eşitleme",
+      "lowStorage": "Depolama alanı azalıyor. Yedek alın ve alan boşaltın.",
+      "partial": "Bazı sağlık verileri okunamadı. Değerler boş kabul edilmedi.",
+      "legacyBlocked": "Hesap kimliği olmayan eski yedeği doğrulamadan içe aktarmayın."
+} ,
     windowTitle: "Biznes Hasap",
     languageMenuTitle: "Dil Seçimi",
     otherAccounts: "Diğer hesaplar",
@@ -2654,6 +2770,9 @@ export const translations: Record<LanguageCode, {
       unitColCode: "Kod",
     },
     mobile: {
+      updateAvailable: "Yeni APK sürümü hazır: {version}",
+      updateDownload: "İndirme sayfasını aç",
+      updateFailed: "İndirme bağlantısı açılamadı.",
       customerSearchTitle: "Müşteri ara",
     },
     receipt: {
@@ -3394,6 +3513,63 @@ export const translations: Record<LanguageCode, {
     },
   },
   tm: {
+    backup: {
+      syncPaused: "Göni sinhronizasiýa duruzyldy. Netijäni barlap, Bulut sinhronizasiýasy bölüminden täzeden başladyň.",
+      excelTitle: "Excel hasabatlary",
+      excelHint: "Haryt hasabaty ýazylan faktura setirlerine esaslanýar; ýazylmadyk el üýtgetmeleri we köne düzüm öwrülişikleri görkezilmeýär. Walýutalar jemlenmeýär. Galan bergi häzirki bahadyr, geçmişdäki balans däl.",
+      from: "Başlangyç senesi",
+      to: "Soňky sene",
+      allCustomers: "Ähli müşderiler",
+      invalidDates: "Sene aralygy nädogry.",
+      excelSales: "Satuw / faktura taryhy",
+      excelStock: "Faktura boýunça haryt hereketleri",
+      excelDebt: "Bergi we töleg ýazgylary",
+      excelCash: "Kassa hereketleri",
+
+      "title": "Ätiýaçlyk — Maglumatlaryň nusgasy",
+      "hint": "Bölümleri saýlap, bir .bhbak faýly dörediň. Enjam lisenziýasy we serwer parollary geçirilmeýär.",
+      "products": "Harytlar",
+      "customers": "Müşderiler",
+      "users": "Ulanyjylar we rugsatlar",
+      "invoices": "Fakturalar we garalamalar",
+      "money": "Kassa hereketleri",
+      "ledgers": "Depder / bergiler",
+      "currencies": "Walýuta kurslary",
+      "targow": "Satyjylar we sebitler",
+      "warehouses": "Ambarlar",
+      "settings": "Firma, printer we umumy sazlamalar",
+      "export": "Ätiýaçlygy sakla",
+      "pick": "Ätiýaçlyk faýlyny saýla",
+      "restore": "Saýlananlary dikelt",
+      "confirm": "Bar bolan ýazgylar bilen birleşdiriler. Birmeňzeş ID-li ýazgylarda ätiýaçlykdaky meýdanlar öňküleriniň üstüne ýazylar. Beýleki ýazgylar pozulmaz. Maliýe täsirleri täzeden ýerine ýetirilmez. Ilki häzirki maglumatlaryň ätiýaçlygyny alyň.",
+      "legacy": "Bu köne ätiýaçlykda hasap belgisi ýok. Dogry dükana degişlidigini tassyklaň.",
+      "agree": "Hasaby we birleşdirmegi tassyklaýaryn",
+      "mismatch": "Ätiýaçlyk başga hasaba degişli. Hiç hili maglumat ýazylmady.",
+      "failed": "Ätiýaçlyk amaly şowsuz. Faýly, lisenziýany we saklaýyş rugsatlaryny barlaň.",
+      "saved": "Ätiýaçlyk faýly saklandy.",
+      "cancelled": "Saklamak ýatyryldy ýa-da faýl saklanyp bilinmedi.",
+      "summary": "Ýazylan: {written} · Ýalňyş: {failed} · Geçilen: {skipped}",
+      "issues": "Resminama ýalňyşlyklary",
+      "row": "Setir",
+      "code": "Ýalňyşlyk kody",
+      "last": "Soňky ätiýaçlyk",
+      "never": "Entek ýok",
+      "reminder": "Soňky ätiýaçlykdan bäri 30 gün geçdi. Maglumatlaryňyzy ätiýaçlaň.",
+      "open": "Ätiýaçlygy aç",
+      "dismiss": "Ýap",
+      "busy": "Ýerine ýetirilýär…",
+      "refresh": "Täzele",
+      "health": "Saglyk hasabaty",
+      "dbSize": "Maglumat bazasynyň möçberi (çaklama)",
+      "pending": "Garaşýan PC aýnalary",
+      "storage": "Ulanylýan ýer / çäk",
+      "licenseDays": "Lisenziýanyň galan güni",
+      "unknown": "Näbelli",
+      "sync": "Sinhronizasiýa",
+      "lowStorage": "Saklaýyş ýeri azalýar. Ätiýaçlyk alyň we ýer boşadyň.",
+      "partial": "Käbir ýagdaý maglumatlary okalmady. Näbelli bahalar boş hasaplanmaýar.",
+      "legacyBlocked": "Hasap belgisi ýok köne ätiýaçlygy girizmezden öň dükany tassyklaň."
+} ,
     windowTitle: "Biznes Hasap",
     languageMenuTitle: "Dil saýlaň",
     otherAccounts: "Başga hasaplar",
@@ -4337,6 +4513,9 @@ export const translations: Record<LanguageCode, {
       unitColCode: "Kod",
     },
     mobile: {
+      updateAvailable: "Täze APK wersiýasy taýýar: {version}",
+      updateDownload: "Göçürip alma sahypasyny aç",
+      updateFailed: "Göçürip alma salgysy açylmady.",
       customerSearchTitle: "Müşderi gözle",
     },
     receipt: {
@@ -5077,6 +5256,63 @@ export const translations: Record<LanguageCode, {
     },
   },
   en: {
+    backup: {
+      syncPaused: "Live sync is stopped. Review the result, then restart it from Cloud sync.",
+      excelTitle: "Excel reports",
+      excelHint: "Stock report uses recorded invoice lines; unrecorded manual changes and historical composition conversions are not included. Currencies are not summed. Remaining debt is current, not an as-of-date balance.",
+      from: "From date",
+      to: "To date",
+      allCustomers: "All customers",
+      invalidDates: "Invalid date range.",
+      excelSales: "Sales / invoice history",
+      excelStock: "Invoice stock movements",
+      excelDebt: "Debt and collection records",
+      excelCash: "Cash movements",
+
+      "title": "Atiyaclik — Backup",
+      "hint": "Choose scopes and create one .bhbak file. Device licenses and server passwords are not transferred.",
+      "products": "Products",
+      "customers": "Customers",
+      "users": "Users and permissions",
+      "invoices": "Invoices and drafts",
+      "money": "Cash movements",
+      "ledgers": "Debt ledgers",
+      "currencies": "Exchange rates",
+      "targow": "Salespeople and regions",
+      "warehouses": "Warehouses",
+      "settings": "Company, printer and general settings",
+      "export": "Save backup",
+      "pick": "Choose backup file",
+      "restore": "Restore selected scopes",
+      "confirm": "Merge with current records. Fields from the backup overwrite matching record IDs. Other records are not deleted. Financial side effects are not replayed. Back up current data first.",
+      "legacy": "This legacy backup has no account identity. Verify that it belongs to this store.",
+      "agree": "The account and merge operation are confirmed",
+      "mismatch": "This backup belongs to another account. Nothing was written.",
+      "failed": "Backup operation failed. Check the file, license and storage permissions.",
+      "saved": "Backup file saved.",
+      "cancelled": "Saving was cancelled or the file could not be saved.",
+      "summary": "Written: {written} · Failed: {failed} · Skipped: {skipped}",
+      "issues": "Document error report",
+      "row": "Row",
+      "code": "Error code",
+      "last": "Last backup",
+      "never": "Not yet",
+      "reminder": "It has been 30 days since your last backup. Back up your data.",
+      "open": "Open backups",
+      "dismiss": "Dismiss",
+      "busy": "Working…",
+      "refresh": "Refresh",
+      "health": "Health report",
+      "dbSize": "Database size (estimate)",
+      "pending": "Pending PC mirrors",
+      "storage": "Storage usage / quota",
+      "licenseDays": "License days remaining",
+      "unknown": "Unknown",
+      "sync": "Sync",
+      "lowStorage": "Storage is running low. Back up data and free some space.",
+      "partial": "Some health information could not be read. Unknown values are not treated as empty.",
+      "legacyBlocked": "Confirm the store before importing a legacy backup without an account identity."
+} ,
     windowTitle: "Biznes Hasap",
     languageMenuTitle: "Select Language",
     otherAccounts: "Other accounts",
@@ -6019,6 +6255,9 @@ export const translations: Record<LanguageCode, {
       unitColCode: "Code",
     },
     mobile: {
+      updateAvailable: "New APK version available: {version}",
+      updateDownload: "Open download",
+      updateFailed: "The download link could not be opened.",
       customerSearchTitle: "Search customer",
     },
     receipt: {
@@ -6759,6 +6998,63 @@ export const translations: Record<LanguageCode, {
     },
   },
   ru: {
+    backup: {
+      syncPaused: "Синхронизация остановлена. Проверьте результат и включите её в разделе облачной синхронизации.",
+      excelTitle: "Отчёты Excel",
+      excelHint: "Отчёт по складу основан на сохранённых строках счетов; незаписанные ручные изменения и старые преобразования составов не включены. Валюты не суммируются. Остаток долга — текущий, а не на выбранную дату.",
+      from: "Начальная дата",
+      to: "Конечная дата",
+      allCustomers: "Все клиенты",
+      invalidDates: "Неверный диапазон дат.",
+      excelSales: "История продаж / счетов",
+      excelStock: "Складские движения по счетам",
+      excelDebt: "Записи долгов и погашений",
+      excelCash: "Движения кассы",
+
+      "title": "Atiyaclik — Резервное копирование",
+      "hint": "Выберите разделы и создайте один файл .bhbak. Лицензия устройства и пароли сервера не переносятся.",
+      "products": "Товары",
+      "customers": "Клиенты",
+      "users": "Пользователи и права",
+      "invoices": "Счета и черновики",
+      "money": "Движения кассы",
+      "ledgers": "Долговые книги",
+      "currencies": "Курсы валют",
+      "targow": "Продавцы и регионы",
+      "warehouses": "Склады",
+      "settings": "Компания, принтер и общие настройки",
+      "export": "Сохранить копию",
+      "pick": "Выбрать файл копии",
+      "restore": "Восстановить выбранное",
+      "confirm": "Данные объединяются с текущими записями. Поля копии заменяют поля записей с тем же ID. Другие записи не удаляются. Финансовые операции повторно не выполняются. Сначала создайте копию текущих данных.",
+      "legacy": "В старой копии нет идентификатора счёта. Подтвердите, что она относится к этому магазину.",
+      "agree": "Подтверждаю счёт и объединение данных",
+      "mismatch": "Копия принадлежит другому счёту. Данные не записаны.",
+      "failed": "Ошибка резервного копирования. Проверьте файл, лицензию и права на хранилище.",
+      "saved": "Файл копии сохранён.",
+      "cancelled": "Сохранение отменено или файл не сохранён.",
+      "summary": "Записано: {written} · Ошибок: {failed} · Пропущено: {skipped}",
+      "issues": "Отчёт об ошибках документов",
+      "row": "Строка",
+      "code": "Код ошибки",
+      "last": "Последняя копия",
+      "never": "Ещё нет",
+      "reminder": "С последней копии прошло 30 дней. Создайте резервную копию данных.",
+      "open": "Открыть резервные копии",
+      "dismiss": "Закрыть",
+      "busy": "Выполняется…",
+      "refresh": "Обновить",
+      "health": "Отчёт о состоянии",
+      "dbSize": "Размер базы данных (оценка)",
+      "pending": "Ожидающие зеркала ПК",
+      "storage": "Использовано / квота хранилища",
+      "licenseDays": "Осталось дней лицензии",
+      "unknown": "Неизвестно",
+      "sync": "Синхронизация",
+      "lowStorage": "Место в хранилище заканчивается. Создайте копию и освободите место.",
+      "partial": "Часть данных о состоянии недоступна. Неизвестные значения не считаются пустыми.",
+      "legacyBlocked": "Подтвердите магазин перед импортом старой копии без идентификатора счёта."
+} ,
     windowTitle: "Biznes Hasap",
     languageMenuTitle: "Выбор языка",
     otherAccounts: "Другие аккаунты",
@@ -7701,6 +7997,9 @@ export const translations: Record<LanguageCode, {
       unitColCode: "Код",
     },
     mobile: {
+      updateAvailable: "Доступна новая версия APK: {version}",
+      updateDownload: "Открыть загрузку",
+      updateFailed: "Не удалось открыть ссылку загрузки.",
       customerSearchTitle: "Поиск клиента",
     },
     receipt: {

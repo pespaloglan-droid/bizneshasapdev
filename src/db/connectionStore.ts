@@ -208,6 +208,13 @@ function addressMessage(code: string): string {
   }
 }
 
+export const CONNECTION_STATUS_EVENT = 'bh:connection-status';
+const connectionHealthSnapshots = new Map<string, LinkStatusMap>();
+export function getConnectionHealth(storeDb: string): LinkStatusMap | undefined { return connectionHealthSnapshots.get(storeDb); }
+function publishConnectionHealth(storeDb: string, status: LinkStatusMap): void {
+  connectionHealthSnapshots.set(storeDb, status);
+  window.dispatchEvent(new CustomEvent(CONNECTION_STATUS_EVENT, { detail: { storeDb } }));
+}
 interface Running {
   stop: () => void;
   accountId: string;
@@ -220,7 +227,7 @@ let connectionGeneration = 0;
 let pendingAccount: string | null = null;
 
 function stopRunning(): void {
-  if (running) { running.stop(); running = null; }
+  if (running) { const db = running.storeDb; running.stop(); running = null; publishConnectionHealth(db, { local: { state: 'idle', message: '' }, online: { state: 'idle', message: '' } }); }
 }
 /** Owner verilirse eski hesabın cleanup'ı yeni hesabın request/sync'ini kapatamaz. */
 export function stopCurrent(owner?: string): void {
@@ -361,7 +368,8 @@ export async function autoProvisionLocal(accountId: string, databaseName?: strin
 
 /** Bağlantıyı başlatır. Önce test eder, sonra canlı senkron açar. */
 export async function startConnection(opts: StartOptions): Promise<TestResult> {
-  const { accountId, storeDb, kind, onStatus, onDocsChanged } = opts;
+  const { accountId, storeDb, kind, onStatus: notify, onDocsChanged } = opts;
+  const onStatus = (status: LinkStatusMap) => { publishConnectionHealth(storeDb, status); notify(status); };
   const raw = withAccountDatabase(opts.raw, accountId);
   const language: LanguageCode = opts.language ?? 'tr';
   const generation=++connectionGeneration; pendingAccount=accountId;

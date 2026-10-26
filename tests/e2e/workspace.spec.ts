@@ -396,3 +396,55 @@ test('mirror retry: bekleyen yerel kayıt eski PC köprüsü tarafından ezilmez
     return (await db.get('product_e2e-product') as any).product.price;
   });expect(result).toBe(77);
 });
+
+test('yedek: on kapsam, hesap uyumsuzluğu, önizleme onayı ve gerçek geri yükleme', async ({ page }) => {
+  await page.getByRole('button', { name: await text(page, 'tabAyarlar'), exact: true }).click();
+  await page.getByRole('button', { name: await text(page, 'backup.title'), exact: true }).click();
+  await expect(page.getByRole('heading', { name: await text(page, 'backup.title') })).toBeVisible();
+  await expect(page.locator('fieldset').first().getByRole('checkbox')).toHaveCount(10);
+  for (const checkbox of await page.locator('fieldset').first().getByRole('checkbox').all()) await expect(checkbox).toBeChecked();
+  const account = await page.evaluate(() => ({ storeDb: (window as any).e2e.storeDb }));
+  const product = { _id: 'product_backup-test', docType: 'product', product: { id: 'backup-test', sku: '00099', barcode: '00999', name: 'Backup Tea', category: 'E2E', price: 12, stock: 2, imageType: 'default' } };
+  const foreign = JSON.stringify({ app: 'biznes-hasap', version: 2, account: { id: 'foreign', storeDb: 'foreign' }, scopes: ['products'], docs: [product] });
+  await page.locator('input[type=file]').setInputFiles({ name: 'foreign.json', mimeType: 'application/json', buffer: Buffer.from(foreign) });
+  await expect(page.getByText(await text(page, 'backup.mismatch'), { exact: true })).toBeVisible();
+  expect((await state(page)).products.some((p: any) => p.id === 'backup-test')).toBe(false);
+  const legacy = JSON.stringify({ app: 'biznes-hasap', version: 1, docs: [product] });
+  await page.locator('input[type=file]').setInputFiles({ name: 'legacy.json', mimeType: 'application/json', buffer: Buffer.from(legacy) });
+  await expect(page.getByText(await text(page, 'backup.legacy'), { exact: true })).toBeVisible();
+  const restore = page.getByRole('button', { name: await text(page, 'backup.restore'), exact: true });
+  await expect(restore).toBeDisabled();
+  await page.getByRole('checkbox', { name: await text(page, 'backup.agree'), exact: true }).check();
+  await restore.click();
+  await expect.poll(async () => (await state(page)).products.some((p: any) => p.id === 'backup-test' && p.sku === '00099')).toBe(true);
+  await expect(restore).toBeDisabled();
+  expect(account.storeDb).toBeTruthy();
+});
+
+test('sağlık: on-demand veri ve son yedek alanı görünür', async ({ page }) => {
+  await page.getByRole('button', { name: await text(page, 'tabAyarlar'), exact: true }).click();
+  await page.getByRole('button', { name: await text(page, 'backup.health'), exact: true }).click();
+  await expect(page.getByRole('heading', { name: await text(page, 'backup.health') })).toBeVisible();
+  await expect(page.getByText(await text(page, 'backup.pending'), { exact: true })).toBeVisible();
+  await expect(page.getByText(await text(page, 'backup.last'), { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: await text(page, 'backup.refresh'), exact: true })).toBeEnabled();
+});
+
+test('yedek Excel: gerçek workbook oluşturulur ve Türkmençe başlıklar korunur', async ({ page }) => {
+  await page.evaluate(() => {
+    (window as any).e2e.savedWorkbook = null;
+    (window as any).electronAPI.saveFileAs = async (options: any) => { (window as any).e2e.savedWorkbook = options; return { saved: true }; };
+  });
+  await page.getByText('E2E Tea', { exact: true }).click(); await page.keyboard.press('F5');
+  await expect.poll(async () => (await state(page)).invoices.length).toBe(1);
+  await page.getByRole('button', { name: await text(page, 'closeBtn'), exact: true }).click();
+  await page.getByRole('button', { name: await text(page, 'tabAyarlar'), exact: true }).click();
+  await page.getByRole('button', { name: await text(page, 'backup.title'), exact: true }).click();
+  await page.getByRole('button', { name: await text(page, 'backup.excelStock'), exact: true }).click();
+  await expect.poll(() => page.evaluate(() => Boolean((window as any).e2e.savedWorkbook?.data))).toBe(true);
+  const workbookData = await page.evaluate(() => (window as any).e2e.savedWorkbook.data);
+  const { default: ExcelJS } = await import('exceljs'); const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(Buffer.from(workbookData, 'base64'));
+  const values: unknown[] = []; workbook.worksheets[0].eachRow(row => row.eachCell(cell => values.push(cell.value)));
+  expect(values).toContain('Haryt'); expect(values).toContain('00001'); expect(values).toContain(-1);
+});
