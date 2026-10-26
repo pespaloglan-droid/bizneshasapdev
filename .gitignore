@@ -77,3 +77,9 @@ yarn-error.log*
 tmp/
 temp/
 .cache/
+
+# Android imzalama anahtarları ve yerel imzalama ayarları
+*.jks
+*.keystore
+**/release.properties
+**/keystore.properties

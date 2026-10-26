@@ -21,7 +21,6 @@ import { encryptWithKey, decryptWithKey, getLicenseKeyForBackup } from './licens
 
 export const BHBAK_EXT = 'bhbak';
 export const BHBAK_MAGIC = 'BHBK';
-const VERSION = 2; // V2: şifreli + gzip
 
 const MAGIC_BYTES = new TextEncoder().encode(BHBAK_MAGIC);
 
@@ -34,22 +33,35 @@ export function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
+/** Pipe both ends concurrently: awaiting write before reading can deadlock
+ * once gzip's readable queue is full (real store backups exceed that queue). */
+async function transformGzip(
+  input: Uint8Array,
+  stream: CompressionStream | DecompressionStream,
+): Promise<Uint8Array> {
+  const source = new Response(toArrayBuffer(input)).body!;
+  return new Uint8Array(await new Response(source.pipeThrough(stream)).arrayBuffer());
+}
+
 async function gzipCompress(input: Uint8Array): Promise<Uint8Array> {
-  const stream = new CompressionStream('gzip');
-  const writer = stream.writable.getWriter();
-  // TypedArray hem tarayıcıda hem Node test akışında kabul edilir.
-  // Kopya, SharedArrayBuffer tabanlı girişleri de normal ArrayBuffer'a taşır.
-  await writer.write(new Uint8Array(input));
-  await writer.close();
-  return new Uint8Array(await new Response(stream.readable).arrayBuffer());
+  return transformGzip(input, new CompressionStream('gzip'));
 }
 
 async function gzipDecompress(input: Uint8Array): Promise<Uint8Array> {
-  const stream = new DecompressionStream('gzip');
-  const writer = stream.writable.getWriter();
-  await writer.write(new Uint8Array(input));
-  await writer.close();
-  return new Uint8Array(await new Response(stream.readable).arrayBuffer());
+  return transformGzip(input, new DecompressionStream('gzip'));
+}
+
+function decodePayload(raw: Uint8Array, expectedLength: number): string {
+  if (raw.byteLength !== expectedLength) {
+    throw new Error('INVALID_LENGTH: Ätiýaçlyk faýlynyň uzynlygy nädogry.');
+  }
+  return new TextDecoder('utf-8', { fatal: true }).decode(raw);
 }
 
 function startsWithMagic(bytes: Uint8Array): boolean {
@@ -107,6 +119,11 @@ export async function encodeBhbak(json: string): Promise<Uint8Array> {
  */
 export async function decodeBhbak(bytes: Uint8Array): Promise<string> {
   if (startsWithMagic(bytes)) {
+    if (bytes.byteLength < 10) {
+      throw new Error('INVALID_HEADER: Ätiýaçlyk faýlynyň başlygy doly däl.');
+    }
+    const expectedLength = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+      .getUint32(5, true);
     const version = bytes[4];
     const payload = bytes.subarray(9);
     
@@ -120,7 +137,7 @@ export async function decodeBhbak(bytes: Uint8Array): Promise<string> {
       try {
         const decrypted = await decryptWithKey(payload, licenseKey);
         const raw = await gzipDecompress(new Uint8Array(decrypted));
-        return new TextDecoder().decode(raw);
+        return decodePayload(raw, expectedLength);
       } catch (err) {
         if (err instanceof Error && err.message.includes('DECRYPT_ERROR')) {
           throw new Error('DECRYPT_ERROR: Bu yedek farklı bir cihaz/hesap için oluşturulmuş - bu cihazda açılamaz.');
@@ -130,7 +147,7 @@ export async function decodeBhbak(bytes: Uint8Array): Promise<string> {
     } else if (version === 1) {
       // V1: Şifresiz (eski format)
       const raw = await gzipDecompress(payload);
-      return new TextDecoder().decode(raw);
+      return decodePayload(raw, expectedLength);
     } else {
       throw new Error(`Näbelli .bhbak wersiýasy: ${version}`);
     }

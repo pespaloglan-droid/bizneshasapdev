@@ -113,3 +113,40 @@ describe('bhbak şifreli yedek (V2)', () => {
     await expect(decodeBhbak(bytes)).rejects.toThrow();
   });
 });
+describe('bhbak büyük veri ve dosya doğrulaması', () => {
+  it('büyük ve az sıkışan yedeği akış kilitlenmeden geri açar', async () => {
+    deriveLicenseKey.mockResolvedValue(makeKey(1));
+    // Tekrarlanan metin gzip tamponunu doldurmaz; deterministik gürültü doldurur.
+    let seed = 123456789;
+    const rows = Array.from({ length: 12000 }, (_, id) => {
+      const text = Array.from({ length: 80 }, () => {
+        seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+        return String.fromCharCode(33 + ((seed >>> 0) % 90));
+      }).join('');
+      return { id, text };
+    });
+    const json = JSON.stringify({ docs: rows });
+    const encoded = await encodeBhbak(json);
+    expect(encoded.length).toBeGreaterThan(65536);
+    expect(await decodeBhbak(encoded)).toBe(json);
+  }, 5000);
+
+  it('eksik BHBK başlığını açık hatayla reddeder', async () => {
+    await expect(decodeBhbak(new TextEncoder().encode('BHBK')))
+      .rejects.toThrow(/INVALID_HEADER/);
+  });
+
+  it('başlıktaki JSON uzunluğu ile içerik uyuşmazlığını reddeder', async () => {
+    deriveLicenseKey.mockResolvedValue(null);
+    const bytes = await encodeBhbak('{"docs":[]}');
+    new DataView(bytes.buffer).setUint32(5, 1, true);
+    await expect(decodeBhbak(bytes)).rejects.toThrow(/INVALID_LENGTH/);
+  });
+
+  it('desteklenmeyen sürümü reddeder', async () => {
+    const bytes = new Uint8Array(10);
+    bytes.set(new TextEncoder().encode(BHBAK_MAGIC));
+    bytes[4] = 99;
+    await expect(decodeBhbak(bytes)).rejects.toThrow(/99/);
+  });
+});
