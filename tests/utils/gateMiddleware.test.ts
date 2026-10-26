@@ -61,15 +61,30 @@ describe('checkRouteAccess', () => {
     expect(result.reason).toBe('NO_LICENSE_REQUIRED');
   });
 
-  it('gate yoksa (web build) izin verir', async () => {
+  it('gate yoksa (APK/web) mobil kontrole düşer — lisanssız hesap reddedilir', async () => {
     const saved = (window as any).electronAPI.guardLicense;
     delete (window as any).electronAPI.guardLicense;
 
+    // Geçersiz/çözülemeyen Hesap ID → mobil gate fail-closed reddeder
     const result = await checkRouteAccess('checkout');
-    expect(result.allowed).toBe(true);
-    expect(result.reason).toBe('GATE_UNAVAILABLE');
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe('NO_LICENSE');
 
     (window as any).electronAPI.guardLicense = saved;
+  });
+
+  it('mobil gate: lisans kimliği yoksa NO_ACCOUNT ile reddeder', async () => {
+    const saved = (window as any).electronAPI.guardLicense;
+    delete (window as any).electronAPI.guardLicense;
+    setLicenseId(undefined);
+
+    const result = await checkRouteAccess('checkout');
+    expect(result.allowed).toBe(false);
+    expect(result.status).toBe(-5);
+    expect(result.reason).toBe('NO_ACCOUNT');
+
+    (window as any).electronAPI.guardLicense = saved;
+    setLicenseId('TEST-ACCT-0001');
   });
 
   it('geçerli lisans → izin verir ve modül bilgisi taşınır', async () => {

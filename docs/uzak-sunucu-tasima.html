@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Biznes Hasap — Uzak Sunucu Taşıma Rehberi</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 760px; margin: 40px auto; color: #1e293b; line-height: 1.55; font-size: 13px; }
+  h1 { color: #0e3860; font-size: 22px; border-bottom: 3px solid #0e3860; padding-bottom: 8px; }
+  h2 { color: #0e3860; font-size: 16px; margin-top: 22px; }
+  code, pre { font-family: Consolas, monospace; background: #f1f5f9; border-radius: 4px; }
+  code { padding: 2px 5px; font-size: 12px; }
+  pre { padding: 10px 14px; font-size: 11.5px; white-space: pre-wrap; border-left: 3px solid #0e3860; }
+  .warn { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px 14px; margin: 12px 0; }
+  .step { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 10px 0; }
+  .step b { color: #0e3860; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+  td, th { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; font-size: 12px; }
+  th { background: #0e3860; color: white; }
+</style>
+</head>
+<body>
+<h1>Uzak Sunucu (VPS / Domain) Taşıma Rehberi</h1>
+<p><b>Biznes Hasap</b> · CouchDB senkronizasyonu · 27 Ekim 2026</p>
+
+<p>Bu rehber, mevcut uzak CouchDB sunucusunu (örn. dbpanel.hmxagent.cfd) yeni bir VPS veya
+yeni bir domaine taşırken izlenecek adımları anlatır. Amaç: <b>veri kaybı olmadan</b> ve
+cihazları (PC + telefon) tek tek yeni adrese geçirmek.</p>
+
+<h2>1. Yeni VPS / domain hazırlığı</h2>
+<div class="step"><b>CouchDB kurulumu (yeni sunucuda):</b>
+<ul>
+<li>CouchDB 3.x kur (mevcut yerel: 3.4.2, uzak: 3.5.2 — aynı veya üstü önerilir).</li>
+<li><code>local.ini</code> / <code>local.d</code>: <code>bind_address = 0.0.0.0</code>, admin kullanıcı oluştur
+(<code>[admins]</code> bölümüne <code>bizneshasap = GÜÇLÜ-PAROLA</code>, servisi yeniden başlat — parola otomatik hash'lenir).</li>
+<li>CORS aç: <code>enable_cors = true</code>; origins içine uygulama origin'leri ekle
+(<code>http://localhost</code>, <code>capacitor://localhost</code>, <code>https://localhost</code>).</li>
+<li>Güvenlik duvarında 5984 portunu aç. <b>İnternete açıksa mutlaka HTTPS reverse proxy
+(nginx + Let's Encrypt) kullan</b> — düz HTTP'de parola yolda görünür.</li>
+<li>Domain varsa DNS A kaydını yeni VPS IP'sine yönlendir (yayılması dakikalar–saatler sürebilir).</li>
+</ul></div>
+
+<h2>2. Kullanıcıları ve veritabanlarını oluştur</h2>
+<div class="step"><ul>
+<li>Uygulama kullanıcısı <code>biznes_app</code>'i yeni sunucuda aç (yeni güçlü parola):
+<pre>curl -X PUT "http://bizneshasap:ADMIN_PAROLA@YENI_SUNUCU:5984/_users/org.couchdb.user:biznes_app" \
+  -H "Content-Type: application/json" \
+  -d '{"_id":"org.couchdb.user:biznes_app","name":"biznes_app","type":"user","roles":[],"password":"YENI_PAROLA"}'</pre></li>
+<li>Her mağaza DB'sini oluştur (örn. bim_market, taze_ay_db) ve <code>_security</code> members'ına
+<code>biznes_app</code> ekle (telefon/PC bu kullanıcıyla bağlanır).</li>
+</ul></div>
+
+<h2>3. Veriyi taşı</h2>
+<div class="step"><b>Önerilen: eski → yeni replikasyon (kesintisiz):</b>
+Eski sunucuda _replicator belgeleriyle her DB için push oluştur (hedef = yeni sunucu).
+Veri büyük değilse <code>/_all_docs?include_docs=true</code> ile JSON yedek alıp yeni sunucuya
+<code>/_bulk_docs</code> ile de basılabilir. Her DB için belge sayılarını karşılaştır.</div>
+
+<h2>4. Cihazları yeni adrese geçir</h2>
+<div class="step"><ul>
+<li><b>PC uygulaması:</b> Sazlamalar → Bulut eşitleme → Online adresine yeni adres:
+<code>http://biznes_app:PAROLA@yeni-domain:5984/DB_ADI</code></li>
+<li><b>APK (telefon):</b> Hesap → Bulut eşitleme → aynı adresi güncelle.</li>
+<li><b>Replikator belgeleri</b> (eski yerelde kalacaksa): source/target URL'lerini yeni domainle güncelle.</li>
+<li>Her cihazda "Bağlantıyı sına" → yeşil görene kadar ilerleme.</li>
+</ul></div>
+
+<h2>5. Son kontroller ve eski sunucuyu kapatma</h2>
+<div class="step"><ul>
+<li>Yeni adreste okuma + yazma testi yap; iki cihaz arasında ürün/satış eşitlemesini doğrula.</li>
+<li>Tüm cihazlar geçmeden eski sunucuyu KAPATMA. Geçiş bitince eski VPS'i kapat/sil.</li>
+<li>Eski (ifşa olmuş) parolaları her yerden temizle: replikator belgeleri, cihaz adresleri,
+dokümanlar. Parola rotasyonu rehberi ayrıca mevcut.</li>
+</ul></div>
+
+<div class="warn"><b>Önemli:</b> Eski uzak sunucunun parolası public GitHub'da ifşa olmuştu.
+Taşıma sırasında yeni sunucuda MUTLAKA yeni güçlü parolalar kullan ve biznes_app ile
+admin parolasını ayır (uygulamaya admin parolası girilmez).</div>
+
+<p style="color:#64748b;font-size:11px;margin-top:24px">Bu rehber Biznes Hasap projesi için hazırlandı. Sorun çıkarsa: bağlantı hatası mesajını ve hangi adımda kaldığını not et.</p>
+</body>
+</html>
