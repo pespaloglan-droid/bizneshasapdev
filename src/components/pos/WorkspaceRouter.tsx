@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { lazy, Suspense, useMemo } from 'react';
 import type { PosTabType } from './TopNavBar';
 import type { Customer, InvoiceRecord, LanguageCode, OperationSettings, Product, User, Account } from '../../types';
 import type { ModuleStores } from '../../hooks/useModuleStores';
@@ -13,16 +13,18 @@ import {
 } from '../../db/accessService';
 import { resolveModulePermission } from '../../db/ledgerService';
 import { useT } from '../../locales/LanguageContext';
-import { CustomerWorkspace } from '../customers/CustomerWorkspace';
-import { UserWorkspace } from '../UserWorkspace';
-import { KassaWorkspace } from '../kassa/KassaWorkspace';
-import { WalyutaWorkspace } from '../walyuta/WalyutaWorkspace';
-import { DepderWorkspace } from '../depder/DepderWorkspace';
-import { TargowWorkspace } from '../targowy/TargowWorkspace';
-import { ProductWorkspace } from '../products/ProductWorkspace';
-import { WarehouseWorkspace } from '../warehouses/WarehouseWorkspace';
-import { SazlamalarWorkspace } from '../sazlamalar/SazlamalarWorkspace';
-import { HasaplamaWorkspace } from '../hasaplama/HasaplamaWorkspace';
+import { LoadingScreen } from '../common/LoadingScreen';
+
+const CustomerWorkspace = lazy(() => import('../customers/CustomerWorkspace').then(m => ({ default: m.CustomerWorkspace })));
+const UserWorkspace = lazy(() => import('../UserWorkspace').then(m => ({ default: m.UserWorkspace })));
+const KassaWorkspace = lazy(() => import('../kassa/KassaWorkspace').then(m => ({ default: m.KassaWorkspace })));
+const WalyutaWorkspace = lazy(() => import('../walyuta/WalyutaWorkspace').then(m => ({ default: m.WalyutaWorkspace })));
+const DepderWorkspace = lazy(() => import('../depder/DepderWorkspace').then(m => ({ default: m.DepderWorkspace })));
+const TargowWorkspace = lazy(() => import('../targowy/TargowWorkspace').then(m => ({ default: m.TargowWorkspace })));
+const ProductWorkspace = lazy(() => import('../products/ProductWorkspace').then(m => ({ default: m.ProductWorkspace })));
+const WarehouseWorkspace = lazy(() => import('../warehouses/WarehouseWorkspace').then(m => ({ default: m.WarehouseWorkspace })));
+const SazlamalarWorkspace = lazy(() => import('../sazlamalar/SazlamalarWorkspace').then(m => ({ default: m.SazlamalarWorkspace })));
+const HasaplamaWorkspace = lazy(() => import('../hasaplama/HasaplamaWorkspace').then(m => ({ default: m.HasaplamaWorkspace })));
 
 interface WorkspaceRouterProps {
   activeTab: PosTabType;
@@ -77,7 +79,7 @@ interface WorkspaceRouterProps {
  * POS däl modullaryň hemmesini bir ýerde ýerleşdirýän ýönlendiriji.
  * (checkout bölümi sepet ýagdaýyna bagly bolany üçin PosWorkspace-de galýar.)
  */
-export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
+const WorkspaceRouterContent: React.FC<WorkspaceRouterProps> = ({
   activeTab,
   language,
   currentUser,
@@ -359,3 +361,10 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
     </div>
   );
 };
+
+/** Keep the POS shell mounted while an optional module is fetched. */
+export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = (props) => (
+  <Suspense fallback={<LoadingScreen />}>
+    <WorkspaceRouterContent {...props} />
+  </Suspense>
+);

@@ -35,7 +35,7 @@ Dosya adı: `BiznesHasap-vX.Y.Z.apk` — klasörde saklanır.
 | 1.3.12 | 2026-10-25 | **Mobil lisans sistemi (tam):** APK'da artık gerçek lisans kontrolü var — anahtar hesaba VE cihaza bağlı (Ed25519 imza + accountId + cihaz anchor'ı; başka hesapta/başka telefonda çalışmaz), talep kodu üretimi PC ile aynı formatta, süre/replay/feature-bit kontrolleri PC ile aynı kodlar. Önceden APK'da lisans kapısı yoktu (her şey açıktı) ve lisans ekranı mobilde kırıktı. PC yolu satır satır korundu |
 | 1.4.0 | 2026-10-27 | **İLK RELEASE-İMZALI APK:** dağıtım için kalıcı release keystore üretildi (`C:\Users\User\bizneshasap-keys\`, repoya girmez) ve `assembleRelease` ile imzalandı. İçerik v1.3.12 ile aynı + yeni imza altyapısı. ⚠️ Debug imzalı eski sürümlerin ÜZERİNE KURULAMAZ (imza farklı) — kurmadan önce veri yedeği/sync, sonra eski uygulamayı kaldırıp yenisini kur. Bundan sonra tüm sürümler aynı release anahtarıyla imzalanacak |
 
-Kaynak `versionCode`: 30. Son üretilmiş APK: v1.4.0 / versionCode 30 (RELEASE).
+Kaynak `versionCode`: 31 (v1.4.1 adayı; APK henüz derlenmedi). Son üretilmiş APK: v1.4.0 / versionCode 30 (RELEASE).
 Dosya: `BiznesHasap-v1.4.0.apk`; paket: `com.bizneshasap.pos`.
 Release imza SHA-256: `8bee627bfd5316ce064305807345da0e52963f8966a4472913e695ae8a2d5852`.
 
@@ -44,3 +44,10 @@ uyumsuz). v1.3.9 ve v1.3.10, v1.3.7'nin imza anahtarının bulunduğu makinede
 derlendi — sertifika digest'i v1.3.7 ile birebir aynı (`448b851b…`), yani v1.3.7
 üzerine veri korunarak güncelleme yapılabilir. Bu dosyalar mağaza/release imzalı
 sürüm değildir.
+
+## v1.4.1 — kaynak adayı (2026-10-27)
+- Büyük `.bhbak` verilerinde gzip akış kilitlenmesi düzeltildi; başlık ve uzunluk doğrulaması eklendi.
+- POS, lisans ve modül ekranları gerektiğinde yüklenir; ExcelJS motoru yalnızca Excel işlemi başlatılınca yüklenir.
+- Android `versionCode`: 31. **Bu sürüm için APK henüz üretilmedi/imzalanmadı.**
+- Kullanıcının mevcut release `.jks` anahtarı korunacak; yeni anahtar oluşturulmayacak.
+- Fiziksel cihaz ve Windows açılış süresi doğrulaması bekliyor.

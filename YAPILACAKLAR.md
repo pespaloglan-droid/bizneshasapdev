@@ -209,3 +209,29 @@ ayırıp yalnızca gerekenin gerektiğinde yüklenmesi. Açılış hızını art
    APK'da da aynı güncelleme. Replikator belgelerindeki hedef URL'leri değiştir.
 6. Doğrula: yeni adreste okuma/yazma + sync yeşil + eski sunucuyu kapatmadan önce
    tüm cihazların geçtiğinden emin ol.
+
+---
+
+## UYGULAMA DURUMU — 27 Ekim 2026, ilk etap
+
+**Baz:** `faz-c-d/altyapi-hazirlik`, `08dd3dd`. Main değil: bu dal belgedeki 398 testi ve APK v1.4.0 kaynaklarını içerir.
+
+### Bu etapta uygulananlar
+- **A2 (kod düzeltmesi):** gzip çıktısı okunmadan `writer.write/close` beklenmesi büyük yedeklerde backpressure kilidi üretiyordu. Önce kırılan büyük veri regresyon testiyle doğrulandı, sonra eşzamanlı akışla düzeltildi. V1, V2 ve eski JSON okuma korunur. Eksik başlık ve uzunluk uyuşmazlığı reddedilir. Gerçek PC/APK export/import kabul testi henüz yapılmadı; A2'nin tüm olası sorunları çözülmüş sayılmaz.
+- **A1/C4 (kısmi):** POS, lisans ve tüm opsiyonel çalışma modülleri lazy yüklenir; yükleme görünümü 4 dilde mevcut çeviriyi kullanır. ExcelJS okuma/yazma motoru yalnızca işlem sırasında yüklenir. React/PouchDB vendor paketleri ayrılır. Büyük chunk uyarısı hâlâ var; C4 bitmedi. Windows açılış süresi ölçülmedi; A1 tamamlanmadı.
+- **G1:** Mevcut release anahtarı kullanıcı tarafından sağlandı. Yeni anahtar üretilmedi. `.jks`, `.keystore` ve yerel imzalama properties dosyaları `.gitignore` kapsamına alındı.
+- **APK kaynak adayı:** v1.4.1 / versionCode 31. APK henüz derlenmedi veya imzalanmadı; son üretilmiş APK v1.4.0 olarak kalır. Bu Linux ortamında Android SDK bulunamadı; imzalama parolası alınmadı.
+
+### Doğrulama
+- Başlangıç: 398/398 birim testi, TypeScript + Vite build başarılı.
+- Sonuç: 402/402 birim testi (4 yeni regresyon), TypeScript + Vite build başarılı.
+- Mevcut Playwright E2E: 27/27 geçti; Excel gerçek roundtrip ve Türkmençe başlık testi dahil.
+- Windows native lisans/DLL testleri, fiziksel telefon/Documents testleri ve PC açılış ölçümü yapılmadı.
+- Üretim derlemesi dört tarayıcı dilinde (tr/tk/en/ru) hatasız açıldı; girişte POS/ayarlar/raporlar/ExcelJS paketleri yüklenmedi. Bu kontrol Windows EXE/Android cihaz açılış ölçümü değildir.
+- Yeni kullanıcı arayüzü veya tam yedek kapsamları bu etapta eklenmedi.
+
+### Açık kalanlar
+- **B1, B2, B3, D1–D5, E1–E5, F ve H:** Bu etapta uygulanmadı. B1 sıradaki öncelik.
+- Donanım modeli, offline finalize politikası, E5 tercihi, servis anahtarları, sertifika ve sunucu erişimi gereken işler ayrıca netleştirilecek.
+- G2/G3/G4 tamamlanmadı; main'e merge, release ve sunucu değişikliği yapılmadı.
+- İlk GitHub gönderimi eski token ile `403 Resource not accessible by personal access token` verdi; bu nedenle önce yerel yama hazırlandı. Yeni token ile `fix/backup-startup-20261027` dalı oluşturuldu; bu kayıt ilk etap gönderiminin parçasıdır. Main'e merge ve release yapılmadı.

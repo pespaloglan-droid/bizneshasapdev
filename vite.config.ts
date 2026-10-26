@@ -15,6 +15,16 @@ export default defineConfig({
       events: 'events',
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react-vendor';
+          if (/node_modules\/(pouchdb-browser|pouchdb-find)\//.test(id)) return 'database-vendor';
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     strictPort: true,

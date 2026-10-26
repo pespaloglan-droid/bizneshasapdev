@@ -12,7 +12,7 @@
  *  - gizli `_meta` sahypasy: programma, şablon görnüşi, wersiýa, hesap, senesi, saýlananlyklar
  */
 
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
 import {
   APP_NAME,
   NUMBER_FORMAT,
@@ -333,6 +333,7 @@ export async function createAndSaveStyledWorkbook<Row>(
   options: StyledSheetOptions<Row>,
   defaultName: string
 ): Promise<boolean> {
+  const { default: ExcelJS } = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
   workbook.creator = APP_NAME;
   workbook.created = options.generatedAt ?? new Date();
