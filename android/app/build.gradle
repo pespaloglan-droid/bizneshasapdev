@@ -18,7 +18,7 @@ android {
     }
     signingConfigs {
         release {
-            def propsFile = file("C:/Users/User/bizneshasap-keys/release.properties")
+            def propsFile = file("C:/Users/User/Desktop/bizneshasap-keys/release.properties")
             if (propsFile.exists()) {
                 def props = new Properties()
                 propsFile.withInputStream { props.load(it) }
@@ -31,7 +31,7 @@ android {
     }
     buildTypes {
         release {
-            def propsFile = file("C:/Users/User/bizneshasap-keys/release.properties")
+            def propsFile = file("C:/Users/User/Desktop/bizneshasap-keys/release.properties")
             if (propsFile.exists()) {
                 signingConfig signingConfigs.release
             }
