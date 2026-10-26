@@ -631,3 +631,22 @@ Bu yalnızca workflow düzeltmesidir; APK'nın kaynak kodu ve SHA-256'sı deği�
 ### Sürüm
 - versionName 1.3.11, versionCode 28
 - İmza v1.3.7 ile aynı (448b851b…) — veri korunarak güncelleme
+
+## 2026-10-27 — v1.4.0: ilk RELEASE-imzalı APK
+
+### Yapılanlar
+- Kalıcı release keystore üretildi: `C:\Users\User\bizneshasap-keys\bizneshasap-release.jks`
+  (RSA 2048, 10000 gün, alias `bizneshasap`). Parola aynı klasördeki OKU-BENI.txt'de —
+  güvenli yedek şart, repoya girmez.
+- `android/app/build.gradle`: signingConfigs.release + buildTypes.release,
+  kimlikler repo dışı `C:/Users/User/bizneshasap-keys/release.properties`'ten okunur
+  (dosya yoksa imzasız derlenir — CI/dev etkilenmez).
+- `gradlew assembleRelease` BUILD SUCCESSFUL (4m21s).
+- apksigner: CN=Biznes Hasap, SHA-256 `8bee627b…5852` (yeni release sertifikası).
+- v1.4.0 / versionCode 30 → `bizneshasap-apk/BiznesHasap-v1.4.0.apk` (~15.5 MB).
+
+### ÖNEMLİ geçiş notu
+Release imzası debug imzadan FARKLI → debug kurulu telefonlara ÜZERİNE KURULAMAZ.
+Geçiş: (1) önce sync/veri yedeği, (2) eski uygulamayı kaldır, (3) v1.4.0'ı kur.
+Veriler CouchDB'de olduğundan yeniden kurulumda sync geri getirir.
+Bundan sonra tüm APK'lar aynı release anahtarıyla imzalanır (üzerine güncelleme çalışır).
