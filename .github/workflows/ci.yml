@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ master, main, develop ]
+    branches: [ master, main, develop, faz-c-d/altyapi-hazirlik ]
   pull_request:
     branches: [ master, main, develop ]
 
@@ -24,13 +24,17 @@ jobs:
 
     # license.node gitignore'dadır; taze kurulumda native.js "bulunamadı" hatası
     # verir. Bu yüzden CI derlemeden hiçbir paketleme/adım çalıştırmaz.
+    # gypfile:true npm ci sırasında otomatik node-gyp rebuild tetikler;
+    # derlemeyi ayrı adımda yapıyoruz (VS bulunamama hatasını önlemek için).
     - name: Install license-native dependencies
       working-directory: license-native
-      run: npm ci
+      run: npm ci --ignore-scripts
 
     - name: Build license native module
       working-directory: license-native
       run: npm run build-native
+      env:
+        GYP_MSVS_VERSION: '2022'
 
     - name: Verify native module loads
       run: node -e "const n=require('./license-native/native.js'); console.log('native version:', n.getVersion());"
@@ -80,11 +84,13 @@ jobs:
 
     - name: Install license-native dependencies
       working-directory: license-native
-      run: npm ci
+      run: npm ci --ignore-scripts
 
     - name: Build license native module
       working-directory: license-native
       run: npm run build-native
+      env:
+        GYP_MSVS_VERSION: '2022'
 
     - name: Build Electron app
       run: npm run electron:build
