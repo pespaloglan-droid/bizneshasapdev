@@ -35,8 +35,10 @@ Dosya adı: `BiznesHasap-vX.Y.Z.apk` — klasörde saklanır.
 | 1.3.12 | 2026-10-25 | **Mobil lisans sistemi (tam):** APK'da artık gerçek lisans kontrolü var — anahtar hesaba VE cihaza bağlı (Ed25519 imza + accountId + cihaz anchor'ı; başka hesapta/başka telefonda çalışmaz), talep kodu üretimi PC ile aynı formatta, süre/replay/feature-bit kontrolleri PC ile aynı kodlar. Önceden APK'da lisans kapısı yoktu (her şey açıktı) ve lisans ekranı mobilde kırıktı. PC yolu satır satır korundu |
 | 1.4.0 | 2026-10-27 | **İLK RELEASE-İMZALI APK:** dağıtım için kalıcı release keystore üretildi (`C:\Users\User\bizneshasap-keys\`, repoya girmez) ve `assembleRelease` ile imzalandı. İçerik v1.3.12 ile aynı + yeni imza altyapısı. ⚠️ Debug imzalı eski sürümlerin ÜZERİNE KURULAMAZ (imza farklı) — kurmadan önce veri yedeği/sync, sonra eski uygulamayı kaldırıp yenisini kur. Bundan sonra tüm sürümler aynı release anahtarıyla imzalanacak |
 
-Kaynak `versionCode`: 32 (v1.4.2 adayı; imzalı dağıtım APK’sı üretilmedi). Son üretilmiş release APK: v1.4.0 / versionCode 30 (RELEASE).
-Dosya: `BiznesHasap-v1.4.0.apk`; paket: `com.bizneshasap.pos`.
+| 1.4.2 | 2026-10-27 | **Atiyaclik tam yedek + export/performans (ikinci etap):** 10 seçimli kapsamla şifreli yedek, önizleme/onay, hesap kontrolü, kısmi hata raporu; satış/stok/borç/kassa Excel export'ları; 30 günlük yedek hatırlatma; sağlık paneli; APK güncelleme bildirimi; mobil lisans cihaz kimliği iyileştirmesi; admin safeStorage kasası. Ayrıca incelemede 2 düzeltme: V2 yedek hesap ekranından açılır, giriş öncesi Excel export kapatıldı. Release imzalı (v1.4.0 ile aynı anahtar) |
+
+Kaynak `versionCode`: 32. Son üretilmiş release APK: v1.4.2 / versionCode 32 (RELEASE).
+Dosya: `BiznesHasap-v1.4.2.apk`; paket: `com.bizneshasap.pos`.
 Release imza SHA-256: `8bee627bfd5316ce064305807345da0e52963f8966a4472913e695ae8a2d5852`.
 
 **İmza notu:** v1.3.8 APK başka ortamın debug anahtarıyla imzalanmıştı (v1.3.7 ile

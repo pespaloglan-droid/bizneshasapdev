@@ -668,3 +668,21 @@ Bundan sonra tüm APK'lar aynı release anahtarıyla imzalanır (üzerine günce
 - PC admin dosyasını safeStorage ile doğrulamalı taşıma; otomatik CouchDB oluşturma korundu. Android Keystore/diğer bağlantı vault'ları henüz uygulanmadı.
 - Mevcut release JKS kullanılacak. Sürüm 1.4.2 / 32; alias ve parola alınmadığı için imzalı dağıtım üretilmedi. Main merge/release/sunucu değişikliği yok.
 - Tüm madde durumları YAPILACAKLAR.md'nin ikinci etap bölümünde; doğrulama ve kalan gereksinimler UYGULAMA-RAPORU-2026-10-27.md'de.
+
+## 2026-10-27 — v1.4.2: ikinci etap (Atiyaclik + export + performans)
+
+### İçerik
+- Diğer AI'ın `fix/backup-startup-20261027` branch'i incelendi ve merge edildi
+  (ab4dff1): Atiyaclik 10 kapsam, şifreli yedek, hesap kontrolü, önizleme/onay,
+  kısmi hata raporu; satış/stok/borç/kassa Excel; 30 günlük hatırlatma;
+  sağlık paneli; APK güncelleme bildirimi; mobil lisans anchor iyileştirmesi;
+  admin safeStorage vault (server-admin.json migration'lı).
+- Bağımsız incelemede 2 sorun bulunup düzeltildi (c0ccaea):
+  (1) Hesap ekranından V2 yedek açılmıyordu → licenseId geçici atama
+  (2) Giriş öncesi finansal Excel export açıktı → hesap ekranında export gizlendi
+- Doğrulama: tsc temiz, 35 dosya / 433 birim testi (diğer AI CI'sında 30 E2E).
+- cap sync + assembleRelease imzalı derleme; imza v1.4.0 ile aynı (8bee627b).
+
+### Sürüm
+- v1.4.2 / versionCode 32 → `bizneshasap-apk/BiznesHasap-v1.4.2.apk` (~15.6 MB)
+- v1.4.0 ve v1.4.1 üzerine release imzayla güncellenebilir.
