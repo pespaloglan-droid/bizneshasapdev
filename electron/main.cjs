@@ -1,9 +1,13 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('node:url');
 const { isTrustedMainFrame, matchesSelectedAccount } = require('./ipc-trust.cjs');
 const { redactSecrets: redact } = require('./redact-secrets.cjs');
+const { createAdminVault } = require('./admin-vault.cjs');
+function readServerAdminConfig() {
+  return createAdminVault({ userData: app.getPath('userData'), safeStorage }).read();
+}
 
 let mainWindow;
 const ALLOWED_RENDERER_URL = process.env.NODE_ENV === 'development' && !app.isPackaged
@@ -296,7 +300,7 @@ if (!gotTheLock) {
     });
 
     // Yeni mağaza veritabanını yerel CouchDB'de otomatik açar.
-    // Admin parolası yalnızca bu bilgisayarda userData/server-admin.json'da durur
+    // Admin kimliği safeStorage ile şifreli server-admin.vault.json'da durur
     // (repoya/APK'ya girmez). Yalnızca loopback sunucuya izin verilir.
     trustedIPC('couch-provision-db', async (_e, dbName, serverUrl) => {
       try {
@@ -315,9 +319,8 @@ if (!gotTheLock) {
           local = Object.values(nets).flat().some((n) => n && n.address === m[1]);
         }
         if (!local) return { ok: false, reason: 'not-loopback' };
-        const cfgPath = path.join(app.getPath('userData'), 'server-admin.json');
-        if (!fs.existsSync(cfgPath)) return { ok: false, reason: 'no-config' };
-        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+        const cfg = readServerAdminConfig();
+        if (!cfg) return { ok: false, reason: 'no-config' };
         const auth = 'Basic ' + Buffer.from(`${cfg.adminUser}:${cfg.adminPass}`).toString('base64');
         const appUser = cfg.appUser || 'biznes_app';
 
@@ -338,16 +341,15 @@ if (!gotTheLock) {
 
     // Tam otomatik kurulum: hesabın DB'sini yerel sunucuda açar (yoksa) ve
     // kullanıcıya hazır bağlantı adresini döndürür. Kullanıcı hiçbir şey yazmaz.
-    // Kimlikler yalnızca bu bilgisayardaki userData/server-admin.json'dan okunur.
+    // Eski server-admin.json doğrulanarak safeStorage kasasına taşınır.
     trustedIPC('couch-auto-setup', async (_e, dbName) => {
       try {
         const name = String(dbName || '').toLowerCase();
         if (!/^[a-z][a-z0-9_$()+-]{0,59}$/.test(name) || name.startsWith('_')) {
           return { ok: false, reason: 'bad-name' };
         }
-        const cfgPath = path.join(app.getPath('userData'), 'server-admin.json');
-        if (!fs.existsSync(cfgPath)) return { ok: false, reason: 'no-config' };
-        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+        const cfg = readServerAdminConfig();
+        if (!cfg) return { ok: false, reason: 'no-config' };
         if (!cfg.adminUser || !cfg.adminPass || !cfg.appUser || !cfg.appPass) {
           return { ok: false, reason: 'no-config' };
         }

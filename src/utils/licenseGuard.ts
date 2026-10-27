@@ -8,6 +8,8 @@
  */
 
 import { getLicenseId } from './gateMiddleware';
+import { isNative } from './platform';
+import { deriveMobileLicenseKey } from './licenseMobile';
 
 /**
  * IPC'den dönen anahtarı baýtlara öwür (Electron structured clone
@@ -35,7 +37,7 @@ function toKeyBytes(key: unknown): Uint8Array | null {
  */
 export async function getLicenseKeyForBackup(): Promise<Uint8Array | null> {
   if (typeof window === 'undefined' || !(window as any).electronAPI?.deriveLicenseKey) {
-    return null;
+    return isNative() ? deriveMobileLicenseKey(getLicenseId(), 'backup') : null;
   }
 
   try {
@@ -52,7 +54,7 @@ export async function getLicenseKeyForBackup(): Promise<Uint8Array | null> {
  */
 export async function getLicenseKeyForReports(): Promise<Uint8Array | null> {
   if (typeof window === 'undefined' || !(window as any).electronAPI?.deriveLicenseKey) {
-    return null;
+    return isNative() ? deriveMobileLicenseKey(getLicenseId(), 'reports') : null;
   }
 
   try {
@@ -69,7 +71,7 @@ export async function getLicenseKeyForReports(): Promise<Uint8Array | null> {
  */
 export async function getLicenseKeyForExport(): Promise<Uint8Array | null> {
   if (typeof window === 'undefined' || !(window as any).electronAPI?.deriveLicenseKey) {
-    return null;
+    return isNative() ? deriveMobileLicenseKey(getLicenseId(), 'export') : null;
   }
 
   try {

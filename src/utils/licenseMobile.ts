@@ -1,3 +1,4 @@
+import { isNative } from './platform';
 // licenseMobile.ts — APK (Capacitor) için hesap+cihaz bağlı lisans sistemi.
 // license-native/src/license.cc'deki native mantığın saf-JS portu:
 // anahtar hesaba (payload[2..10]) ve cihaza (payload[10..14]) bağlı,
@@ -125,15 +126,30 @@ function randomUuid(): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
-async function getDeviceUuid(): Promise<string> {
+let deviceIdentityFlight: Promise<string> | null = null;
+async function loadOrCreateDeviceIdentity(): Promise<string> {
   const { value } = await Preferences.get({ key: DEVICE_UUID_KEY });
+  // Never invalidate an existing license by replacing its UUID anchor.
   if (value) return value;
-  const uuid = randomUuid();
-  await Preferences.set({ key: DEVICE_UUID_KEY, value: uuid });
-  return uuid;
+  let identity: string | undefined;
+  if (isNative()) {
+    try {
+      const { Device } = await import('@capacitor/device');
+      const { identifier } = await Device.getId();
+      if (identifier && identifier !== 'unknown') identity = `hardware-v1:${identifier}`;
+    } catch { console.warn('DEVICE_HARDWARE_ID_UNAVAILABLE'); }
+  }
+  identity ??= randomUuid();
+  await Preferences.set({ key: DEVICE_UUID_KEY, value: identity });
+  return identity;
+}
+async function getDeviceUuid(): Promise<string> {
+  // Concurrent request-code/license operations must use one initial anchor.
+  if (!deviceIdentityFlight) deviceIdentityFlight = loadOrCreateDeviceIdentity().finally(() => { deviceIdentityFlight = null; });
+  return deviceIdentityFlight;
 }
 
-/** SHA-256(UUID) ilk 4 byte — native ComputeDeviceAnchor'ın mobil karşılığı. */
+/** SHA-256(pinned identity) first 4 bytes. Old UUID anchors are preserved. */
 export async function getMobileDeviceAnchor(): Promise<Uint8Array> {
   const uuid = await getDeviceUuid();
   const digest = await crypto.subtle.digest('SHA-256', utf8Bytes(uuid));
@@ -322,3 +338,17 @@ export async function getMobileLicenseInfo(licenseId: string | undefined): Promi
 // Testlerin admin tarafını (createKey) taklit edebilmesi için codec parçalarını
 // buradan da dışa açıyoruz — üretim kodu bunları doğrudan codec modülünden alır.
 export { buildPayload };
+
+/** Same format as native DeriveKey: SHA-512(tag || purpose || rootSig || accountId)[0..32].
+ * No generated/exported key is persisted; expired/missing licenses fail closed. */
+export async function deriveMobileLicenseKey(licenseId: string | undefined, purpose: string): Promise<Uint8Array | null> {
+  if (!licenseId || utf8Bytes(purpose).length > 64) return null;
+  const accountId = decodeAccountId(licenseId);
+  if (!accountId || (await getMobileLicenseInfo(licenseId)).status !== STATUS.OK) return null;
+  const rec = await loadRecord(licenseId);
+  if (!rec?.hasRootSig || rec.accountIdHex !== bytesToHex(accountId) || !rec.rootSigHex || !/^[0-9a-f]{128}$/i.test(rec.rootSigHex)) return null;
+  const root = Uint8Array.from(rec.rootSigHex.match(/../g)!.map(h => parseInt(h, 16)));
+  if (!nacl.sign.detached.verify(concatBytes(utf8Bytes('root-v1'), accountId), root, activePublicKey)) return null;
+  const input = concatBytes(utf8Bytes('lic-key-v1'), utf8Bytes(purpose), root, accountId);
+  return new Uint8Array(await crypto.subtle.digest('SHA-512', new Uint8Array(input))).slice(0, 32);
+}

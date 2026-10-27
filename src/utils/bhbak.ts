@@ -82,13 +82,14 @@ function looksLikeJson(bytes: Uint8Array): boolean {
  * V2: önce gzip, sonra AES-GCM şifreleme (lisans anahtarı ile).
  * Lisanssız çalıştırılırsa V1 formatına düşer (sadece gzip, şifresiz).
  */
-export async function encodeBhbak(json: string): Promise<Uint8Array> {
+export async function encodeBhbak(json: string, requireEncryption = false): Promise<Uint8Array> {
   const raw = new TextEncoder().encode(json);
   const compressed = await gzipCompress(raw);
   
   // Lisans anahtarı al - varsa şifrele (V2), yoksa şifresiz (V1)
   const licenseKey = await getLicenseKeyForBackup();
   
+  if (requireEncryption && !licenseKey) throw new Error('LICENSE_REQUIRED');
   if (licenseKey) {
     // V2: Şifreli
     const encrypted = await encryptWithKey(compressed, licenseKey);

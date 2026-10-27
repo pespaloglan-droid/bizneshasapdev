@@ -7,7 +7,7 @@ import { BottomToolbar } from './components/BottomToolbar';
 import { AddAccountModal } from './components/modals/AddAccountModal';
 import { EditAccountModal } from './components/modals/EditAccountModal';
 import { DeleteAccountModal } from './components/modals/DeleteAccountModal';
-import { ImportDataModal } from './components/modals/ImportDataModal';
+const ImportDataModal = lazy(() => import('./components/modals/ImportDataModal').then(m => ({ default: m.ImportDataModal })));
 import { OtherAccountsModal } from './components/modals/OtherAccountsModal';
 import { ShortcutsModal } from './components/modals/ShortcutsModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';

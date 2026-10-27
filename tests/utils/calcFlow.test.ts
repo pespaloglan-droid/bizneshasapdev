@@ -189,3 +189,32 @@ describe('karz toplamları', () => {
     expect(borrowedTotal([tx({ category: 'karz_almak', date: '2026-01-01' })], WINDOW)).toBe(0);
   });
 });
+
+import { historyRows, historyColumns, validHistoryFilter } from '../../src/utils/historyExports';
+import type { InvoiceRecord } from '../../src/types';
+describe('ayrıntılı Excel geçmişi sözleşmesi', () => {
+  const invoice = { id:'i',invoiceNo:'INV-1',createdAt:'2026-10-01T12:00:00Z',invoiceType:'sales',status:'completed',customerId:'c',customerName:'Test',paymentMethod:'credit',currency:'USD',amountDue:100,paidAmount:40,remainingDebt:60,items:[{id:'line',productId:'p',sku:'0001',name:'Tea',qty:2,unit:'Box'}] } as InvoiceRecord;
+  const filter = {from:'2026-10-01',to:'2026-10-31'};
+  it('Türkmençe başlıklar ve sıfırlı SKU korunur, mevcut çarpan geçmişe uygulanmaz', () => {
+    const rows=historyRows('stock',[invoice],[],[],filter);
+    expect(rows[0][4]).toBe('0001');expect(rows[0][6]).toBe('Box');expect(rows[0][7]).toBe(-2);
+    expect(historyColumns('stock')[5].header).toBe('Haryt');
+  });
+  it('aralık dışı faturanın aralık içindeki iptalini hareket olarak gösterir', () => {
+    const cancelled={...invoice,createdAt:'2026-09-01',status:'voided',voidedAt:'2026-10-15'} as InvoiceRecord;
+    const rows=historyRows('stock',[cancelled],[],[],filter);
+    expect(rows).toHaveLength(1);expect(rows[0][2]).toBe('void');expect(rows[0][7]).toBe(2);
+  });
+  it('bekleyen taslak stok hareketi sayılmaz; para birimi ayrı korunur', () => {
+    expect(historyRows('stock',[{...invoice,draftStatus:'pending'}],[],[],filter)).toHaveLength(0);
+    expect(historyRows('sales',[invoice],[],[],filter)[0][7]).toBe('USD');
+    expect(historyRows('sales',[invoice],[],[],{...filter,customerId:'other'})).toHaveLength(0);
+  });
+  it('kalan borç ikinci kez tahsilat çıkarılarak azaltılmaz', () => {
+    const rows=historyRows('debt',[invoice],[],[],filter);expect(rows[0][7]).toBe(60);
+  });
+  it('ters ve gerçek olmayan tarih aralığını reddeder', () => {
+    expect(validHistoryFilter({from:'2026-10-31',to:'2026-10-01'})).toBe(false);
+    expect(validHistoryFilter({from:'2026-02-30',to:''})).toBe(false);
+  });
+});

@@ -1,3 +1,6 @@
+import { MobileUpdateNotice } from '../mobile/MobileUpdateNotice';
+import { BackupReminder } from './BackupReminder';
+import type { LinkStatusMap } from '../../db/connectionStore';
 import { MirrorSyncWarning } from './MirrorSyncWarning';
 import { ResetCheckoutModal } from './ResetCheckoutModal';
 import { WorkspaceToastView } from './WorkspaceToast';
@@ -163,6 +166,8 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
   const t = useT();
 
   // Navigation
+  const [backupRequest, setBackupRequest] = useState(0);
+  const [connectionHealth, setConnectionHealth] = useState<LinkStatusMap>();
   const [activeTab, setActiveTab] = useState<PosTabType>('checkout');
   useTelemetry(activeTab);
   // Mobil: çekmece menü + satış içi sekme (sepet / ürünler / ödeme)
@@ -176,7 +181,7 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
 
   // CouchDB: son aktif baglantiyi acilista otomatik baslat;
   // PC'de hiç bağlantı yoksa yerel sunucuda otomatik kurulum yapılır
-  useAutoConnection(activeAccount.id, storeDb, activeAccount.databaseName);
+  useAutoConnection(activeAccount.id, storeDb, activeAccount.databaseName, setConnectionHealth);
 
   // Customer & Barcode
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -1109,6 +1114,8 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
         />
       )}
 
+      {native && <MobileUpdateNotice />}
+      {allowedTabs.has('settings') && <BackupReminder key={storeDb} storeDb={storeDb} createdAt={activeAccount.createdAt} onOpen={() => { setBackupRequest(v => v + 1); void handleTabChange('settings'); }} />}
       {/* 2. Ana Çalışma Alanı */}
       {activeTab === 'checkout' ? (
         native ? (
@@ -1392,6 +1399,9 @@ export const PosWorkspace: React.FC<PosWorkspaceProps> = ({
         /* === BEÝLEKI MODULLAR: WorkspaceRouter dolandyrýar === */
         <WorkspaceRouter
           activeTab={activeTab}
+          backupRequest={backupRequest}
+          syncStates={connectionHealth ? [connectionHealth.local.state, connectionHealth.online.state] : undefined}
+          licenseDays={licenseInfo?.daysLeft}
           language={language}
           currentUser={currentUser}
           products={visibleProducts}

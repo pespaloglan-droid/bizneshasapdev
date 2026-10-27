@@ -1,5 +1,28 @@
 apply plugin: 'com.android.application'
 
+// Secrets remain outside Git. Environment variables allow Linux/CI builds;
+// the existing Windows release.properties location remains compatible.
+def signingProps = new Properties()
+def propsPath = System.getenv('BIZNES_ANDROID_SIGNING_PROPERTIES')
+def propsFile = propsPath ? file(propsPath) : file('release.properties')
+if (!propsFile.exists() && System.getProperty('os.name').toLowerCase().contains('windows')) {
+    propsFile = new File('C:/Users/User/bizneshasap-keys/release.properties')
+}
+if (propsFile.exists()) propsFile.withInputStream { signingProps.load(it) }
+def signingValue = { key, envName -> System.getenv(envName) ?: signingProps.getProperty(key) }
+def releaseStore = signingValue('storeFile', 'BIZNES_ANDROID_KEYSTORE')
+def releaseStorePassword = signingValue('storePassword', 'BIZNES_ANDROID_STORE_PASSWORD')
+def releaseAlias = signingValue('keyAlias', 'BIZNES_ANDROID_KEY_ALIAS')
+def releaseKeyPassword = signingValue('keyPassword', 'BIZNES_ANDROID_KEY_PASSWORD')
+def hasReleaseSigning = releaseStore && releaseStorePassword && releaseAlias && releaseKeyPassword
+// Never accidentally distribute an unsigned release when secrets are absent.
+gradle.taskGraph.whenReady { graph ->
+    if (graph.allTasks.any { it.project == project && it.name.toLowerCase().contains('release') } && !hasReleaseSigning) {
+        throw new GradleException('Release signing is required. Configure the existing keystore outside Git.')
+    }
+}
+
+
 android {
     namespace "com.bizneshasap.pos"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +30,8 @@ android {
         applicationId "com.bizneshasap.pos"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 31
-        versionName "1.4.1"
+        versionCode 32
+        versionName "1.4.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,21 +41,17 @@ android {
     }
     signingConfigs {
         release {
-            def propsFile = file("C:/Users/User/Desktop/bizneshasap-keys/release.properties")
-            if (propsFile.exists()) {
-                def props = new Properties()
-                propsFile.withInputStream { props.load(it) }
-                storeFile file(props['storeFile'])
-                storePassword props['storePassword']
-                keyAlias props['keyAlias']
-                keyPassword props['keyPassword']
+            if (hasReleaseSigning) {
+                storeFile file(releaseStore)
+                storePassword releaseStorePassword
+                keyAlias releaseAlias
+                keyPassword releaseKeyPassword
             }
         }
     }
     buildTypes {
         release {
-            def propsFile = file("C:/Users/User/Desktop/bizneshasap-keys/release.properties")
-            if (propsFile.exists()) {
+            if (hasReleaseSigning) {
                 signingConfig signingConfigs.release
             }
             minifyEnabled false

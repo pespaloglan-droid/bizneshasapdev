@@ -657,3 +657,14 @@ Bundan sonra tüm APK'lar aynı release anahtarıyla imzalanır (üzerine günce
 - Lazy ekranlar ve gecikmeli ExcelJS yüklemesi eklendi; dört dil için mevcut yükleniyor çevirisi kullanılır.
 - Sürüm kaynağı 1.4.1 / 31 olarak hazırlandı. APK üretimi, imzalama ve gerçek cihaz testleri BEKLİYOR.
 - İmza anahtarı/parolaları repoya eklenmedi; `.jks`/`.keystore` ve yerel imza properties dosyaları ignore edildi.
+
+
+## 2026-10-27 — v1.4.2 kaynak adayı / ikinci etap
+- Atiyaclik sekmesi: allowlist'li 10 kapsam, şifreli dosya, önizleme, hesap bağı, kullanıcı onayı, satır bazlı hata ve kapsam sayıları. Eski import ekranı aynı güvenli akışa taşındı.
+- Fatura/kassa/borç/fatura-stok Excel çıktıları, tarih/müşteri filtresi, sabit Türkmençe kolonlar. Tam tarihsel ledger/hesap bakiyesi olduğu iddia edilmez.
+- Aylık yedek hatırlatması ve sağlık ekranı (depolama/DB boyutu tahmini ayrı etiketlenir).
+- APK release bildirimi; mobil lisansın doğrulanmış root signature'ından PC uyumlu anahtar; hesap değişiminde key cache ayrımı.
+- Yeni mobil kimlikte Device.getId, mevcut UUID lisanslarını koruma ve eşzamanlı anchor üretimine karşı tek işlem.
+- PC admin dosyasını safeStorage ile doğrulamalı taşıma; otomatik CouchDB oluşturma korundu. Android Keystore/diğer bağlantı vault'ları henüz uygulanmadı.
+- Mevcut release JKS kullanılacak. Sürüm 1.4.2 / 32; alias ve parola alınmadığı için imzalı dağıtım üretilmedi. Main merge/release/sunucu değişikliği yok.
+- Tüm madde durumları YAPILACAKLAR.md'nin ikinci etap bölümünde; doğrulama ve kalan gereksinimler UYGULAMA-RAPORU-2026-10-27.md'de.

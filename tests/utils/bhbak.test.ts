@@ -150,3 +150,97 @@ describe('bhbak büyük veri ve dosya doğrulaması', () => {
     await expect(decodeBhbak(bytes)).rejects.toThrow(/99/);
   });
 });
+
+// Selective backup uses a real validator but isolated database I/O.
+const backupIo = vi.hoisted(() => ({ allDocs: vi.fn(), upsertDoc: vi.fn() }));
+vi.mock('../../src/db/connectionStore', () => ({ loadConnection: () => ({ local: '', online: '', active: null }), saveConnection: vi.fn(), stopCurrent: vi.fn() }));
+vi.mock('../../src/db/pouch', () => ({ getLocalDatabase: () => ({ allDocs: backupIo.allDocs }), upsertDoc: backupIo.upsertDoc }));
+import { BACKUP_SCOPES, backupScope, inspectBackup, assertBackupAccount, exportSelectedBackup, restoreSelectedBackup, backupReminderDue, recordBackupSaved, lastBackupAt } from '../../src/db/backupService';
+
+const sampleProduct = { _id: 'product_1', _rev: '5-old', docType: 'product', product: { id: '1', sku: '001', barcode: '002', name: 'Çaý', category: '', price: 3, stock: 9, imageType: 'default' } };
+function makeBackup(docs: unknown[], extra: Record<string, unknown> = {}) { return inspectBackup(JSON.stringify({ app: 'biznes-hasap', version: 2, account: { id: 'A', storeDb: 'storeA' }, scopes: [...BACKUP_SCOPES], docs, ...extra })); }
+
+describe('seçimli tam yedek güvenliği', () => {
+  beforeEach(() => { backupIo.allDocs.mockReset(); backupIo.upsertDoc.mockReset().mockResolvedValue(undefined); });
+  it('on kapsamı tanır; lisans ve credential belgelerini dışarıda bırakır', () => {
+    for (const id of ['license', '_local/crypto', '_design/index', 'journal_1', 'credentials', 'settings_secret', 'account_A']) expect(backupScope(id)).toBeNull();
+    expect(backupScope('settings_roles')).toBe('users');
+    expect(backupScope('composition_1')).toBe('products');
+    expect(backupScope('customerprice_1')).toBe('customers');
+  });
+  it('yanlış hesaba hiçbir belge yazmaz', async () => {
+    const file = makeBackup([sampleProduct]);
+    expect(() => assertBackupAccount(file, 'B', 'storeA')).toThrow('ACCOUNT_MISMATCH');
+    await expect(restoreSelectedBackup('storeB', 'B', file, ['products'])).rejects.toThrow('ACCOUNT_MISMATCH');
+    expect(backupIo.upsertDoc).not.toHaveBeenCalled();
+  });
+  it('eski yedeği açık onay olmadan yazmaz', async () => {
+    const file = makeBackup([sampleProduct], { version: 1, account: undefined, scopes: undefined });
+    await expect(restoreSelectedBackup('storeA', 'A', file, ['products'])).rejects.toThrow('LEGACY_CONFIRMATION_REQUIRED');
+    expect(backupIo.upsertDoc).not.toHaveBeenCalled();
+    expect((await restoreSelectedBackup('storeA', 'A', file, ['products'], true)).written.products).toBe(1);
+  });
+  it('eksik docs, yabancı uygulama ve bilinmeyen kapsam reddedilir', () => {
+    expect(() => inspectBackup('{}')).toThrow('INVALID_BACKUP');
+    expect(() => makeBackup([], { app: 'other' })).toThrow('INVALID_BACKUP');
+    expect(() => makeBackup([], { scopes: ['credentials'] })).toThrow('INVALID_BACKUP');
+  });
+  it('bozuk satır, aynı ID, korunan belge ve tombstone raporlanır', () => {
+    const file = makeBackup([null, sampleProduct, sampleProduct, { _id: 'license' }, { _id: 'product_bad', _deleted: true }, { ...sampleProduct, _id: 'product_bad', product: { ...sampleProduct.product, id: 'bad', stock: 'oops' } }]);
+    expect(file.docs).toHaveLength(1); expect(file.issues).toHaveLength(5);
+    expect(file.docs[0]).not.toHaveProperty('_rev');
+  });
+  it('seçilmeyen kapsamı yazmaz ve her yazma hatasını kısmi özete ekler', async () => {
+    const file = makeBackup([sampleProduct, { _id: 'settings_roles', templates: {} }, { _id: 'unit_1', unit: { id: '1', labelTm: 'Sany' } }]);
+    backupIo.upsertDoc.mockRejectedValueOnce(new Error('disk-full'));
+    const result = await restoreSelectedBackup('storeA', 'A', file, ['products', 'users']);
+    expect(result.written.products).toBe(0); expect(result.written.users).toBe(1);
+    expect(result.failed).toHaveLength(1); expect(result.skipped).toBe(1);
+    expect(backupIo.upsertDoc).toHaveBeenCalledTimes(2);
+  });
+  it('export yalnızca seçilen kapsamı ve hesap bağını içerir', async () => {
+    backupIo.allDocs.mockResolvedValue({ rows: [{ doc: sampleProduct }, { doc: { _id: 'license', secret: 'NEVER' } }, { doc: { _id: 'settings_app' } }] });
+    const json = await exportSelectedBackup('storeA', 'A', ['products']);
+    expect(json).not.toContain('NEVER'); const file = JSON.parse(json);
+    expect(file.account).toEqual({ id: 'A', storeDb: 'storeA' }); expect(file.docs).toHaveLength(1);
+    expect(file.docs[0]._rev).toBeUndefined(); expect(file.scopes).toEqual(['products']);
+  });
+  it('boş kapsamla export veya restore başlatmaz', async () => {
+    await expect(exportSelectedBackup('storeA', 'A', [])).rejects.toThrow('NO_SCOPES');
+    await expect(restoreSelectedBackup('storeA', 'A', makeBackup([]), [])).rejects.toThrow('NO_SCOPES');
+  });
+  it('30 gün sınırını, yeni hesabı ve gelecekteki tarihi doğru ele alır', () => {
+    const now = Date.parse('2026-10-27T00:00:00Z');
+    expect(backupReminderDue('2026-09-27T00:00:00Z', '', now)).toBe(true);
+    expect(backupReminderDue('2026-09-28T00:00:00Z', '', now)).toBe(false);
+    expect(backupReminderDue(null, '2026-10-26', now)).toBe(false);
+    expect(backupReminderDue(null, 'invalid', now)).toBe(false);
+    expect(backupReminderDue('2027-01-01', '', now)).toBe(false);
+  });
+  it('son başarılı yedek hesabın kendi anahtarında saklanır', () => {
+    recordBackupSaved('backup-test-A');
+    expect(lastBackupAt('backup-test-A')).toBeTruthy();
+    expect(lastBackupAt('backup-test-B')).toBeNull();
+  });
+});
+
+
+it('yeni UI için şifreleme zorunluysa V1e sessiz düşmez', async () => {
+  deriveLicenseKey.mockResolvedValue(null);
+  await expect(encodeBhbak('{"docs":[]}', true)).rejects.toThrow('LICENSE_REQUIRED');
+});
+
+
+it('aynı lisans hesabı PC ve APKda farklı yerel UUID ile geri yüklenebilir; farklı mağaza reddedilir', async () => {
+  const file = makeBackup([sampleProduct], { account: { id: 'pc-local', storeDb: 'store_pc_local', licenseId: 'SHARED-LICENSE', databaseName: 'shop' } });
+  expect(() => assertBackupAccount(file, 'phone-local', 'store_phone_local', { licenseId: 'SHARED-LICENSE', databaseName: 'shop' })).not.toThrow();
+  expect(() => assertBackupAccount(file, 'phone-local', 'store_phone_local', { licenseId: 'OTHER', databaseName: 'shop' })).toThrow('ACCOUNT_MISMATCH');
+  expect(() => assertBackupAccount(file, 'phone-local', 'store_phone_local', { licenseId: 'SHARED-LICENSE', databaseName: 'other' })).toThrow('ACCOUNT_MISMATCH');
+});
+
+it('yazma hatası filtrelenmiş diziyi değil kaynak dosyadaki satırı bildirir', async () => {
+  backupIo.upsertDoc.mockReset().mockRejectedValue(new Error('disk-full'));
+  const file = makeBackup([null, sampleProduct]);
+  const result = await restoreSelectedBackup('storeA', 'A', file, ['products']);
+  expect(result.failed.find(issue => issue.code === 'WRITE_FAILED')?.row).toBe(2);
+});

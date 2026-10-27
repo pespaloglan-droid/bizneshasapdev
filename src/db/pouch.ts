@@ -1,3 +1,5 @@
+import { isNative } from '../utils/platform';
+import { deriveMobileLicenseKey } from '../utils/licenseMobile';
 import { measureOperation } from '../utils/performance';
 import { buildSelectivePullSelector, type SyncHistoryMonths } from './syncSelection';
 import PouchDB from 'pouchdb-browser';
@@ -19,6 +21,7 @@ const syncInstances = new Map<string, any>();
 
 // Lisans anahtarı cache (performans için)
 let cachedDbKey: number[] | null = null;
+let cachedDbKeyAccount: string | undefined;
 let lastKeyCheck = 0;
 const KEY_CACHE_TTL = 60000; // 1 dakika
 
@@ -32,6 +35,8 @@ const KEY_CACHE_TTL = 60000; // 1 dakika
  */
 export async function getDatabaseKey(): Promise<number[] | null> {
   const now = Date.now();
+  const activeLicenseId = getLicenseId();
+  if (cachedDbKeyAccount !== activeLicenseId) { cachedDbKey = null; lastKeyCheck = 0; cachedDbKeyAccount = activeLicenseId; }
   
   // Cache geçerliyse kullan
   if (cachedDbKey && (now - lastKeyCheck) < KEY_CACHE_TTL) {
@@ -58,12 +63,17 @@ export async function getDatabaseKey(): Promise<number[] | null> {
     }
   }
   
-  // Electron dışında (test/dev) - anahtar yok
+  // APK uses the same root-signature derivation as PC; plain web stays locked.
+  if (isNative()) {
+    const key = await deriveMobileLicenseKey(activeLicenseId, 'db');
+    if (key) { cachedDbKey = Array.from(key); lastKeyCheck = now; return cachedDbKey; }
+  }
   return null;
 }
 
 /** Testler için anahtar önbelleğini sıfırlar. Üretim kodunda çağırma. */
 export function resetDatabaseKeyCacheForTests(): void {
+  cachedDbKeyAccount = undefined;
   cachedDbKey = null;
   lastKeyCheck = 0;
 }

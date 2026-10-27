@@ -28,6 +28,9 @@ const HasaplamaWorkspace = lazy(() => import('../hasaplama/HasaplamaWorkspace').
 
 interface WorkspaceRouterProps {
   activeTab: PosTabType;
+  backupRequest?: number;
+  syncStates?: readonly string[];
+  licenseDays?: number;
   language: LanguageCode;
   currentUser: User;
   products: readonly Product[];
@@ -81,6 +84,9 @@ interface WorkspaceRouterProps {
  */
 const WorkspaceRouterContent: React.FC<WorkspaceRouterProps> = ({
   activeTab,
+  backupRequest,
+  syncStates,
+  licenseDays,
   language,
   currentUser,
   products,
@@ -320,6 +326,9 @@ const WorkspaceRouterContent: React.FC<WorkspaceRouterProps> = ({
       <SazlamalarWorkspace
         language={language}
         storeDb={storeDb}
+        backupRequest={backupRequest}
+        syncStates={syncStates}
+        licenseDays={licenseDays}
         account={account}
         companyName={companyName}
         currencyCode={currencyCode}
