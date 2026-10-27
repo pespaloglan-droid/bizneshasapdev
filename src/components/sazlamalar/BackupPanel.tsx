@@ -7,7 +7,7 @@ import { saveFileAs } from '../../utils/electron';
 import { localeFor } from '../../utils/locale';
 import { SYNC_IMPORTED_EVENT } from '../../db/schemaBridge';
 
-export const BackupPanel: React.FC<{ storeDb: string; accountId: string; canRestore: boolean; initialFile?: File; accountName?: string; licenseId?: string; databaseName?: string }> = ({ storeDb, accountId, canRestore, initialFile, accountName = accountId, licenseId, databaseName }) => {
+export const BackupPanel: React.FC<{ storeDb: string; accountId: string; canRestore: boolean; initialFile?: File; accountName?: string; licenseId?: string; databaseName?: string; showHistoryExports?: boolean }> = ({ storeDb, accountId, canRestore, initialFile, accountName = accountId, licenseId, databaseName, showHistoryExports = true }) => {
   const t = useT(); const { language } = useLanguage();
   const [selected, setSelected] = useState<BackupScope[]>([...BACKUP_SCOPES]);
   const [backup, setBackup] = useState<BackupFile | null>(null);
@@ -76,7 +76,7 @@ export const BackupPanel: React.FC<{ storeDb: string; accountId: string; canRest
     {message && <p role="status" className="p-3 rounded-xl border text-sm">{message}</p>}
     {result && <p role="status" className="text-sm font-bold">{t('backup.summary', { written: Object.values(result.written).reduce((a,b) => a+b,0), failed: result.failed.length, skipped: result.skipped })}</p>}
     {result && <ul className="text-sm">{BACKUP_SCOPES.filter(s => restoreScopes.includes(s)).map(s => <li key={s}>{t(`backup.${s}`)}: {result.written[s]}</li>)}</ul>}
-    <HistoryExportsPanel storeDb={storeDb} accountName={accountName} />
+    {showHistoryExports && <HistoryExportsPanel storeDb={storeDb} accountName={accountName} />}
     {!!issues.length && <div className="border rounded-xl p-3 overflow-auto"><h3 className="font-bold mb-2">{t('backup.issues')}</h3><table className="text-xs w-full"><thead><tr><th>{t('backup.row')}</th><th>ID</th><th>{t('backup.code')}</th></tr></thead><tbody>{issues.map((issue,i) => <tr key={i}><td>{issue.row}</td><td className="break-all">{issue.id}</td><td>{issue.code}</td></tr>)}</tbody></table></div>}
   </section>;
 };
